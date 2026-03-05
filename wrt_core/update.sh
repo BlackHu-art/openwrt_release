@@ -33,6 +33,7 @@ source "$SCRIPT_DIR/modules/general.sh"
 source "$SCRIPT_DIR/modules/feeds.sh"
 source "$SCRIPT_DIR/modules/packages.sh"
 source "$SCRIPT_DIR/modules/system.sh"
+source "$SCRIPT_DIR/modules/cups.sh"
 
 main() {
     clone_repo
@@ -83,6 +84,7 @@ main() {
     fix_easytier_mk
     remove_attendedsysupgrade
     fix_kconfig_recursive_dependency
+    fix_cups_libcups_avahi_depends
     install_feeds
     fix_easytier_lua
     update_adguardhome
