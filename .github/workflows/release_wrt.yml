@@ -18,151 +18,199 @@ on:
 permissions: write-all
 
 env:
-  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+  TZ: Asia/Shanghai
+  CCACHE_DIR: ./action_build/.ccache
+  CCACHE_MAXSIZE: 2G
 
 jobs:
   build:
-    strategy:
-      matrix:
-        os: [ubuntu-24.04]
-    runs-on: ${{ matrix.os }}
+    runs-on: ubuntu-24.04
 
     steps:
-      - name: Free disk space
+
+#------------------------------------------------
+# 释放磁盘
+#------------------------------------------------
+      - name: Free Disk Space
         uses: sbwml/actions@free-disk
 
-      - name: Build System Setup
+#------------------------------------------------
+# 系统环境
+#------------------------------------------------
+      - name: Build Environment
         run: |
           sudo bash -c 'bash <(curl -sL https://build-scripts.immortalwrt.org/init_build_environment.sh)'
-          sudo -E apt -yqq install dos2unix libfuse-dev
-          sudo -E apt -yqq autoremove --purge
-          sudo -E apt -yqq autoclean
-          sudo -E apt -yqq clean
-          sudo -E systemctl daemon-reload
+          sudo apt -y install dos2unix libfuse-dev ccache jq
 
+#------------------------------------------------
+# 拉代码
+#------------------------------------------------
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Grant execute permissions to scripts
+#------------------------------------------------
+# 脚本权限
+#------------------------------------------------
+      - name: Grant execute permission
         run: |
           find . -name "*.sh" -exec chmod +x {} \;
 
-      - name: Set Build Date and Timezone
+#------------------------------------------------
+# 构建时间
+#------------------------------------------------
+      - name: Build Info
         run: |
-          sudo -E timedatectl set-timezone "Asia/Shanghai"
-          BUILD_DATE=$(TZ=UTC-8 date +"%y.%m.%d_%H.%M.%S")
+          BUILD_DATE=$(date +"%Y.%m.%d_%H.%M")
           echo "BUILD_DATE=$BUILD_DATE" >> $GITHUB_ENV
-          BUILD_SRC=$(awk -F"=" '/REPO_URL/ {print $NF}' "./wrt_core/compilecfg/${{ inputs.model }}.ini")
-          echo "BUILD_SRC=$BUILD_SRC" >> $GITHUB_ENV
 
+#------------------------------------------------
+# 预克隆源码
+#------------------------------------------------
       - name: Pre Clone
-        run: ./wrt_core/pre_clone_action.sh ${{ inputs.model }}
+        run: |
+          ./wrt_core/pre_clone_action.sh ${{ inputs.model }}
 
-      # ✅ 修复后的缓存配置（不再使用 hashFiles）
-      - name: Cache Dependencies
+#------------------------------------------------
+# ccache + toolchain缓存
+#------------------------------------------------
+      - name: Cache Build
         uses: actions/cache@v4
         with:
           path: |
             ./action_build/.ccache
             ./action_build/staging_dir
-          key: ${{ matrix.os }}-wrt-${{ inputs.model }}-${{ github.ref_name }}
+          key: wrt-${{ inputs.model }}-${{ github.ref_name }}
           restore-keys: |
-            ${{ matrix.os }}-wrt-${{ inputs.model }}-
-            ${{ matrix.os }}-wrt-
+            wrt-${{ inputs.model }}-
+            wrt-
 
-      - name: Refresh the cache
+#------------------------------------------------
+# ccache信息
+#------------------------------------------------
+      - name: Configure ccache
         run: |
-          if [ -d "./action_build/staging_dir" ]; then
-            find "./action_build/staging_dir" -type d -name "stamp" -not -path "*target*" | while read -r dir; do
-                find "$dir" -type f -exec touch {} +
-            done
-          fi
+          ccache -M $CCACHE_MAXSIZE
+          ccache -s || true
 
+#------------------------------------------------
+# 编译
+#------------------------------------------------
       - name: Build Firmware
-        run: ./build.sh ${{ inputs.model }}
+        run: |
+          ./build.sh ${{ inputs.model }} 2>&1 | tee build.log
 
-      - name: Get Kernel Version
+#------------------------------------------------
+# 上传编译日志
+#------------------------------------------------
+      - name: Upload Build Log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-log-${{ inputs.model }}
+          path: build.log
+
+#------------------------------------------------
+# 获取内核
+#------------------------------------------------
+      - name: Kernel Version
+        if: success()
         run: |
           KVER=$(grep -oP "^kernel.*" ./firmware/*.manifest | grep -oP "[4-6]\.[0-9]{1,3}\.[0-9]{1,3}")
           echo "KVER=$KVER" >> $GITHUB_ENV
 
-      - name: Machine Information
-        run: |
-          echo "=============================================="
-          lscpu | grep -E "name|Core|Thread"
-          echo "=============================================="
-          df -h
-          echo "=============================================="
+#------------------------------------------------
+# 上传固件 Artifact 备份
+#------------------------------------------------
+      - name: Upload Firmware Artifact
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: firmware-${{ inputs.model }}
+          path: ./firmware/*.*
 
+#------------------------------------------------
+# Release说明
+#------------------------------------------------
       - name: Prepare Release Body
+        if: success()
         run: |
           cat > release_body.txt <<EOF
-          🚀 **云编译发布**
+          🚀 ImmortalWrt Cloud Build
 
-          📦 **固件信息**
-          - 内核版本：${{ env.KVER }}
+          📦 Kernel: ${{ env.KVER }}
 
-          🔧 **默认配置**
-          - WIFI 密码：\`12345678\`
-          - LAN 地址：\`10.0.0.1\`
+          🔧 Default Config
+          WIFI Password: 12345678
+          LAN IP: 10.0.0.1
 
-          🧩 **预装插件**
+          🧩 Installed Plugins
           $(grep -oP "luci-app(-[a-zA-Z0-9]{1,}){1,}" ./firmware/*.manifest | awk -F":" '{print "- " $NF}')
           EOF
 
+#------------------------------------------------
+# 发布 Release
+#------------------------------------------------
       - name: Release Firmware
+        if: success()
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ env.BUILD_DATE }}_${{ inputs.model }}
+          tag_name: ${{ inputs.model }}_${{ env.BUILD_DATE }}
           files: ./firmware/*.*
           body_path: ./release_body.txt
-      
-      - name: Auto Cleanup Old Cache
+
+#------------------------------------------------
+# 清理旧 Release（保留2个）
+#------------------------------------------------
+      - name: Cleanup Old Releases
+        if: success()
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          echo "====== Listing caches for this model ======"
+          KEEP=2
+          gh release list --limit 100 --json tagName,publishedAt \
+            | jq -r '.[] | "\(.publishedAt) \(.tagName)"' \
+            | sort -r \
+            | awk "NR>$KEEP {print \$2}" \
+            | while read tag; do
+                echo "Delete old release $tag"
+                gh release delete "$tag" --yes --cleanup-tag
+              done
 
-          PREFIX="${{ matrix.os }}-wrt-${{ inputs.model }}-"
+#------------------------------------------------
+# 清理旧 Cache
+#------------------------------------------------
+      - name: Cleanup Cache
+        if: always()
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          PREFIX="wrt-${{ inputs.model }}-"
 
           gh cache list --limit 100 --json key,createdAt \
             | jq -r '.[] | select(.key | startswith("'"$PREFIX"'")) | "\(.createdAt) \(.key)"' \
             | sort -r \
-            | awk 'NR>1 {print $2}' \
-            | while read -r oldkey; do
-                echo "Deleting old cache: $oldkey"
-                gh cache delete "$oldkey"
+            | awk 'NR>2 {print $2}' \
+            | while read key; do
+                echo "Delete cache $key"
+                gh cache delete "$key"
               done
 
-          echo "====== Cleanup complete ======"
-
-      - name: Machine Information
+#------------------------------------------------
+# 显示ccache统计
+#------------------------------------------------
+      - name: ccache Stats
+        if: always()
         run: |
-          echo "=============================================="
-          lscpu | grep -E "name|Core|Thread"
-          echo "=============================================="
+          ccache -s || true
+
+#------------------------------------------------
+# 系统信息
+#------------------------------------------------
+      - name: Machine Info
+        if: always()
+        run: |
+          echo "CPU"
+          lscpu | grep -E "Model name|Core|Thread"
+          echo
+          echo "Disk"
           df -h
-          echo "=============================================="
-
-      - name: Prepare Release Body
-        run: |
-          cat > release_body.txt <<EOF
-          🚀 **云编译发布**
-
-          📦 **固件信息**
-          - 内核版本：${{ env.KVER }}
-
-          🔧 **默认配置**
-          - WIFI 密码：\`12345678\`
-          - LAN 地址：\`10.0.0.1\`
-
-          🧩 **预装插件**
-          $(grep -oP "luci-app(-[a-zA-Z0-9]{1,}){1,}" ./firmware/*.manifest | awk -F":" '{print "- " $NF}')
-          EOF
-
-      - name: Release Firmware
-        uses: softprops/action-gh-release@v2.5.0
-        with:
-          tag_name: ${{ env.BUILD_DATE }}_${{ inputs.model }}
-          files: ${{ inputs.model == 'n1_immwrt' && env.PACKAGED_OUTPUTPATH || './firmware' }}/*.*
-          body_path: ./release_body.txt
