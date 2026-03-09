@@ -85,7 +85,18 @@ jobs:
             wrt-
 
 #------------------------------------------------
-# ccache信息
+# Refresh ccache信息
+#------------------------------------------------
+      - name: Refresh the cache
+        run: |
+          if [ -d "./action_build/staging_dir" ]; then
+            find "./action_build/staging_dir" -type d -name "stamp" -not -path "*target*" | while read -r dir; do
+                find "$dir" -type f -exec touch {} +
+            done
+          fi
+
+#------------------------------------------------
+# configure ccache信息
 #------------------------------------------------
       - name: Configure ccache
         run: |
