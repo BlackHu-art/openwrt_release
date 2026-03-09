@@ -1,0 +1,267 @@
+name: Release WRT
+run-name: Release - ${{ inputs.model }}
+
+on:
+  workflow_dispatch:
+    inputs:
+      model:
+        required: true
+        description: Device Model
+        type: choice
+        default: jdcloud_ipq60xx_immwrt
+        options:
+          - jdcloud_ipq60xx_immwrt
+          - jdcloud_ipq60xx_libwrt
+          - link_nn6000v2_immwrt
+          - x64_immwrt
+
+permissions: write-all
+
+env:
+  TZ: Asia/Shanghai
+  CCACHE_DIR: ./action_build/.ccache
+  DL_DIR: ./action_build/dl
+  STAGING_DIR: ./action_build/staging_dir
+
+jobs:
+  build:
+
+    runs-on: ubuntu-24.04
+    timeout-minutes: 360
+
+    steps:
+
+#------------------------------------------------
+# 释放磁盘
+#------------------------------------------------
+
+    - name: Free disk space
+      uses: sbwml/actions@free-disk
+
+#------------------------------------------------
+# 构建环境
+#------------------------------------------------
+
+    - name: Build System Setup
+      run: |
+        sudo bash -c 'bash <(curl -sL https://build-scripts.immortalwrt.org/init_build_environment.sh)'
+        sudo apt -y install dos2unix libfuse-dev ccache jq
+
+#------------------------------------------------
+# checkout
+#------------------------------------------------
+
+    - name: Checkout
+      uses: actions/checkout@v4
+
+#------------------------------------------------
+# 脚本权限
+#------------------------------------------------
+
+    - name: Grant execute permissions
+      run: |
+        find . -name "*.sh" -exec chmod +x {} \;
+
+#------------------------------------------------
+# 构建信息
+#------------------------------------------------
+
+    - name: Build info
+      run: |
+        BUILD_DATE=$(date +"%Y.%m.%d_%H.%M")
+        echo "BUILD_DATE=$BUILD_DATE" >> $GITHUB_ENV
+
+#------------------------------------------------
+# 预克隆
+#------------------------------------------------
+
+    - name: Pre Clone
+      run: |
+        ./wrt_core/pre_clone_action.sh ${{ inputs.model }}
+
+#------------------------------------------------
+# cache dl
+#------------------------------------------------
+
+    - name: Cache dl
+      uses: actions/cache@v4
+      with:
+        path: ${{ env.DL_DIR }}
+        key: dl-${{ inputs.model }}
+        restore-keys: |
+          dl-
+
+#------------------------------------------------
+# cache toolchain
+#------------------------------------------------
+
+    - name: Cache toolchain
+      uses: actions/cache@v4
+      with:
+        path: ${{ env.STAGING_DIR }}
+        key: toolchain-${{ inputs.model }}-${{ github.ref_name }}
+        restore-keys: |
+          toolchain-${{ inputs.model }}-
+          toolchain-
+
+#------------------------------------------------
+# cache ccache
+#------------------------------------------------
+
+    - name: Cache ccache
+      uses: actions/cache@v4
+      with:
+        path: ${{ env.CCACHE_DIR }}
+        key: ccache-${{ inputs.model }}
+        restore-keys: |
+          ccache-
+
+#------------------------------------------------
+# ccache配置
+#------------------------------------------------
+
+    - name: Configure ccache
+      run: |
+        ccache -M 3G
+        ccache -s || true
+
+#------------------------------------------------
+# 刷新缓存时间
+#------------------------------------------------
+
+    - name: Refresh staging
+      run: |
+        if [ -d "$STAGING_DIR" ]; then
+          find "$STAGING_DIR" -type f -exec touch {} +
+        fi
+
+#------------------------------------------------
+# 编译
+#------------------------------------------------
+
+    - name: Build Firmware
+      run: |
+        set -o pipefail
+        ./build.sh ${{ inputs.model }} 2>&1 | tee build.log
+
+#------------------------------------------------
+# 上传日志
+#------------------------------------------------
+
+    - name: Upload Build Log
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: build-log-${{ inputs.model }}
+        path: build.log
+
+#------------------------------------------------
+# 获取内核版本
+#------------------------------------------------
+
+    - name: Kernel Version
+      if: success()
+      run: |
+        KVER=$(grep -oP "^kernel.*" ./firmware/*.manifest | grep -oP "[4-6]\.[0-9]+\.[0-9]+")
+        echo "KVER=$KVER" >> $GITHUB_ENV
+
+#------------------------------------------------
+# 上传固件 artifact
+#------------------------------------------------
+
+    - name: Upload Firmware Artifact
+      if: success()
+      uses: actions/upload-artifact@v4
+      with:
+        name: firmware-${{ inputs.model }}
+        path: ./firmware/*.*
+
+#------------------------------------------------
+# release body
+#------------------------------------------------
+
+    - name: Prepare Release Body
+      if: success()
+      run: |
+        cat > release.txt <<EOF
+        ImmortalWrt Cloud Build
+
+        Device: ${{ inputs.model }}
+        Kernel: ${{ env.KVER }}
+
+        WIFI: 12345678
+        LAN: 10.0.0.1
+        EOF
+
+#------------------------------------------------
+# 发布 release
+#------------------------------------------------
+
+    - name: Release Firmware
+      if: success()
+      uses: softprops/action-gh-release@v2
+      with:
+        tag_name: ${{ inputs.model }}_${{ env.BUILD_DATE }}
+        files: ./firmware/*.*
+        body_path: release.txt
+
+#------------------------------------------------
+# 清理旧 release（只清理当前设备）
+#------------------------------------------------
+
+    - name: Cleanup Old Releases
+      if: success()
+      env:
+        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      run: |
+        KEEP=2
+
+        gh release list --limit 100 --json tagName,publishedAt \
+        | jq -r '.[] | select(.tagName | startswith("${{ inputs.model }}")) | "\(.publishedAt) \(.tagName)"' \
+        | sort -r \
+        | awk "NR>$KEEP {print \$2}" \
+        | while read tag
+        do
+          echo "Delete release $tag"
+          gh release delete "$tag" --yes --cleanup-tag
+        done
+
+#------------------------------------------------
+# 清理 cache
+#------------------------------------------------
+
+    - name: Cleanup cache
+      if: always()
+      env:
+        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      run: |
+        PREFIX="toolchain-${{ inputs.model }}"
+
+        gh cache list --limit 100 --json key,createdAt \
+        | jq -r '.[] | select(.key | startswith("'"$PREFIX"'")) | "\(.createdAt) \(.key)"' \
+        | sort -r \
+        | awk 'NR>2 {print $2}' \
+        | while read key
+        do
+          gh cache delete "$key"
+        done
+
+#------------------------------------------------
+# ccache统计
+#------------------------------------------------
+
+    - name: ccache stats
+      if: always()
+      run: |
+        ccache -s || true
+
+#------------------------------------------------
+# 机器信息
+#------------------------------------------------
+
+    - name: Machine Info
+      if: always()
+      run: |
+        lscpu | grep -E "Model name|Core|Thread"
+        echo
+        df -h
