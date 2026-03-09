@@ -12,6 +12,7 @@ on:
         options:
           - jdcloud_ipq60xx_immwrt
           - jdcloud_ipq60xx_libwrt
+          - link_nn6000v2_immwrt
           - x64_immwrt
 
 permissions: write-all
