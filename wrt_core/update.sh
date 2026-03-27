@@ -52,7 +52,6 @@ main() {
     update_default_lan_addr
     remove_something_nss_kmod
     update_affinity_script
-    # install_libubox_cmake_patch
     update_ath11k_fw
     # fix_mkpkg_format_invalid
     change_cpuusage
