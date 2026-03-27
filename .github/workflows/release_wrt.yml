@@ -157,7 +157,7 @@ jobs:
           files: ./firmware/*.*
           body_path: ./release_body.txt
 
-      # Cleanup Releases + Workflow Runs
+      # Cleanup Releases (Keep Last 2)
       - name: Cleanup Old Data
         if: success()
         env:
@@ -171,8 +171,6 @@ jobs:
 
           KEEP_RELEASE=2
           MODEL="${{ inputs.model }}"
-
-          echo
           echo "Keeping latest $KEEP_RELEASE releases for model: $MODEL"
 
           gh release list \
@@ -188,14 +186,14 @@ jobs:
                 gh release delete "$tag" --yes --cleanup-tag
               done
 
-          ################################################
-          # Cleanup Workflow Runs
-          ################################################
-
+      # # Cleanup Workflow Runs (Keep Last 10)
+      - name: Cleanup Old Data
+        if: success()
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
           KEEP=10
-
           echo "Keeping latest $KEEP workflow runs"
-
           gh run list \
             --limit 200 \
             --status completed \
