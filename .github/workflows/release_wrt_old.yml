@@ -42,13 +42,13 @@ jobs:
           sudo -E apt -yqq clean
           sudo -E systemctl daemon-reload
 
+      - name: Checkout
+        uses: actions/checkout@v6.0.2
+      
       # 脚本权限
       - name: Grant execute permission
         run: |
           find . -name "*.sh" -exec chmod +x {} \;
-
-      - name: Checkout
-        uses: actions/checkout@v6.0.2
 
       - name: Set Build Date and Timezone
         run: |
