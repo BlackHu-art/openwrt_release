@@ -1,4 +1,4 @@
-name: Release WRT
+name: Release WRT Old
 run-name: Release - ${{ inputs.model }}
 
 on:
@@ -15,6 +15,8 @@ on:
           - jdcloud_ipq60xx_libwrt
           - link_nn6000v2_immwrt
           - x64_immwrt
+
+permissions: write-all
 
 env:
   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -98,15 +100,6 @@ jobs:
           echo "=============================================="
           df -h
           echo "=============================================="
-
-      - name: Package OpenWrt Firmware
-        if: ${{ inputs.model == 'n1_immwrt' }}
-        uses: unifreq/openwrt_packit@master
-        env:
-          OPENWRT_ARMVIRT: firmware/*.tar.gz
-          PACKAGE_SOC: s905d
-          KERNEL_VERSION_NAME: 6.6.y
-          WHOAMI: ZqinKing
 
       - name: Prepare Release Body
         run: |

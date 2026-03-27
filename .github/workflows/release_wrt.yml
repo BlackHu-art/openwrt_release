@@ -105,13 +105,22 @@ jobs:
         run: |
           echo "KVER=$(grep -oP "^kernel.*" ./firmware/*.manifest | grep -oP "[4-6]\.[0-9]{1,3}\.[0-9]{1,3}")" >> $GITHUB_ENV
 
-      # 上传固件 Artifact 备份
-      - name: Upload Firmware Artifact
-        if: success()
-        uses: actions/upload-artifact@v5
-        with:
-          name: firmware-${{ inputs.model }}
-          path: ./firmware/*.*
+      # 清理旧 Cache
+      - name: Cleanup Cache
+        if: always()
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          PREFIX="wrt-${{ inputs.model }}-"
+
+          gh cache list --limit 100 --json key,createdAt \
+            | jq -r '.[] | select(.key | startswith("'"$PREFIX"'")) | "\(.createdAt) \(.key)"' \
+            | sort -r \
+            | awk 'NR>2 {print $2}' \
+            | while read key; do
+                echo "Delete cache $key"
+                gh cache delete "$key"
+              done
 
       # Release说明
       - name: Prepare Release Body
@@ -145,50 +154,44 @@ jobs:
         uses: softprops/action-gh-release@v2.5.0
         with:
           tag_name: ${{ env.BUILD_DATE }}_${{ inputs.model }}
-          files: ./firmware/**
+          files: ./firmware/*.*
           body_path: ./release_body.txt
 
-      # 清理旧 Release（保留2个）
-      - name: Cleanup Old Releases
+      # Cleanup Releases + Workflow Runs
+      - name: Cleanup Old Data
         if: success()
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          KEEP=2
+          echo "========== Cleanup Start =========="
+
+          ################################################
+          # Cleanup Releases
+          ################################################
+
+          KEEP_RELEASE=2
           MODEL="${{ inputs.model }}"
 
-          gh release list --limit 200 --json tagName,publishedAt \
-            | jq -r ".[] | select(.tagName | startswith(\"$MODEL\")) | \"\(.publishedAt) \(.tagName)\"" \
+          echo
+          echo "Keeping latest $KEEP_RELEASE releases for model: $MODEL"
+
+          gh release list \
+            --limit 200 \
+            --json tagName,publishedAt \
+            | jq -r ".[] 
+                | select(.tagName | contains(\"$MODEL\")) 
+                | \"\(.publishedAt) \(.tagName)\"" \
             | sort -r \
-            | awk "NR>$KEEP {print \$2}" \
+            | awk "NR>$KEEP_RELEASE {print \$2}" \
             | while read tag; do
-                echo "Deleting $tag"
+                echo "Deleting release $tag"
                 gh release delete "$tag" --yes --cleanup-tag
               done
 
-      # 清理旧 Cache
-      - name: Cleanup Cache
-        if: always()
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          PREFIX="wrt-${{ inputs.model }}-"
+          ################################################
+          # Cleanup Workflow Runs
+          ################################################
 
-          gh cache list --limit 100 --json key,createdAt \
-            | jq -r '.[] | select(.key | startswith("'"$PREFIX"'")) | "\(.createdAt) \(.key)"' \
-            | sort -r \
-            | awk 'NR>2 {print $2}' \
-            | while read key; do
-                echo "Delete cache $key"
-                gh cache delete "$key"
-              done
-
-      # Cleanup Workflow Runs (Keep Last 10)
-      - name: Cleanup Old Workflow Runs
-        if: success()
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
           KEEP=10
 
           echo "Keeping latest $KEEP workflow runs"
