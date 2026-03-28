@@ -4,19 +4,6 @@ run-name: Release - ${{ github.event_name }}
 
 on:
   workflow_dispatch:
-    inputs:
-      model:
-        required: true
-        description: Device Model
-        type: choice
-        default: jdcloud_ipq60xx_immwrt
-        options:
-          - jdcloud_ax6000_immwrt
-          - jdcloud_ipq60xx_immwrt
-          - jdcloud_ipq60xx_libwrt
-          - link_nn6000v2_immwrt
-          - x64_immwrt
-
   push:
     branches:
       - master
@@ -54,14 +41,9 @@ jobs:
 
     steps:
 
-      # 统一 MODEL 变量（关键）
       - name: Set MODEL
         run: |
-          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            echo "MODEL=${{ inputs.model }}" >> $GITHUB_ENV
-          else
-            echo "MODEL=${{ matrix.model }}" >> $GITHUB_ENV
-          fi
+          echo "MODEL=${{ matrix.model }}" >> $GITHUB_ENV
 
       - name: Build System Setup
         run: |
