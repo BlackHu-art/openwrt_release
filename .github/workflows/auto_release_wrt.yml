@@ -22,6 +22,9 @@ on:
       - master
     paths-ignore:
       - README.md
+      - .gitignore
+      - .github/workflows/auto_release_wrt.yml
+      - .github/workflows/release_wrt.yml
 
 permissions: write-all
 
