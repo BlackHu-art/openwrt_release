@@ -167,14 +167,11 @@ jobs:
 
           cat > release_body.txt <<EOF
           🚀 ImmortalWrt Cloud Build
-
           📦 Kernel: ${{ env.KVER }}
+          🔧 LAN IP: 10.0.0.1
+          📶 WIFI Password: 12345678
 
-          🔧 Default Config
-          - WIFI Password: 12345678
-          - LAN IP: 10.0.0.1
-
-          🧩 Installed Plugins
+          🧩 Installed Plugins:
 
           \`\`\`
           $PLUGINS
