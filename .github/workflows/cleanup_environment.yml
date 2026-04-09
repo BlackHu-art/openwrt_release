@@ -15,7 +15,7 @@ on:
           - workflow_runs_only
       model_filter:
         required: false
-        description: Model Filter (leave empty for all models)
+        description: Model Filter
         type: choice
         default: jdcloud_ipq60xx_immwrt
         options:
