@@ -1,0 +1,236 @@
+name: Release Wrt - All Models
+
+on:
+  workflow_dispatch:
+
+permissions: write-all
+
+env:
+  TZ: Asia/Shanghai
+  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        os: [ubuntu-24.04]
+        model: [
+          'jdcloud_ax6000_immwrt',
+          'jdcloud_ipq60xx_immwrt', 
+          'jdcloud_ipq60xx_libwrt',
+          'link_nn6000v2_immwrt',
+          'x64_immwrt'
+        ]
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      # 系统环境
+      - name: Build Environment
+        run: |
+          sudo bash -c 'bash <(curl -sL https://build-scripts.immortalwrt.org/init_build_environment.sh)'
+          sudo -E apt -yqq install dos2unix
+          sudo -E apt -yqq install libfuse-dev
+          sudo -E apt -yqq autoremove --purge
+          sudo -E apt -yqq autoclean
+          sudo -E apt -yqq clean
+          sudo -E systemctl daemon-reload
+
+      # 拉代码
+      - name: Checkout
+        uses: actions/checkout@v6.0.2
+
+      # 脚本权限
+      - name: Grant execute permission
+        run: |
+          find . -name "*.sh" -exec chmod +x {} \;
+
+      - name: Set Build Date and Timezone
+        run: |
+          sudo -E timedatectl set-timezone "Asia/Shanghai"
+          export BUILD_DATE=$(TZ=UTC-8 date +"%y.%m.%d_%H.%M.%S")
+          echo "BUILD_DATE=$BUILD_DATE" >> $GITHUB_ENV
+          export BUILD_SRC=$(awk -F"=" '/REPO_URL/ {print $NF}' "./wrt_core/compilecfg/${{ matrix.model }}.ini")
+          echo "BUILD_SRC=$BUILD_SRC" >> $GITHUB_ENV
+
+      # 预克隆源码
+      - name: Pre Clone
+        run: |
+          ./wrt_core/pre_clone_action.sh ${{ matrix.model }}
+
+      - name: Cache Dependencies
+        uses: actions/cache@v5.0.2
+        with:
+          path: |
+            ./action_build/.ccache
+            ./action_build/staging_dir
+          key: ${{ matrix.os }}-${{ matrix.model }}-${{ hashFiles('**/repo_flag') }}-${{ env.BUILD_DATE }}
+          restore-keys: |
+            ${{ matrix.os }}-${{ matrix.model }}-${{ hashFiles('**/repo_flag') }}-
+
+      - name: Refresh the cache
+        run: |
+          if [ -d "./action_build/staging_dir" ]; then
+            find "./action_build/staging_dir" -type d -name "stamp" -not -path "*target*" | while read -r dir; do
+                find "$dir" -type f -exec touch {} +
+            done
+          fi
+
+      - name: Machine Information (Pre-build)
+        run: |
+          echo "=============== Pre-build Snapshot for ${{ matrix.model }} ==============="
+          echo "Time: $(date '+%F %T %Z')"
+          echo "Runner: ${RUNNER_NAME} (${RUNNER_OS}/${RUNNER_ARCH})"
+          echo "Kernel: $(uname -r)"
+          echo "Uptime: $(uptime -p)"
+          echo "=================================================="
+          echo "[CPU]"
+          lscpu | grep -E "Model name|Architecture|CPU\\(s\\)|Thread\\(s\\) per core|Core\\(s\\) per socket|CPU max MHz"
+          echo "=================================================="
+          echo "[Memory]"
+          free -h
+          echo "=================================================="
+          echo "[Disk]"
+          df -hT
+          echo "--------------------------------------------------"
+          df -hi
+          echo "=================================================="
+          echo "[Workspace]"
+          echo "GITHUB_WORKSPACE=${GITHUB_WORKSPACE}"
+          du -sh "${GITHUB_WORKSPACE}" 2>/dev/null || true
+          du -sh ./action_build/.ccache 2>/dev/null || true
+          du -sh ./action_build/staging_dir 2>/dev/null || true
+          du -sh ./firmware 2>/dev/null || true
+          echo "=================================================="
+
+      - name: Build Firmware
+        run: |
+          ./build.sh ${{ matrix.model }}
+
+      # 获取内核
+      - name: Kernel Version
+        if: success()
+        run: |
+          echo "KVER=$(grep -oP "^kernel.*" ./firmware/*.manifest | grep -oP "[4-6]\.[0-9]{1,3}\.[0-9]{1,3}")" >> $GITHUB_ENV
+
+      - name: Delete Old Cache
+        run: |
+          # 获取缓存列表并删除
+          gh cache list --key ${{ matrix.os }}-${{ matrix.model }}-${{ hashFiles('**/repo_flag') }}- --json key --jq '.[] | .key' | while read -r key; do
+            gh cache delete "$key"
+          done
+          # 输出缓存状态
+          echo "========cache status========"
+          echo "ccache: $(du -sh ./action_build/.ccache | cut -f 1)"
+          echo "staging: $(du -sh ./action_build/staging_dir | cut -f 1)"
+      
+      - name: Machine Information (Post-build)
+        run: |
+          echo "=============== Post-build Snapshot for ${{ matrix.model }} ==============="
+          echo "Time: $(date '+%F %T %Z')"
+          echo "Runner: ${RUNNER_NAME} (${RUNNER_OS}/${RUNNER_ARCH})"
+          echo "Kernel: $(uname -r)"
+          echo "Uptime: $(uptime -p)"
+          echo "===================================================="
+          echo "[CPU]"
+          lscpu | grep -E "Model name|Architecture|CPU\\(s\\)|Thread\\(s\\) per core|Core\\(s\\) per socket|CPU max MHz"
+          echo "===================================================="
+          echo "[Memory]"
+          free -h
+          echo "===================================================="
+          echo "[Disk]"
+          df -hT
+          echo "----------------------------------------------------"
+          df -hi
+          echo "===================================================="
+          echo "[Build Outputs]"
+          du -sh ./action_build/.ccache 2>/dev/null || true
+          du -sh ./action_build/staging_dir 2>/dev/null || true
+          du -sh ./firmware 2>/dev/null || true
+          echo "Firmware file count: $(ls -1 ./firmware 2>/dev/null | wc -l)"
+          echo "===================================================="
+
+      # Release说明
+      - name: Prepare Release Body
+        if: success()
+        run: |
+          PLUGINS=$(grep -h -oP "luci-app(-[a-zA-Z0-9]{1,}){1,}" ./firmware/*.manifest 2>/dev/null \
+            | sort -u \
+            | paste - - - \
+            | awk '{printf "%-28s %-28s %-28s\n",$1,$2,$3}')
+
+          cat > release_body_${{ matrix.model }}.txt <<EOF
+          🚀 ImmortalWrt Cloud Build
+          📦 Kernel: ${{ env.KVER }}
+          🔧 LAN IP: 10.0.0.1
+          📶 WIFI Password: 12345678
+
+          🧩 Installed Plugins:
+          \`\`\`
+          $PLUGINS
+          \`\`\`
+          EOF
+
+      # 发布 Release
+      - name: Release Firmware
+        if: success()
+        uses: softprops/action-gh-release@v2.5.0
+        with:
+          tag_name: ${{ matrix.model }}_${{ env.BUILD_DATE }}
+          files: ./firmware/*.*
+          body_path: ./release_body_${{ matrix.model }}.txt
+
+      # 清理旧固件目录
+      - name: Clean up firmware directory after release
+        run: |
+          rm -rf ./firmware
+
+  # 清理所有旧发布
+  cleanup:
+    needs: build
+    runs-on: ubuntu-latest
+    if: always()
+    steps:
+      - name: Cleanup Old Releases
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          KEEP_RELEASE=2
+          MODELS=("jdcloud_ax6000_immwrt" "jdcloud_ipq60xx_immwrt" "jdcloud_ipq60xx_libwrt" "link_nn6000v2_immwrt" "x64_immwrt")
+          
+          for MODEL in "${MODELS[@]}"; do
+            echo "Keeping latest $KEEP_RELEASE releases for model: $MODEL"
+            
+            gh release list \
+              --limit 200 \
+              --json tagName,publishedAt \
+              | jq -r ".[] 
+                  | select(.tagName | contains(\"$MODEL\")) 
+                  | \"\(.publishedAt) \(.tagName)\"" \
+              | sort -r \
+              | awk "NR>$KEEP_RELEASE {print \$2}" \
+              | while read tag; do
+                  echo "Deleting release $tag"
+                  gh release delete "$tag" --yes --cleanup-tag
+                done
+          done
+
+      # 清理工作流运行记录
+      - name: Cleanup Old Workflow Runs
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          KEEP=10
+          echo "Keeping latest $KEEP workflow runs"
+          gh run list \
+            --limit 200 \
+            --status completed \
+            --json databaseId,createdAt \
+            | jq -r '.[] | "\(.createdAt) \(.databaseId)"' \
+            | sort -r \
+            | awk "NR>$KEEP {print \$2}" \
+            | while read run_id; do
+                echo "Deleting workflow run $run_id"
+                gh api \
+                  -X DELETE \
+                  repos/${{ github.repository }}/actions/runs/$run_id
+              done
