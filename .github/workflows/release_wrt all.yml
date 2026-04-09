@@ -203,9 +203,9 @@ jobs:
             --limit 200 \
             --json tagName,publishedAt \
             | jq -r ".[] 
-                | select(.tagName | contains(\"$MODEL\")) 
+                | select(.tagName | startswith(\"${MODEL}_\")) 
                 | \"\(.publishedAt) \(.tagName)\"" \
-            | sort -r \
+            | sort -r -k1,1 \
             | awk "NR>$KEEP_RELEASE {print \$2}" \
             | while read tag; do
                 echo "Deleting release $tag"
