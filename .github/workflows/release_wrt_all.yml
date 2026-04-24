@@ -172,8 +172,7 @@ jobs:
             | awk '{printf "%-28s %-28s %-28s\n",$1,$2,$3}')
 
           cat > release_body_${{ matrix.model }}.txt <<EOF
-          **This is 🚀 LibWrt Cloud Build OpenWrt Firmware for ${{ matrix.model }}**
-            - 🚀 ImmortalWrt Cloud Build
+          **This is 🚀 Cloud Build OpenWrt Firmware for ${{ matrix.model }}**
             - 📦 Kernel: ${{ env.KVER }}
             - 🔧 LAN IP: 10.0.0.1
             - 📶 WIFI Password: 12345678
