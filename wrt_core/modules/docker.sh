@@ -83,7 +83,7 @@ _docker_stack_validate_project() {
     local mk_path=""
 
     if [ ! -d "$project_dir" ]; then
-        echo "错误：OpenWrt 项目目录不存在: $project_dir" >&2
+        echo "错误: OpenWrt 项目目录不存在: $project_dir" >&2
         return 1
     fi
 
