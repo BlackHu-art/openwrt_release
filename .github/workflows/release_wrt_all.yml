@@ -76,9 +76,9 @@ jobs:
           path: |
             ./action_build/.ccache
             ./action_build/staging_dir
-          key: ${{ matrix.os }}-${{ matrix.model }}-${{ hashFiles('**/repo_flag') }}
+          key: ${{ matrix.os }}-${{ matrix.model }}-${{ hashFiles('/repo_flag') }}
           restore-keys: |
-            ${{ matrix.os }}-${{ matrix.model }}-${{ hashFiles('**/repo_flag') }}-
+            ${{ matrix.os }}-${{ matrix.model }}-${{ hashFiles('/repo_flag') }}-
 
       - name: Refresh the cache
         run: |
@@ -150,7 +150,7 @@ jobs:
       - name: Delete Old Cache
         run: |
           # 获取缓存列表并删除
-          gh cache list --key ${{ matrix.os }}-${{ matrix.model }}-${{ hashFiles('**/repo_flag') }}- --json key --jq '.[] | .key' | while read -r key; do
+          gh cache list --key ${{ matrix.os }}-${{ matrix.model }}-${{ hashFiles('/repo_flag') }}- --json key --jq '.[] | .key' | while read -r key; do
             gh cache delete "$key"
           done
           # 输出缓存状态
