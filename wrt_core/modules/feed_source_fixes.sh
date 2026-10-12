@@ -41,6 +41,60 @@ remove_unwanted_packages() {
 }
 
 
+fix_homeproxy_compat() {
+    local package_dir="$1"
+    local makefile="$package_dir/Makefile"
+    local generator="$package_dir/root/etc/homeproxy/scripts/generate_client.uc"
+    local patch_file="$BASE_PATH/patches/homeproxy-7c6ded7-sing-box-1.14.patch"
+    local dependencies apply_patch=0
+
+    if [ ! -f "$makefile" ] || [ ! -f "$generator" ] || [ ! -f "$patch_file" ]; then
+        echo "错误：HomeProxy 源码或本地兼容补丁缺失：$package_dir" >&2
+        return 1
+    fi
+
+    # 在修改文件前检查依赖声明；支持多行定义，不把注释里的包名当成依赖。
+    if ! dependencies=$(awk '
+        /^[[:space:]]*LUCI_DEPENDS[[:space:]]*:=/ {
+            found = 1
+            reading = 1
+            sub(/^[[:space:]]*LUCI_DEPENDS[[:space:]]*:=[[:space:]]*/, "")
+        }
+        reading {
+            sub(/[[:space:]]*#.*/, "")
+            continued = sub(/\\[[:space:]]*$/, "")
+            printf "%s ", $0
+            reading = continued
+        }
+        END { if (!found) exit 1 }
+    ' "$makefile"); then
+        echo "错误：HomeProxy Makefile 中未找到 LUCI_DEPENDS，停止构建以便检查上游变化。" >&2
+        return 1
+    fi
+
+    # 只包含 PR #673 第一提交，不引入第二提交的接口选择变化。
+    # git apply 先预检整份补丁，避免上游漂移时留下部分修改。
+    if git -C "$package_dir" apply --check "$patch_file" >/dev/null 2>&1; then
+        apply_patch=1
+    elif git -C "$package_dir" apply --reverse --check "$patch_file" >/dev/null 2>&1; then
+        echo "HomeProxy sing-box 1.14 兼容补丁已存在，跳过重复应用。"
+    else
+        echo "错误：HomeProxy 源码与 PR #673 第一提交不兼容，停止构建以便检查上游变化。" >&2
+        return 1
+    fi
+
+    if [ "$apply_patch" -eq 1 ]; then
+        git -C "$package_dir" apply "$patch_file" || return 1
+        echo "已应用 HomeProxy PR #673 第一提交（7c6ded7）。"
+    fi
+
+    if ! printf '%s\n' "$dependencies" | grep -Eq '(^|[[:space:]])[+]ucode-mod-math([[:space:]]|$)'; then
+        sed -i -E 's/^([[:space:]]*LUCI_DEPENDS[[:space:]]*:=[[:space:]]*)/\1+ucode-mod-math /' "$makefile" || return 1
+        echo "已为 HomeProxy 补齐 ucode-mod-math 软件包依赖。"
+    fi
+}
+
+
 update_homeproxy() {
     local repo_url="https://github.com/immortalwrt/homeproxy.git"
     local target_dir="$(get_custom_feed_worktree_dir)/luci-app-homeproxy"
@@ -52,6 +106,7 @@ update_homeproxy() {
             echo "错误：从 $repo_url 克隆 homeproxy 仓库失败" >&2
             exit 1
         fi
+        fix_homeproxy_compat "$target_dir" || return 1
     fi
 }
 
