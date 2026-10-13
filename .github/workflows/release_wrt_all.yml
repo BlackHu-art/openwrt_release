@@ -37,7 +37,6 @@ jobs:
           - redmi_ax5_immwrt
           - redmi_ax6_immwrt
           - redmi_ax6_libwrt
-          - redmi_ax6000_immwrt21
           - x64_immwrt
           - zn_m2_immwrt
           - zn_m2_libwrt

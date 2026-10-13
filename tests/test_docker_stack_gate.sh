@@ -164,14 +164,14 @@ if ! (
     fail "update.sh must be sourceable without running main, and its post-install stage must honor Docker selection"
 fi
 
-preview=$(cd "$repo_root" && ./build.sh redmi_ax6000_immwrt21 config_preview)
-[[ $preview == *"Docker stack selected: 0"* ]] || fail "redmi_ax6000_immwrt21 should not select Docker"
+preview=$(cd "$repo_root" && ./build.sh cmcc_rax3000m_immwrt config_preview)
+[[ $preview == *"Docker stack selected: 0"* ]] || fail "cmcc_rax3000m_immwrt should not select Docker"
 
 preclone_sha=0123456789abcdef0123456789abcdef01234567
-preview=$(cd "$repo_root" && PRECLONE_COMMIT_HASH="$preclone_sha" ./build.sh redmi_ax6000_immwrt21 config_preview)
+preview=$(cd "$repo_root" && PRECLONE_COMMIT_HASH="$preclone_sha" ./build.sh cmcc_rax3000m_immwrt config_preview)
 [[ $preview == *"Source commit: $preclone_sha"* ]] || fail "config preview must report the frozen pre-clone source commit"
 
-if preview=$(cd "$repo_root" && PRECLONE_COMMIT_HASH=not-a-sha ./build.sh redmi_ax6000_immwrt21 config_preview 2>&1); then
+if preview=$(cd "$repo_root" && PRECLONE_COMMIT_HASH=not-a-sha ./build.sh cmcc_rax3000m_immwrt config_preview 2>&1); then
     fail "invalid PRECLONE_COMMIT_HASH was accepted"
 fi
 [[ $preview == *"PRECLONE_COMMIT_HASH"* ]] || fail "invalid PRECLONE_COMMIT_HASH did not explain the failure"
@@ -181,7 +181,7 @@ if preview=$(cd "$repo_root" && PRECLONE_COMMIT_HASH="$preclone_sha" ./build.sh 
 fi
 [[ $preview == *"does not match"* ]] || fail "mismatched source pins did not explain the failure"
 
-preview=$(cd "$repo_root" && ADD_CONFIG_FRAGMENTS=docker_deps ./build.sh redmi_ax6000_immwrt21 config_preview)
+preview=$(cd "$repo_root" && ADD_CONFIG_FRAGMENTS=docker_deps ./build.sh cmcc_rax3000m_immwrt config_preview)
 [[ $preview == *"Docker stack selected: 0"* ]] || fail "docker_deps alone should not select Docker"
 
 preview=$(cd "$repo_root" && ./build.sh x64_immwrt config_preview)

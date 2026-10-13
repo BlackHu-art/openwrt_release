@@ -45,13 +45,24 @@ fix_homeproxy_compat() {
     local package_dir="$1"
     local makefile="$package_dir/Makefile"
     local generator="$package_dir/root/etc/homeproxy/scripts/generate_client.uc"
-    local patch_file="$BASE_PATH/patches/homeproxy-7c6ded7-sing-box-1.14.patch"
-    local dependencies apply_patch=0
+    local dependencies patch_file
+    local patch_files=(
+        "$BASE_PATH/patches/homeproxy-7c6ded7-sing-box-1.14.patch"
+        "$BASE_PATH/patches/homeproxy-1a32fca-acl-domains.patch"
+        "$BASE_PATH/patches/homeproxy-10f4244-feature-cache.patch"
+    )
+    local pending_patches=()
 
-    if [ ! -f "$makefile" ] || [ ! -f "$generator" ] || [ ! -f "$patch_file" ]; then
-        echo "错误：HomeProxy 源码或本地兼容补丁缺失：$package_dir" >&2
+    if [ ! -f "$makefile" ] || [ ! -f "$generator" ]; then
+        echo "错误：HomeProxy 源码缺失：$package_dir" >&2
         return 1
     fi
+    for patch_file in "${patch_files[@]}"; do
+        if [ ! -f "$patch_file" ]; then
+            echo "错误：HomeProxy 本地补丁缺失：$patch_file" >&2
+            return 1
+        fi
+    done
 
     # 在修改文件前检查依赖声明；支持多行定义，不把注释里的包名当成依赖。
     if ! dependencies=$(awk '
@@ -72,21 +83,24 @@ fix_homeproxy_compat() {
         return 1
     fi
 
-    # 只包含 PR #673 第一提交，不引入第二提交的接口选择变化。
-    # git apply 先预检整份补丁，避免上游漂移时留下部分修改。
-    if git -C "$package_dir" apply --check "$patch_file" >/dev/null 2>&1; then
-        apply_patch=1
-    elif git -C "$package_dir" apply --reverse --check "$patch_file" >/dev/null 2>&1; then
-        echo "HomeProxy sing-box 1.14 兼容补丁已存在，跳过重复应用。"
-    else
-        echo "错误：HomeProxy 源码与 PR #673 第一提交不兼容，停止构建以便检查上游变化。" >&2
-        return 1
-    fi
+    # 保留 PR #673 第一提交，追加 #641 和 #672，不引入 VPN 接口选择变化。
+    # 三份补丁可独立预检；全部通过后才修改源码，避免后续补丁漂移时
+    # 留下已应用的前序补丁或依赖变更。上游已包含的修复逐份跳过。
+    for patch_file in "${patch_files[@]}"; do
+        if git -C "$package_dir" apply --check "$patch_file" >/dev/null 2>&1; then
+            pending_patches+=("$patch_file")
+        elif git -C "$package_dir" apply --reverse --check "$patch_file" >/dev/null 2>&1; then
+            echo "HomeProxy 补丁已存在，跳过：${patch_file##*/}"
+        else
+            echo "错误：HomeProxy 源码与补丁 ${patch_file##*/} 不兼容，停止构建以便检查上游变化。" >&2
+            return 1
+        fi
+    done
 
-    if [ "$apply_patch" -eq 1 ]; then
+    for patch_file in "${pending_patches[@]}"; do
         git -C "$package_dir" apply "$patch_file" || return 1
-        echo "已应用 HomeProxy PR #673 第一提交（7c6ded7）。"
-    fi
+        echo "已应用 HomeProxy 补丁：${patch_file##*/}"
+    done
 
     if ! printf '%s\n' "$dependencies" | grep -Eq '(^|[[:space:]])[+]ucode-mod-math([[:space:]]|$)'; then
         sed -i -E 's/^([[:space:]]*LUCI_DEPENDS[[:space:]]*:=[[:space:]]*)/\1+ucode-mod-math /' "$makefile" || return 1

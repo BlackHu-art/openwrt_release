@@ -1,0 +1,88 @@
+From 1a32fca68ecddf129f7a29e254b6cfdfc3cb3d84 Mon Sep 17 00:00:00 2001
+From: lsr00ter <host.jayce@gmail.com>
+Date: Sun, 5 Jul 2026 19:25:56 +0800
+Subject: [PATCH] fix(client): make ACL domain lists take effect reliably
+
+Ensure always-proxy domains are routed before fallback handling in non-custom modes, while preserving dedicated UDP routing precedence.
+
+Make resource-backed ACL file edits update checksum fields under the control section so LuCI has a real UCI change to apply and homeproxy reloads after saving.
+---
+ htdocs/luci-static/resources/view/homeproxy/client.js | 10 ++++++++--
+ root/etc/homeproxy/scripts/generate_client.uc         |  8 ++++++++
+ root/etc/init.d/homeproxy                             |  6 ++++++
+ 3 files changed, 22 insertions(+), 2 deletions(-)
+
+diff --git a/htdocs/luci-static/resources/view/homeproxy/client.js b/htdocs/luci-static/resources/view/homeproxy/client.js
+index f012fddf5a..fa4f6b7f3d 100644
+--- a/htdocs/luci-static/resources/view/homeproxy/client.js
++++ b/htdocs/luci-static/resources/view/homeproxy/client.js
+@@ -1492,12 +1492,15 @@ return view.extend({
+ 			}, {});
+ 		}
+ 		so.write = function(_section_id, value) {
++			uci.set('homeproxy', 'control', 'proxy_domain_list_checksum', hp.calcStringMD5(value || ''));
+ 			return callWriteDomainList('proxy_list', value);
+ 		}
+ 		so.remove = function(/* ... */) {
+ 			let routing_mode = this.section.formvalue('config', 'routing_mode');
+-			if (routing_mode !== 'custom')
++			if (routing_mode !== 'custom') {
++				uci.set('homeproxy', 'control', 'proxy_domain_list_checksum', hp.calcStringMD5(''));
+ 				return callWriteDomainList('proxy_list', '');
++			}
+ 			return true;
+ 		}
+ 		so.validate = function(section_id, value) {
+@@ -1524,12 +1527,15 @@ return view.extend({
+ 			}, {});
+ 		}
+ 		so.write = function(_section_id, value) {
++			uci.set('homeproxy', 'control', 'direct_domain_list_checksum', hp.calcStringMD5(value || ''));
+ 			return callWriteDomainList('direct_list', value);
+ 		}
+ 		so.remove = function(/* ... */) {
+ 			let routing_mode = this.section.formvalue('config', 'routing_mode');
+-			if (routing_mode !== 'custom')
++			if (routing_mode !== 'custom') {
++				uci.set('homeproxy', 'control', 'direct_domain_list_checksum', hp.calcStringMD5(''));
+ 				return callWriteDomainList('direct_list', '');
++			}
+ 			return true;
+ 		}
+ 		so.validate = function(section_id, value) {
+diff --git a/root/etc/homeproxy/scripts/generate_client.uc b/root/etc/homeproxy/scripts/generate_client.uc
+index 890d23b064..182210cfe7 100755
+--- a/root/etc/homeproxy/scripts/generate_client.uc
++++ b/root/etc/homeproxy/scripts/generate_client.uc
+@@ -833,6 +833,14 @@ if (!isEmpty(main_node)) {
+ 			outbound: 'main-udp-out'
+ 		});
+ 
++	/* Proxy list */
++	if (length(proxy_domain_list))
++		push(config.route.rules, {
++			rule_set: 'proxy-domain',
++			action: 'route',
++			outbound: 'main-out'
++		});
++
+ 	config.route.final = 'main-out';
+ 
+ 	/* Rule set */
+diff --git a/root/etc/init.d/homeproxy b/root/etc/init.d/homeproxy
+index 3167775f00..233664b448 100755
+--- a/root/etc/init.d/homeproxy
++++ b/root/etc/init.d/homeproxy
+@@ -104,6 +104,12 @@ start_service() {
+ 			sed -r -e '/^\s*$/d' -e "s/(.*)/server=\/\1\/127.0.0.1#$dns_port\nnftset=\/\1\\/4#inet#fw4#homeproxy_wan_proxy_addr_v4$wan_nftset_v6/g" \
+ 				"$HP_DIR/resources/proxy_list.txt" > "$DNSMASQ_DIR/proxy_list.conf"
+ 		fi
++		if [ "$routing_mode" != "custom" ] && [ -s "$HP_DIR/resources/direct_list.txt" ]; then
++			local wan_nftset_v6
++			[ "$ipv6_support" -eq "0" ] || wan_nftset_v6=",6#inet#fw4#homeproxy_wan_direct_addr_v6"
++			sed -r -e '/^\s*$/d' -e "s/(.*)/server=\/\1\/127.0.0.1#$dns_port\nnftset=\/\1\\/4#inet#fw4#homeproxy_wan_direct_addr_v4$wan_nftset_v6/g" \
++				"$HP_DIR/resources/direct_list.txt" > "$DNSMASQ_DIR/direct_list.conf"
++		fi
+ 		/etc/init.d/dnsmasq restart >"/dev/null" 2>&1
+ 
+ 		# Setup routing table

@@ -25,14 +25,25 @@ fail() {
 fixture_dir="$repo_root/tests/fixtures/homeproxy"
 generator_path=root/etc/homeproxy/scripts/generate_client.uc
 old_generator_blob=890d23b0642a6b748805513c953782026f59d25e
-fixed_generator_blob=1fbe424744bd48f1c5d2af6a571d77a6697825d8
+fixed_generator_blob=c216f07507a4c47d090e5a0ca86c7d58551be096
+patches=(
+    homeproxy-7c6ded7-sing-box-1.14.patch
+    homeproxy-1a32fca-acl-domains.patch
+    homeproxy-10f4244-feature-cache.patch
+)
 
 make_package() {
     local package_dir=$1
     mkdir -p "$package_dir/$(dirname "$generator_path")"
     cp "$fixture_dir/Makefile" "$package_dir/Makefile"
     cp "$fixture_dir/generate_client.uc" "$package_dir/$generator_path"
+    mkdir -p "$package_dir/htdocs/luci-static/resources/view/homeproxy" \
+        "$package_dir/root/etc/init.d" "$package_dir/root/usr/share/rpcd/ucode"
+    cp "$fixture_dir/client.js" "$package_dir/htdocs/luci-static/resources/view/homeproxy/client.js"
+    cp "$fixture_dir/homeproxy.init" "$package_dir/root/etc/init.d/homeproxy"
+    cp "$fixture_dir/luci.homeproxy" "$package_dir/root/usr/share/rpcd/ucode/luci.homeproxy"
     chmod +x "$package_dir/$generator_path"
+    chmod +x "$package_dir/root/etc/init.d/homeproxy"
     git init -q "$package_dir"
     git -C "$package_dir" config core.autocrlf false
 }
@@ -40,9 +51,33 @@ make_package() {
 make_fixed_package() {
     local package_dir=$1
     make_package "$package_dir"
-    git -C "$package_dir" apply "$BASE_PATH/patches/homeproxy-7c6ded7-sing-box-1.14.patch"
+    local patch
+    for patch in "${patches[@]}"; do
+        git -C "$package_dir" apply "$BASE_PATH/patches/$patch"
+    done
     [[ $(git hash-object --no-filters "$package_dir/$generator_path") == "$fixed_generator_blob" ]] ||
         fail "the upstream patch no longer produces the independently recorded result"
+}
+
+package_snapshot() {
+    (
+        cd "$1"
+        find . -path './.git' -prune -o -type f -print | LC_ALL=C sort |
+            while IFS= read -r path; do
+                printf '%s ' "$path"
+                git hash-object --no-filters "$path"
+            done
+    )
+}
+
+assert_upstream_fixes() {
+    local package_dir=$1 blob path
+    while read -r blob path; do
+        [[ $(git hash-object --no-filters "$package_dir/$path") == "$blob" ]] ||
+            fail "unexpected patched content: $path"
+    done <"$fixture_dir/patched-blobs.txt"
+    bash -n "$package_dir/root/etc/init.d/homeproxy"
+    bash -n "$package_dir/root/etc/uci-defaults/luci-homeproxy-features"
 }
 
 assert_math_dependency() {
@@ -74,16 +109,14 @@ assert_math_dependency() {
 expect_rejected_without_changes() {
     local package_dir=$1
     local description=$2
-    cp "$package_dir/Makefile" "$test_root/makefile-before"
-    cp "$package_dir/$generator_path" "$test_root/generator-before"
+    package_snapshot "$package_dir" >"$test_root/package-before"
     if fix_homeproxy_compat "$package_dir" >"$test_root/rejection.log" 2>&1; then
         fail "$description was accepted"
     fi
     [[ -s "$test_root/rejection.log" ]] || fail "$description did not explain its rejection"
-    cmp "$test_root/makefile-before" "$package_dir/Makefile" ||
-        fail "$description partially changed dependencies"
-    cmp "$test_root/generator-before" "$package_dir/$generator_path" ||
-        fail "$description partially changed the generator"
+    package_snapshot "$package_dir" >"$test_root/package-after"
+    cmp "$test_root/package-before" "$test_root/package-after" ||
+        fail "$description partially changed the package"
     [[ -z $(find "$package_dir" -name '*.rej' -o -name '*.orig') ]] ||
         fail "$description left patch rejection or backup files"
 }
@@ -92,21 +125,38 @@ expect_rejected_without_changes() {
     fail "the offline fixture no longer matches upstream 98a6ad9"
 declare -F fix_homeproxy_compat >/dev/null || fail "fix_homeproxy_compat is not defined"
 
-# A real old generator must receive exactly the first upstream fix, without
-# including the unrelated VPN interface-selection change from the second one.
+# Apply the selected fixes without the unrelated VPN interface-selection change.
 package_dir="$test_root/old"
 make_package "$package_dir"
 fix_homeproxy_compat "$package_dir"
 [[ $(git hash-object --no-filters "$package_dir/$generator_path") == "$fixed_generator_blob" ]] ||
     fail "old HomeProxy did not receive the expected compatibility patch"
 assert_math_dependency "$package_dir/Makefile"
+assert_upstream_fixes "$package_dir"
 
 # Running the build preparation twice must not duplicate dependencies or rules.
 cp "$package_dir/Makefile" "$test_root/fixed-makefile"
 cp "$package_dir/$generator_path" "$test_root/fixed-generator"
+package_snapshot "$package_dir" >"$test_root/all-fixed-before"
 fix_homeproxy_compat "$package_dir"
 cmp "$test_root/fixed-makefile" "$package_dir/Makefile" || fail 'repeat changed dependencies'
 cmp "$test_root/fixed-generator" "$package_dir/$generator_path" || fail 'repeat changed generator'
+package_snapshot "$package_dir" >"$test_root/all-fixed-after"
+cmp "$test_root/all-fixed-before" "$test_root/all-fixed-after" || fail 'repeat changed patched files'
+
+# Upstream can land any subset of the independent fixes before a fresh clone.
+for mask in 1 2 3 4 5 6; do
+    package_dir="$test_root/partial-$mask"
+    make_package "$package_dir"
+    for index in 0 1 2; do
+        if (( mask & (1 << index) )); then
+            git -C "$package_dir" apply "$BASE_PATH/patches/${patches[$index]}"
+        fi
+    done
+    fix_homeproxy_compat "$package_dir"
+    assert_upstream_fixes "$package_dir"
+    assert_math_dependency "$package_dir/Makefile"
+done
 
 # A generator already fixed by upstream needs only the missing dependency.
 package_dir="$test_root/already-fixed"
@@ -159,12 +209,41 @@ make_package "$package_dir"
 sed -i '/^LUCI_DEPENDS:=/,+4d' "$package_dir/Makefile"
 expect_rejected_without_changes "$package_dir" 'missing LUCI_DEPENDS'
 
+# Later patch failures must be detected before even the first patch is applied.
+package_dir="$test_root/acl-drift"
+make_package "$package_dir"
+sed -i "s/callWriteDomainList('proxy_list', value)/callWriteDomainList('renamed_list', value)/" \
+    "$package_dir/htdocs/luci-static/resources/view/homeproxy/client.js"
+expect_rejected_without_changes "$package_dir" 'ACL source drift'
+
+package_dir="$test_root/cache-drift"
+make_package "$package_dir"
+sed -i 's@/usr/bin/sing-box version@/usr/bin/sing-box changed-version@' \
+    "$package_dir/root/usr/share/rpcd/ucode/luci.homeproxy"
+expect_rejected_without_changes "$package_dir" 'feature RPC source drift'
+
+package_dir="$test_root/partial-cache"
+make_package "$package_dir"
+cp "$test_root/old/root/etc/homeproxy/scripts/singbox_features.uc" \
+    "$package_dir/root/etc/homeproxy/scripts/singbox_features.uc"
+expect_rejected_without_changes "$package_dir" 'partially installed cache patch'
+
+saved_base_path=$BASE_PATH
+BASE_PATH="$test_root/missing-patch-base"
+mkdir -p "$BASE_PATH/patches"
+cp "$saved_base_path/patches/${patches[0]}" "$BASE_PATH/patches/"
+cp "$saved_base_path/patches/${patches[1]}" "$BASE_PATH/patches/"
+package_dir="$test_root/missing-cache-patch"
+make_package "$package_dir"
+expect_rejected_without_changes "$package_dir" 'missing feature-cache patch'
+BASE_PATH=$saved_base_path
+
 # Replace only the network transport; exercise the real clone and update helper.
 local_upstream="$test_root/upstream"
 make_package "$local_upstream"
 git -C "$local_upstream" config user.name 'HomeProxy compatibility test'
 git -C "$local_upstream" config user.email 'homeproxy-test@example.invalid'
-git -C "$local_upstream" add Makefile "$generator_path"
+git -C "$local_upstream" add .
 git -C "$local_upstream" commit -qm 'old upstream fixture'
 
 feed_dir="$test_root/feed"
@@ -187,6 +266,7 @@ package_dir="$feed_dir/luci-app-homeproxy"
 [[ $(git hash-object --no-filters "$package_dir/$generator_path") == "$fixed_generator_blob" ]] ||
     fail 'update_homeproxy did not fix the newly cloned source'
 assert_math_dependency "$package_dir/Makefile"
+assert_upstream_fixes "$package_dir"
 
 # A rejected fresh clone must propagate out of update_homeproxy, even when the
 # caller uses an if statement (where Bash would otherwise suppress errexit).

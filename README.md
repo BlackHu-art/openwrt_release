@@ -86,7 +86,6 @@ bash tests/run_all.sh
 | 红米 | AX5 | `redmi_ax5_immwrt` |
 | 红米 | AX6 | `redmi_ax6_immwrt` |
 | 红米 | AX6 - LiBwrt | `redmi_ax6_libwrt` |
-| 红米 | AX6000 | `redmi_ax6000_immwrt21` |
 | CMCC（中国移动） | RAX3000M | `cmcc_rax3000m_immwrt` |
 | 斐讯 | N1 | `n1_immwrt` |
 | 兆能 | M2 | `zn_m2_immwrt` |
@@ -137,7 +136,12 @@ https://github.com/kenzok8/small-package.git
 
 HomeProxy 从官方仓库更新后、最终 feeds 索引刷新和安装前，会应用 [PR #673 第一提交 `7c6ded7`](https://github.com/immortalwrt/homeproxy/commit/7c6ded7b99953c7148f3f4a2edf69a592a4f424e) 的 sing-box 1.14 配置兼容修复，并在包的 `LUCI_DEPENDS` 中补齐 `ucode-mod-math`，使选用 HomeProxy 的固件和生成的安装包都包含正确依赖。未引入该 PR 第二提交的接口选择改动。
 
-补丁保存在 `wrt_core/patches/homeproxy-7c6ded7-sing-box-1.14.patch`。已应用的补丁会跳过；遇到无法匹配的上游源码变化会停止构建，需检查并更新补丁，避免静默编出无法启动的 HomeProxy。
+同时应用以下固定提交的上游补丁：
+
+- [PR #641 `1a32fca`](https://github.com/immortalwrt/homeproxy/commit/1a32fca68ecddf129f7a29e254b6cfdfc3cb3d84)：让仅修改 ACL 域名列表也能触发应用/重启，补齐代理域名路由，并通过 dnsmasq 将直连域名解析结果写入 nft 集合。现有 TUN 链未读取该动态直连集合，此补丁不代表 TUN 模式的完整修复。
+- [PR #672 `10f4244`](https://github.com/immortalwrt/homeproxy/commit/10f4244d2e3775b29207c180c3adca1257e1f79f)：缓存 sing-box 版本和构建特性，减少 LuCI 首次页面加载时的探测开销。安装或首次启动时预热缓存，二进制身份变化时重新探测，内核模块与工具能力仍实时检查。
+
+三份补丁保存在 `wrt_core/patches/homeproxy-*.patch`。构建时先预检全部补丁再修改源码，已应用的补丁逐份跳过；遇到无法匹配的上游源码变化会停止构建，需检查并更新补丁，避免静默编出有兼容问题的 HomeProxy。
 
 ## 8. 项目结构说明
 
