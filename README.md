@@ -69,7 +69,9 @@ GitHub Actions 的手动构建也提供 `add_fragments` 与 `remove_fragments` �
 bash tests/run_all.sh
 ```
 
-完整构建从首次执行起保留详细输出：`<BUILD_DIR>/logs/download.log`、`miniupnpd-prepare.log`、`compile.log` 和 OpenWrt 各软件包日志。`build-times.tsv` 按“阶段、耗时秒数、退出码”记录结果。选用 miniupnpd 时先执行 prepare，尽早发现补丁失配；构建失败直接返回失败，不再自动将整个 world 改为单线程重试。GitHub Actions 成功或失败都会上传 `build-logs-*`，保留 7 天。
+正常构建的控制台只显示阶段、软件包进度、耗时及错误/警告摘要。失败时再输出前 5 处匹配错误的上下文和日志末尾 80 行；GitHub Actions 中放在 `Failure details` 分组内。错误上下文优先展示编译、补丁和安装错误，避免已恢复的镜像下载错误占满摘要。
+
+完整详细输出仍从首次执行起保存在 `<BUILD_DIR>/logs/download.log`、`miniupnpd-prepare.log`、`compile.log` 和 OpenWrt 各软件包日志中。`build-times.tsv` 按“阶段、耗时秒数、退出码”记录结果。选用 miniupnpd 时先执行 prepare，尽早发现补丁失配；构建失败直接返回失败，不再自动将整个 world 改为单线程重试。GitHub Actions 成功或失败都会上传 `build-logs-*`，保留 7 天。
 
 miniupnpd 2.3.11 的旧补丁兼容修复与真实源码验证方法见 [测试基线](tests/fixtures/miniupnpd/README.md)。2026-10-17 京东云构建的失败及耗时分析见 [构建诊断](docs/build-diagnosis-2026-10-17.md)。
 
