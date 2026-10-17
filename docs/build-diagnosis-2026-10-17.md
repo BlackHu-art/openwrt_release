@@ -39,3 +39,15 @@ miniupnpd 已升级为 2.3.11，但 packages feed 保留了旧 `020-descr-filter
 未通过移除 QuickFile、Samba 或代理功能来缩短时间，也未更改固件功能配置。Rust 的 LLVM 源码构建兼容设置暂时保留：Rust 官方构建代码说明 CI LLVM 包可能因目标不支持、历史包被删除或配置不兼容而不可用，未经 Linux 构建验证直接恢复下载可能引入新失败。后续常规构建提速应针对工具链缓存或已验证的预编译工具链评估；本次不承诺正常构建能缩短到具体时长。
 
 验证包括旧错误复现、官方 2.3.11 源码的完整补丁链检查和脚本回归；尚未执行 Linux 下完整固件交叉编译和设备刷机验证。
+
+## 后续任务 #97：Argon 3.0 安装冲突
+
+[GitHub Actions #97](https://github.com/BlackHu-art/openwrt_release/actions/runs/39017510278/job/117352554249) 使用修复后的提交 `cae14b9`。Build Firmware 从 16:35:23 持续到 19:26:06，耗时 2 小时 50 分 43 秒。本次 `miniupnpd-prepare` 用时 8 秒、退出码 0，随后 miniupnpd 2.3.11 成功生成 IPK 并安装进 rootfs，确认上一处补丁问题已通过。
+
+新的失败发生在 `package/install`：opkg 报告 `luci-app-argon-config` 与 `luci-theme-argon` 的 9 个文件冲突，包括设置页、RPC、菜单、ACL 和品牌资源；继而无法安装旧配置包及其中文翻译，返回 Error 255，最终 world 返回 2。
+
+根因是 [Argon 3.0 上游源码 `539e3e1`](https://github.com/jerrykuku/luci-theme-argon/tree/539e3e1db56b2348c3655615540e45638b797c73) 已集成配置功能和 `argon-config` 翻译，脚本仍同时拉取旧独立配置仓库 `445af53`。上游已提供 `compat/luci-app-argon-config` 空迁移包，供旧包名继续使用；不能再把独立仓库的运行文件安装到新主题上。
+
+修复在 `update_argon_config` 检测上游 `root/usr/share/argon/config-integrated` 标记，确认兼容包存在后清理旧独立配置源码，保留主题内的兼容包让后续 feeds 索引发现。旧版主题继续使用原独立配置源。主题或兼容包缺失时提前报错。主题设置、中文翻译及现有固件功能选择均保留。
+
+验证先复现旧逻辑的重复文件归属，再检查新旧主题、残留源码清理、重复执行和失败保护；`bash tests/run_all.sh` 的 10 个检查脚本全部通过。对上述两份真实上游源码的独立验证确认：日志中的 9 个冲突路径均存在；修复后无重复运行文件，主题源码逐文件哈希未改变，中文翻译仍在。执行该固件固定源码的 feeds 文件扫描规则和原始 `scan.awk`，确认能发现主题及其嵌套兼容包。此结果不等同于完整 feeds 元数据生成、Linux 固件交叉编译或设备运行验证；完整 CI 仍需使用本次修复后的提交另行执行。

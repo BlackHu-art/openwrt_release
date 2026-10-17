@@ -8,6 +8,7 @@ python tests/verify_upstream_sync.py
 bash tests/test_banner.sh
 bash tests/test_repo_checkout.sh
 bash tests/test_homeproxy_compat.sh
+bash tests/test_argon_compat.sh
 bash tests/test_miniupnpd_compat.sh
 bash tests/test_build_steps.sh
 bash tests/test_docker_stack_gate.sh

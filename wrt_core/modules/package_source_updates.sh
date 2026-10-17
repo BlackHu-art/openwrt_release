@@ -270,9 +270,30 @@ update_argon() {
 
 
 update_argon_config() {
+    local theme_dir="$BUILD_DIR/feeds/luci/themes/luci-theme-argon"
+    local config_dir="$BUILD_DIR/feeds/luci/applications/luci-app-argon-config"
+
+    if [[ ! -f "$theme_dir/Makefile" ]]; then
+        echo "错误：Argon 主题源码缺失，无法选择匹配的配置包。" >&2
+        return 1
+    fi
+
+    # Argon 3.x owns the settings UI, RPC files and argon-config translations.
+    # Its nested empty compatibility package preserves the old package name.
+    # Keep that recipe for feeds update -i and remove the conflicting legacy app.
+    if [[ -f "$theme_dir/root/usr/share/argon/config-integrated" ]]; then
+        if [[ ! -f "$theme_dir/compat/luci-app-argon-config/Makefile" ]]; then
+            echo "错误：Argon 已集成配置功能，但缺少上游兼容包，停止构建。" >&2
+            return 1
+        fi
+        rm -rf -- "$config_dir" || return 1
+        echo "Argon 已集成配置功能，使用主题自带的兼容包和翻译。"
+        return 0
+    fi
+
     replace_luci_source "argon config" \
         "https://github.com/jerrykuku/luci-app-argon-config.git" \
-        "$BUILD_DIR/feeds/luci/applications/luci-app-argon-config"
+        "$config_dir"
 }
 
 

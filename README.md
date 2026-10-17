@@ -142,6 +142,8 @@ https://github.com/kenzok8/small-package.git
 
 相关增删和同步逻辑位于 `wrt_core/update.sh` 编排的 `wrt_core/modules/` 静态阶段。配置片段只选择 Kconfig，不负责 clone 仓库、修改 feeds 或安装 feeds。
 
+Argon 3.x 已内置主题设置和 `argon-config` 翻译。构建检测到上游的 `config-integrated` 标记后，移除旧版独立配置插件源码，使用主题仓库内的空兼容包保留 `luci-app-argon-config` 包名，避免文件和翻译包冲突。旧版主题仍配套独立配置插件；集成版缺少兼容包时会提前停止构建。
+
 HomeProxy 从官方仓库更新后、最终 feeds 索引刷新和安装前，会应用 [PR #673 第一提交 `7c6ded7`](https://github.com/immortalwrt/homeproxy/commit/7c6ded7b99953c7148f3f4a2edf69a592a4f424e) 的 sing-box 1.14 配置兼容修复，并在包的 `LUCI_DEPENDS` 中补齐 `ucode-mod-math`，使选用 HomeProxy 的固件和生成的安装包都包含正确依赖。未引入该 PR 第二提交的接口选择改动。
 
 已兼容上游 [`fadaa676`](https://github.com/immortalwrt/homeproxy/commit/fadaa676104f59ff6ace480a780a258d846d0aec)：上游已迁移 sniff 配置并移除 `sniff_override`、`independent_cache` 的界面和迁移残留，构建时自动选择新版剩余补丁，继续移除 `disable_expire` 和 resolver 中无效的 `action`，保留 300ms sniff 超时。旧版源码仍使用原补丁。翻译和规则数据更新随官方仓库拉取，无需另行复制。
