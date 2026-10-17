@@ -91,6 +91,7 @@ bash tests/run_all.sh
 | 兆能 | M2 | `zn_m2_immwrt` |
 | 兆能 | M2 - LiBwrt | `zn_m2_libwrt` |
 | Gemtek | W1701K | `gemtek_w1701k_immwrt` |
+| Supergateway | S20M | `supergateway_s20m_immwrt` |
 | x86 | X64 | `x64_immwrt` |
 
 示例：
@@ -110,6 +111,8 @@ bash tests/run_all.sh
 
 不同设备会使用不同上游源码，例如 `VIKINGYFY/immortalwrt`、`immortalwrt/immortalwrt`、`LiBwrt/openwrt-6.x`、`padavanonly/immortalwrt-mt798x` 或本仓库维护的特定分支。`BUILD_TARGET_SDK` 未配置时，容器构建默认使用 `immortalwrt/sdk:openwrt-25.12`。
 
+S20M 支持同步自构建上游 [`90a9591`](https://github.com/ZqinKing/wrt_release/commit/90a9591817720d7876e95b8df51e895d643eba19)，使用 `padavanonly/immortalwrt-mt798x-6.6` 的 `openwrt-24.10-6.6` 分支。配置已按该源码的设备定义修正为 `mediatek/filogic` 子目标，并加入单设备构建、发布与批量发布入口。
+
 构建时会按顺序组合配置：
 
 1. 设备专用 `.config`
@@ -121,6 +124,7 @@ bash tests/run_all.sh
 - 所有设备默认包含 `proxy`。
 - IPQ60xx / IPQ807x 设备默认额外包含 `nss`。
 - 只有已显式选择 Dockerman 或明确适合运行 Docker 的设备默认包含 `docker_deps`，用于预置手动安装 Docker 所需的运行依赖，避免 NAND 空间紧张或无 USB 设备被默认加入 Docker 依赖。
+- 京东云的 IPQ60xx（ImmortalWrt、LiBwrt）和 AX6000 配置不再编译 Docker、Dockerman 及容器运行时，也不默认加载 `docker_deps`。
 
 `ADD_CONFIG_FRAGMENTS` 会在默认片段后追加，`REMOVE_CONFIG_FRAGMENTS` 会从最终片段中移除对应配置片段。移除只表示“不追加这个 fragment”，不会反向修改设备 `.config` 或 `compile_base.config` 中已经写明的配置。
 
@@ -136,12 +140,14 @@ https://github.com/kenzok8/small-package.git
 
 HomeProxy 从官方仓库更新后、最终 feeds 索引刷新和安装前，会应用 [PR #673 第一提交 `7c6ded7`](https://github.com/immortalwrt/homeproxy/commit/7c6ded7b99953c7148f3f4a2edf69a592a4f424e) 的 sing-box 1.14 配置兼容修复，并在包的 `LUCI_DEPENDS` 中补齐 `ucode-mod-math`，使选用 HomeProxy 的固件和生成的安装包都包含正确依赖。未引入该 PR 第二提交的接口选择改动。
 
+已兼容上游 [`fadaa676`](https://github.com/immortalwrt/homeproxy/commit/fadaa676104f59ff6ace480a780a258d846d0aec)：上游已迁移 sniff 配置并移除 `sniff_override`、`independent_cache` 的界面和迁移残留，构建时自动选择新版剩余补丁，继续移除 `disable_expire` 和 resolver 中无效的 `action`，保留 300ms sniff 超时。旧版源码仍使用原补丁。翻译和规则数据更新随官方仓库拉取，无需另行复制。
+
 同时应用以下固定提交的上游补丁：
 
 - [PR #641 `1a32fca`](https://github.com/immortalwrt/homeproxy/commit/1a32fca68ecddf129f7a29e254b6cfdfc3cb3d84)：让仅修改 ACL 域名列表也能触发应用/重启，补齐代理域名路由，并通过 dnsmasq 将直连域名解析结果写入 nft 集合。现有 TUN 链未读取该动态直连集合，此补丁不代表 TUN 模式的完整修复。
 - [PR #672 `10f4244`](https://github.com/immortalwrt/homeproxy/commit/10f4244d2e3775b29207c180c3adca1257e1f79f)：缓存 sing-box 版本和构建特性，减少 LuCI 首次页面加载时的探测开销。安装或首次启动时预热缓存，二进制身份变化时重新探测，内核模块与工具能力仍实时检查。
 
-三份补丁保存在 `wrt_core/patches/homeproxy-*.patch`。构建时先预检全部补丁再修改源码，已应用的补丁逐份跳过；遇到无法匹配的上游源码变化会停止构建，需检查并更新补丁，避免静默编出有兼容问题的 HomeProxy。
+补丁保存在 `wrt_core/patches/homeproxy-*.patch`。构建时从两个兼容补丁版本中选择一个，再预检 ACL 和特性缓存补丁，全部通过后才修改源码；已应用的补丁逐份跳过。遇到无法匹配的上游源码变化会停止构建，需检查并更新补丁，避免静默编出有兼容问题的 HomeProxy。
 
 ## 8. 项目结构说明
 

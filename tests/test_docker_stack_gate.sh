@@ -187,4 +187,10 @@ preview=$(cd "$repo_root" && ADD_CONFIG_FRAGMENTS=docker_deps ./build.sh cmcc_ra
 preview=$(cd "$repo_root" && ./build.sh x64_immwrt config_preview)
 [[ $preview == *"Docker stack selected: 1"* ]] || fail "x64_immwrt should select Docker"
 
+for model in jdcloud_ipq60xx_immwrt jdcloud_ipq60xx_libwrt jdcloud_ax6000_immwrt; do
+    preview=$(cd "$repo_root" && ./build.sh "$model" config_preview)
+    [[ $preview == *"Docker stack selected: 0"* ]] || fail "$model should not select Docker"
+    [[ $preview != *"docker_deps"* ]] || fail "$model should not include Docker dependencies by default"
+done
+
 echo "docker stack gate tests passed"

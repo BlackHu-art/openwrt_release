@@ -45,9 +45,12 @@ fix_homeproxy_compat() {
     local package_dir="$1"
     local makefile="$package_dir/Makefile"
     local generator="$package_dir/root/etc/homeproxy/scripts/generate_client.uc"
-    local dependencies patch_file
-    local patch_files=(
+    local dependencies patch_file compatibility_patch=""
+    local compatibility_patches=(
         "$BASE_PATH/patches/homeproxy-7c6ded7-sing-box-1.14.patch"
+        "$BASE_PATH/patches/homeproxy-fadaa676-sing-box-1.14.patch"
+    )
+    local patch_files=(
         "$BASE_PATH/patches/homeproxy-1a32fca-acl-domains.patch"
         "$BASE_PATH/patches/homeproxy-10f4244-feature-cache.patch"
     )
@@ -57,7 +60,7 @@ fix_homeproxy_compat() {
         echo "错误：HomeProxy 源码缺失：$package_dir" >&2
         return 1
     fi
-    for patch_file in "${patch_files[@]}"; do
+    for patch_file in "${compatibility_patches[@]}" "${patch_files[@]}"; do
         if [ ! -f "$patch_file" ]; then
             echo "错误：HomeProxy 本地补丁缺失：$patch_file" >&2
             return 1
@@ -83,7 +86,22 @@ fix_homeproxy_compat() {
         return 1
     fi
 
-    # 保留 PR #673 第一提交，追加 #641 和 #672，不引入 VPN 接口选择变化。
+    # 新版上游已吸收 PR #673 的部分修复，选择能完整应用或完整反向
+    # 验证的补丁版本；不按提交号猜测，也不跳过无法匹配的补丁片段。
+    for patch_file in "${compatibility_patches[@]}"; do
+        if git -C "$package_dir" apply --check "$patch_file" >/dev/null 2>&1 ||
+           git -C "$package_dir" apply --reverse --check "$patch_file" >/dev/null 2>&1; then
+            compatibility_patch="$patch_file"
+            break
+        fi
+    done
+    if [ -z "$compatibility_patch" ]; then
+        echo "错误：HomeProxy 源码与所有已知 1.14 兼容补丁均不匹配，停止构建以便检查上游变化。" >&2
+        return 1
+    fi
+    patch_files=("$compatibility_patch" "${patch_files[@]}")
+
+    # 保留 PR #673 第一提交的剩余修复，追加 #641 和 #672，不引入 VPN 接口选择变化。
     # 三份补丁可独立预检；全部通过后才修改源码，避免后续补丁漂移时
     # 留下已应用的前序补丁或依赖变更。上游已包含的修复逐份跳过。
     for patch_file in "${patch_files[@]}"; do

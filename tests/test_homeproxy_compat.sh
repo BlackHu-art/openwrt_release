@@ -72,10 +72,11 @@ package_snapshot() {
 
 assert_upstream_fixes() {
     local package_dir=$1 blob path
+    local manifest=${2:-$fixture_dir/patched-blobs.txt}
     while read -r blob path; do
         [[ $(git hash-object --no-filters "$package_dir/$path") == "$blob" ]] ||
             fail "unexpected patched content: $path"
-    done <"$fixture_dir/patched-blobs.txt"
+    done <"$manifest"
     bash -n "$package_dir/root/etc/init.d/homeproxy"
     bash -n "$package_dir/root/etc/uci-defaults/luci-homeproxy-features"
 }
@@ -124,6 +125,40 @@ expect_rejected_without_changes() {
 [[ $(git hash-object --no-filters "$fixture_dir/generate_client.uc") == "$old_generator_blob" ]] ||
     fail "the offline fixture no longer matches upstream 98a6ad9"
 declare -F fix_homeproxy_compat >/dev/null || fail "fix_homeproxy_compat is not defined"
+
+# Current upstream has absorbed part of PR #673. Accept every subset of the
+# remaining patches without restoring removed UI options or changing VPN routing.
+latest_patches=(homeproxy-fadaa676-sing-box-1.14.patch "${patches[1]}" "${patches[2]}")
+for mask in 0 1 2 3 4 5 6 7; do
+    package_dir="$test_root/latest-$mask"
+    make_package "$package_dir"
+    cp "$fixture_dir/fadaa676/generate_client.uc" "$package_dir/$generator_path"
+    cp "$fixture_dir/fadaa676/client.js" "$package_dir/htdocs/luci-static/resources/view/homeproxy/client.js"
+    for index in 0 1 2; do
+        if (( mask & (1 << index) )); then
+            git -C "$package_dir" apply "$BASE_PATH/patches/${latest_patches[$index]}"
+        fi
+    done
+    fix_homeproxy_compat "$package_dir"
+    assert_upstream_fixes "$package_dir" "$fixture_dir/fadaa676/patched-blobs.txt"
+    assert_math_dependency "$package_dir/Makefile"
+done
+package_snapshot "$package_dir" >"$test_root/latest-before"
+fix_homeproxy_compat "$package_dir"
+package_snapshot "$package_dir" >"$test_root/latest-after"
+cmp "$test_root/latest-before" "$test_root/latest-after" || fail 'repeat changed latest upstream'
+
+package_dir="$test_root/latest-drift"
+make_package "$package_dir"
+cp "$fixture_dir/fadaa676/generate_client.uc" "$package_dir/$generator_path"
+sed -i "s/action: 'sniff'/action: 'unknown-sniff'/" "$package_dir/$generator_path"
+expect_rejected_without_changes "$package_dir" 'unknown latest generator drift'
+
+package_dir="$test_root/latest-partial-compat"
+make_package "$package_dir"
+cp "$fixture_dir/fadaa676/generate_client.uc" "$package_dir/$generator_path"
+sed -i '/disable_expire: strToBool(dns_disable_cache_expire),/d' "$package_dir/$generator_path"
+expect_rejected_without_changes "$package_dir" 'partially applied latest compatibility fix'
 
 # Apply the selected fixes without the unrelated VPN interface-selection change.
 package_dir="$test_root/old"
@@ -233,6 +268,7 @@ BASE_PATH="$test_root/missing-patch-base"
 mkdir -p "$BASE_PATH/patches"
 cp "$saved_base_path/patches/${patches[0]}" "$BASE_PATH/patches/"
 cp "$saved_base_path/patches/${patches[1]}" "$BASE_PATH/patches/"
+cp "$saved_base_path/patches/${latest_patches[0]}" "$BASE_PATH/patches/"
 package_dir="$test_root/missing-cache-patch"
 make_package "$package_dir"
 expect_rejected_without_changes "$package_dir" 'missing feature-cache patch'
@@ -280,6 +316,15 @@ cmp "$local_upstream/$generator_path" "$package_dir/$generator_path" ||
     fail 'failed update partially patched the fresh clone'
 cmp "$fixture_dir/Makefile" "$package_dir/Makefile" ||
     fail 'failed update partially changed dependencies'
+
+# Exercise the production update entrypoint after upstream advances to fadaa676.
+cp "$fixture_dir/fadaa676/generate_client.uc" "$local_upstream/$generator_path"
+cp "$fixture_dir/fadaa676/client.js" "$local_upstream/htdocs/luci-static/resources/view/homeproxy/client.js"
+git -C "$local_upstream" add .
+git -C "$local_upstream" commit -qm 'current upstream fixture'
+update_homeproxy
+assert_upstream_fixes "$package_dir" "$fixture_dir/fadaa676/patched-blobs.txt"
+assert_math_dependency "$package_dir/Makefile"
 
 # Stop before any unrelated build helper if the HomeProxy update fails.
 stage_marker="$test_root/next-stage-called"

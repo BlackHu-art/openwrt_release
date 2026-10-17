@@ -1,0 +1,6 @@
+02d8f0da0371e90e097f5655f196399e7066d368 root/etc/homeproxy/scripts/generate_client.uc
+5c9bf7d069bfecbf0320aa2a57a684edb6a96a10 htdocs/luci-static/resources/view/homeproxy/client.js
+233664b4488b710145e1a2bf626644d17c86dbd1 root/etc/init.d/homeproxy
+bb14998a87bf070feeba277110a559e76de4753a root/usr/share/rpcd/ucode/luci.homeproxy
+7264e0489e6d231f2743c9b411b3aed826d79c7e root/etc/homeproxy/scripts/singbox_features.uc
+050466e9cbd1c1d0ee7dc90e8abf68239e986403 root/etc/uci-defaults/luci-homeproxy-features

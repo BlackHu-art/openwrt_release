@@ -1,0 +1,61 @@
+Subject: [PATCH] homeproxy: retain remaining sing-box 1.14 fixes on fadaa676
+
+Adapt PR #673 commit 7c6ded7b99953c7148f3f4a2edf69a592a4f424e to
+upstream fadaa676104f59ff6ace480a780a258d846d0aec, which already removes
+legacy sniff fields and independent_cache. Preserve the 300ms sniff timeout,
+remove disable_expire and invalid resolver actions. No VPN routing changes.
+
+diff --git a/root/etc/homeproxy/scripts/generate_client.uc b/root/etc/homeproxy/scripts/generate_client.uc
+--- a/root/etc/homeproxy/scripts/generate_client.uc
++++ b/root/etc/homeproxy/scripts/generate_client.uc
+@@ -56,7 +56,7 @@
+ 
+ let main_node, main_udp_node, dedicated_udp_node, default_outbound, default_outbound_dns,
+     domain_strategy, dns_server, china_dns_server, dns_default_strategy, dns_default_server,
+-    dns_disable_cache, dns_disable_cache_expire, dns_client_subnet,
++    dns_disable_cache, dns_client_subnet,
+     cache_file_store_rdrc, cache_file_rdrc_timeout, direct_domain_list, proxy_domain_list;
+ 
+ if (routing_mode !== 'custom') {
+@@ -87,7 +87,6 @@
+ 	dns_default_strategy = uci.get(uciconfig, ucidnssetting, 'default_strategy');
+ 	dns_default_server = uci.get(uciconfig, ucidnssetting, 'default_server');
+ 	dns_disable_cache = uci.get(uciconfig, ucidnssetting, 'disable_cache');
+-	dns_disable_cache_expire = uci.get(uciconfig, ucidnssetting, 'disable_cache_expire');
+ 	dns_client_subnet = uci.get(uciconfig, ucidnssetting, 'client_subnet');
+ 	cache_file_store_rdrc = uci.get(uciconfig, ucidnssetting, 'cache_file_store_rdrc'),
+ 	cache_file_rdrc_timeout = uci.get(uciconfig, ucidnssetting, 'cache_file_rdrc_timeout');
+@@ -429,7 +428,6 @@
+ 	rules: [],
+ 	strategy: dns_default_strategy,
+ 	disable_cache: strToBool(dns_disable_cache),
+-	disable_expire: strToBool(dns_disable_cache_expire),
+ 	client_subnet: dns_client_subnet
+ };
+ 
+@@ -783,7 +781,8 @@
+ 			action: 'hijack-dns'
+ 		},
+ 		{
+-			action: 'sniff'
++			action: 'sniff',
++			timeout: '300ms'
+ 		}
+ 	],
+ 	rule_set: [],
+@@ -795,7 +794,6 @@
+ if (!isEmpty(main_node)) {
+ 	/* Avoid DNS loop */
+ 	config.route.default_domain_resolver = {
+-		action: 'route',
+ 		server: (routing_mode === 'bypass_mainland_china') ? 'china-dns' : 'default-dns',
+ 		strategy: (ipv6_support !== '1') ? 'prefer_ipv4' : null
+ 	};
+@@ -871,7 +869,6 @@
+ 		config.route.rule_set = null;
+ } else if (!isEmpty(default_outbound)) {
+ 	config.route.default_domain_resolver = {
+-		action: 'resolve',
+ 		server: get_resolver(default_outbound_dns)
+ 	};
+ 

@@ -37,6 +37,7 @@ jobs:
           - redmi_ax5_immwrt
           - redmi_ax6_immwrt
           - redmi_ax6_libwrt
+          - supergateway_s20m_immwrt
           - x64_immwrt
           - zn_m2_immwrt
           - zn_m2_libwrt

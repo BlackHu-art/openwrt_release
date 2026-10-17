@@ -33,6 +33,8 @@ required_paths = [
     "wrt_core/deconfig/banner",
     "wrt_core/deconfig/fragments/proxy.config",
     "wrt_core/deconfig/fragments/nss.config",
+    "wrt_core/compilecfg/supergateway_s20m_immwrt.ini",
+    "wrt_core/deconfig/supergateway_s20m_immwrt.config",
     "wrt_core/deconfig/fragments/docker_deps.config",
     "wrt_core/modules/banner.sh",
     ".github/workflows/build_wrt.yml",
@@ -41,6 +43,12 @@ required_paths = [
 ]
 for item in required_paths:
     assert (ROOT / item).exists(), f"missing required path: {item}"
+
+s20m_config = "wrt_core/deconfig/supergateway_s20m_immwrt.config"
+# The selected source branch defines S20M under mediatek/filogic, not mt7986.
+require(s20m_config, "CONFIG_TARGET_mediatek_filogic=y")
+require(s20m_config, "CONFIG_TARGET_DEVICE_mediatek_filogic_DEVICE_supergateway_s20m=y")
+reject(s20m_config, "CONFIG_TARGET_mediatek_mt7986=y")
 
 base = "wrt_core/deconfig/compile_base.config"
 for setting in [
@@ -79,10 +87,12 @@ require(
     "wrt_core/deconfig/jdcloud_ipq60xx_immwrt.config",
     "CONFIG_PACKAGE_luci-app-ssr-plus=y",
 )
-require(
-    "wrt_core/deconfig/jdcloud_ipq60xx_libwrt.config",
-    "luci-app-dockerman luci-i18n-dockerman-zh-cn",
-)
+for model in ["jdcloud_ipq60xx_immwrt", "jdcloud_ipq60xx_libwrt", "jdcloud_ax6000_immwrt"]:
+    config = f"wrt_core/deconfig/{model}.config"
+    for package in ["luci-app-dockerman", "luci-i18n-dockerman-zh-cn", "docker", "dockerd", "containerd", "runc"]:
+        require(config, f"CONFIG_PACKAGE_{package}=n")
+        reject(config, f" {package}")
+    reject(f"wrt_core/compilecfg/{model}.ini", "docker_deps")
 
 require(
     "wrt_core/modules/package_source_updates.sh",
@@ -131,6 +141,7 @@ for workflow_path in [
     ".github/workflows/release_wrt_all.yml",
 ]:
     workflow = load_workflow(workflow_path)
+    require(workflow_path, "- supergateway_s20m_immwrt")
     trigger = workflow.get("on", workflow.get(True))
     assert isinstance(trigger, dict), f"{workflow_path}: invalid on section"
     assert "push" not in trigger and "schedule" not in trigger, (

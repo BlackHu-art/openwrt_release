@@ -32,3 +32,19 @@ application, every already-applied subset, dependencies, incompatible source,
 missing/partial patches, and clone/stage failure propagation in temporary
 directories without network access. They do not validate live LuCI, ucode,
 dnsmasq, nftables, TUN behavior, or feature-cache runtime behavior on a router.
+
+The `fadaa676/` subdirectory contains the unmodified generator and client view
+from [upstream fadaa676104f59ff6ace480a780a258d846d0aec](https://github.com/immortalwrt/homeproxy/commit/fadaa676104f59ff6ace480a780a258d846d0aec).
+Their original Git blobs are `ce54caa749392a586ab85f40ffa1ea4af5a9a2f2`
+and `7d606a522f0e369b57a47237fccac40862ae3ffa`, respectively. The other
+fixture files are unchanged at that upstream revision and are reused.
+The same GPL-2.0-only license applies.
+
+Upstream commits `8583c200` and `07b9d1b9` absorb part of PR #673, so the
+original compatibility patch no longer applies. The adapted
+`homeproxy-fadaa676-sing-box-1.14.patch` retains only the remaining changes;
+it does not duplicate upstream commits. `fadaa676/patched-blobs.txt` records
+the resulting LF file blobs after this patch plus #641 and #672. The generator
+blob is `02d8f0da0371e90e097f5655f196399e7066d368`.
+Tests cover all eight applied-patch subsets, repeat application, unknown and
+partial changes, and updating through the real clone entrypoint for this baseline.

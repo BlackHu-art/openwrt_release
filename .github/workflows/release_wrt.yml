@@ -27,6 +27,7 @@ on:
           - zn_m2_immwrt
           - zn_m2_libwrt
           - x64_immwrt
+          - supergateway_s20m_immwrt
       add_fragments:
         required: false
         description: Add config fragments, comma separated
