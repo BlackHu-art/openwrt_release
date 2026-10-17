@@ -73,7 +73,7 @@ clean_up() {
         \rm -rf "tmp"
     fi
     if [[ -d "logs" ]]; then
-        \rm -rf "logs/*"
+        find "$BUILD_DIR/logs" -type f -delete
     fi
     if [[ -d "feeds" ]]; then
         ./scripts/feeds clean

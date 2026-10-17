@@ -30,6 +30,12 @@ for workflow in WORKFLOWS:
     assert "${{ env.REPO_HASH }}" in key
     assert all("${{ env.REPO_HASH }}" in item for item in restores)
     assert "${{ env.REPO_HASH }}" in deletion
+    logs = step_named(steps, "Upload Build Logs")
+    assert logs["if"] == "${{ !cancelled() }}"
+    assert logs["with"]["path"] == "./action_build/logs/"
+    assert "${{ inputs.model }}" in logs["with"]["name"]
+    assert steps.index(logs) > steps.index(step_named(steps, "Build Firmware"))
+    assert step_named(steps, "Machine Information (Post-build)")["if"] == "${{ !cancelled() }}"
     for dimension in [
         "${{ matrix.os }}",
         "${{ inputs.model }}",

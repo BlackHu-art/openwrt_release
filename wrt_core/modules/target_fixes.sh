@@ -23,9 +23,45 @@ fix_miniupnpd() {
     local miniupnpd_dir="$BUILD_DIR/feeds/packages/net/miniupnpd"
     local patch_file="999-chanage-default-leaseduration.patch"
 
+    fix_miniupnpd_2311_patches "$miniupnpd_dir" || return 1
     if [ -d "$miniupnpd_dir" ] && [ -f "$BASE_PATH/patches/$patch_file" ]; then
         install -Dm644 "$BASE_PATH/patches/$patch_file" "$miniupnpd_dir/patches/$patch_file"
     fi
+}
+
+
+fix_miniupnpd_2311_patches() {
+    local package_dir=$1 version name expected actual replacement
+    [[ -f "$package_dir/Makefile" ]] || return 0
+    version=$(sed -n 's/^PKG_VERSION[[:space:]]*:=[[:space:]]*//p' "$package_dir/Makefile" | tr -d '\r')
+    [[ "$version" == "2.3.11" ]] || return 0
+    replacement="$BASE_PATH/patches/miniupnpd-2.3.11-improve-logging.patch"
+    [[ -s "$replacement" ]] || { echo "Missing miniupnpd logging compatibility patch" >&2; return 1; }
+
+    # ImmortalWrt dd29469 retained patches already merged by miniupnpd 2.3.11.
+    # Validate every affected file before changing anything; never delete unknown fixes.
+    while read -r name expected; do
+        [[ -f "$package_dir/patches/$name" ]] || continue
+        actual=$(tr -d '\r' < "$package_dir/patches/$name" | sha256sum)
+        actual=${actual%% *}
+        if [[ "$name" == "040-improve-logging.patch" && "$actual" == "c7cfb9e05be7ce9a40d1c56e8545c09e56714d63a15d62967932fe7d3ad3cf16" ]]; then
+            continue
+        fi
+        if [[ "$actual" != "$expected" ]]; then
+            echo "miniupnpd 2.3.11: unrecognized $name; review upstream changes before building" >&2
+            return 1
+        fi
+    done <<'PATCH_HASHES'
+020-descr-filter-fix.patch 4e0f8ddf58cb130044a5f3b92bdf3a8859f8c15e0edbcbcb2b8df42f99e41da1
+030-allow-private-fix.patch c667bfaa2f1028d1dc44547d4dd4302891799fc0de271a17618eff537b1a2339
+040-improve-logging.patch aad6802ab9d01ecea2c143d7495644b714e171552434049f8669d4f28611bcba
+PATCH_HASHES
+
+    rm -f "$package_dir/patches/020-descr-filter-fix.patch" "$package_dir/patches/030-allow-private-fix.patch" || return 1
+    if [[ -f "$package_dir/patches/040-improve-logging.patch" ]]; then
+        install -m644 "$replacement" "$package_dir/patches/040-improve-logging.patch" || return 1
+    fi
+    echo "miniupnpd 2.3.11: removed merged patches and refreshed logging patch"
 }
 
 

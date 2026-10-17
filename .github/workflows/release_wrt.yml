@@ -160,6 +160,16 @@ jobs:
           REMOVE_CONFIG_FRAGMENTS: ${{ inputs.remove_fragments }}
         run: ./build.sh ${{ inputs.model }}
 
+      - name: Upload Build Logs
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v7.0.1
+        with:
+          name: build-logs-${{ inputs.model }}-${{ github.run_id }}-${{ github.run_attempt }}
+          compression-level: 1
+          path: ./action_build/logs/
+          if-no-files-found: ignore
+          retention-days: 7
+
       - name: Get Kernel Verion
         run: |
           # 获取内核版本
@@ -177,6 +187,7 @@ jobs:
           echo "staging: $(du -sh ./action_build/staging_dir | cut -f 1)"
 
       - name: Machine Information (Post-build)
+        if: ${{ !cancelled() }}
         run: |
           echo "=============== Post-build Snapshot ==============="
           echo "Time: $(date '+%F %T %Z')"
