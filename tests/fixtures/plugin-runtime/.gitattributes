@@ -1,0 +1,3 @@
+* text eol=lf
+# Retain the original upstream Lua indentation used as the patch baseline.
+AdGuardHome.lua whitespace=-space-before-tab

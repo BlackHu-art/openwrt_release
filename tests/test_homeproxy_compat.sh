@@ -30,6 +30,7 @@ patches=(
     homeproxy-7c6ded7-sing-box-1.14.patch
     homeproxy-1a32fca-acl-domains.patch
     homeproxy-10f4244-feature-cache.patch
+    homeproxy-routing-cleanup.patch
 )
 
 make_package() {
@@ -128,13 +129,13 @@ declare -F fix_homeproxy_compat >/dev/null || fail "fix_homeproxy_compat is not 
 
 # Current upstream has absorbed part of PR #673. Accept every subset of the
 # remaining patches without restoring removed UI options or changing VPN routing.
-latest_patches=(homeproxy-fadaa676-sing-box-1.14.patch "${patches[1]}" "${patches[2]}")
-for mask in 0 1 2 3 4 5 6 7; do
+latest_patches=(homeproxy-fadaa676-sing-box-1.14.patch "${patches[@]:1}")
+for mask in {0..15}; do
     package_dir="$test_root/latest-$mask"
     make_package "$package_dir"
     cp "$fixture_dir/fadaa676/generate_client.uc" "$package_dir/$generator_path"
     cp "$fixture_dir/fadaa676/client.js" "$package_dir/htdocs/luci-static/resources/view/homeproxy/client.js"
-    for index in 0 1 2; do
+    for index in 0 1 2 3; do
         if (( mask & (1 << index) )); then
             git -C "$package_dir" apply "$BASE_PATH/patches/${latest_patches[$index]}"
         fi
@@ -180,10 +181,10 @@ package_snapshot "$package_dir" >"$test_root/all-fixed-after"
 cmp "$test_root/all-fixed-before" "$test_root/all-fixed-after" || fail 'repeat changed patched files'
 
 # Upstream can land any subset of the independent fixes before a fresh clone.
-for mask in 1 2 3 4 5 6; do
+for mask in {1..14}; do
     package_dir="$test_root/partial-$mask"
     make_package "$package_dir"
-    for index in 0 1 2; do
+    for index in 0 1 2 3; do
         if (( mask & (1 << index) )); then
             git -C "$package_dir" apply "$BASE_PATH/patches/${patches[$index]}"
         fi
@@ -331,6 +332,7 @@ stage_marker="$test_root/next-stage-called"
 status=0
 (
     source "$repo_root/wrt_core/update.sh"
+    ensure_libffi_source() { :; }
     update_homeproxy() { return 1; }
     fix_default_set() { printf '%s\n' unexpected >"$stage_marker"; exit 77; }
     stage_pre_install_source_fixes

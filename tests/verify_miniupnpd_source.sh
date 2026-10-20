@@ -5,8 +5,15 @@ repo_root=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
 archive=${1:?Usage: verify_miniupnpd_source.sh /path/to/miniupnpd-2.3.11.tar.gz}
 actual=$(sha256sum "$archive")
 [[ "${actual%% *}" == 91994b127da735b2c97f19992e34420648c0e8c4ace8a4bcb0596e7685c48678 ]]
-test_root=$(mktemp -d "${TMPDIR:-/tmp}/miniupnpd-source.XXXXXX")
-trap 'rm -rf -- "$test_root"' EXIT
+temp_base=$(cd "${TMPDIR:-/tmp}" && pwd -P)
+test_root=$(mktemp -d "$temp_base/miniupnpd-source.XXXXXX")
+cleanup() {
+    case "$test_root" in
+        "$temp_base"/miniupnpd-source.*) rm -rf -- "$test_root" ;;
+        *) echo "Refusing to remove unexpected test directory: $test_root" >&2 ;;
+    esac
+}
+trap cleanup EXIT
 BASE_PATH="$repo_root/wrt_core"
 BUILD_DIR="$test_root/build"
 source "$BASE_PATH/modules/target_fixes.sh"
@@ -37,4 +44,28 @@ cmp "$original/upnppermissions.h" "$fixed/upnppermissions.h"
 grep -q 'Listening for UPnP IGD (SOAP/HTTP)' "$fixed/miniupnpd.c"
 grep -q 'leaseduration = 28800;' "$fixed/upnpsoap.c"
 grep -q 'else if (leaseduration > 86400)' "$fixed/upnpsoap.c"
-echo 'miniupnpd 2.3.11 full source patch stack: PASS'
+echo 'miniupnpd 2.3.11 legacy source patch stack: PASS'
+
+# Apply the complete reviewed upstream refresh plus our lease patch to clean source.
+BUILD_DIR="$test_root/upstream-build"
+package="$BUILD_DIR/feeds/packages/net/miniupnpd"
+fixture="$repo_root/tests/fixtures/miniupnpd/e765fb8"
+mkdir -p "$package/patches" "$test_root/upstream"
+cp "$fixture/"*.patch "$package/patches/"
+printf 'PKG_VERSION:=2.3.11\n' > "$package/Makefile"
+fix_miniupnpd
+for file in "$fixture/"*.patch; do
+    cmp "$file" "$package/patches/${file##*/}"
+done
+tar -xzf "$archive" -C "$test_root/upstream"
+upstream_fixed="$test_root/upstream/miniupnpd-2.3.11"
+for file in "$package/patches/"*.patch; do
+    patch -d "$upstream_fixed" -p1 -f -i "$file"
+done
+[[ -z $(find "$upstream_fixed" -name '*.rej' -print) ]]
+cmp "$original/upnppermissions.c" "$upstream_fixed/upnppermissions.c"
+cmp "$original/upnppermissions.h" "$upstream_fixed/upnppermissions.h"
+grep -q 'Listening for UPnP IGD (SOAP/HTTP)' "$upstream_fixed/miniupnpd.c"
+grep -q 'leaseduration = 28800;' "$upstream_fixed/upnpsoap.c"
+grep -q 'else if (leaseduration > 86400)' "$upstream_fixed/upnpsoap.c"
+echo 'miniupnpd 2.3.11 upstream e765fb8 source patch stack: PASS'

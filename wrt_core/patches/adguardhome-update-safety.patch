@@ -1,0 +1,57 @@
+Subject: AdGuard Home: avoid automatic downgrades and tolerate absent update logs
+
+Adapt the numeric ordering fix from kenzok78 b86a36ec2fc89adf3fa9dd015dd769b4d8f7d129
+and the missing-log guard from 6aad9ba81aed80adf492c06e92aa1c74f18a45f1
+to the ZqinKing 3610820 fork, preserving its nftables redirect implementation.
+
+--- a/root/usr/share/AdGuardHome/update_core.sh
++++ b/root/usr/share/AdGuardHome/update_core.sh
+@@ -23,6 +23,18 @@
+ 	echo error curl and wget && EXIT 1
+ }
+ 
++# Compare numeric release components without adding a coreutils-sort dependency.
++version_is_newer(){
++	awk -v latest="${1#v}" -v current="${2#v}" 'BEGIN {
++		split(latest, l, "."); split(current, c, ".")
++		for (i = 1; i <= 3; i++) {
++			if (l[i] + 0 > c[i] + 0) exit 0
++			if (l[i] + 0 < c[i] + 0) exit 1
++		}
++		exit 1
++	}'
++}
++
+ check_latest_version(){
+ 	check_wgetcurl
+ 	latest_ver="$($downloader - https://api.github.com/repos/AdguardTeam/AdGuardHome/releases/latest 2>/dev/null|grep -E 'tag_name' |grep -E 'v[0-9.]+' -o 2>/dev/null)"
+@@ -30,12 +42,12 @@
+ 		echo -e "\nFailed to check latest version, please try again later."  && EXIT 1
+ 	fi
+ 	now_ver="$($binpath -c /dev/null --check-config 2>&1| grep -m 1 -E 'v[0-9.]+' -o)"
+-	if [ "${latest_ver}"x != "${now_ver}"x ] || [ "$1" == "force" ]; then
++	if [ "$1" == "force" ] || [ -z "$now_ver" ] || version_is_newer "$latest_ver" "$now_ver"; then
+ 		echo -e "Local version: ${now_ver}., cloud version: ${latest_ver}."
+ 		doupdate_core
+ 	else
+ 		echo -e "\nLocal version: ${now_ver}, cloud version: ${latest_ver}."
+-		echo -e "You're already using the latest version."
++		echo -e "You're already using an equal or newer version."
+ 		if [ ! -z "$upxflag" ]; then
+ 			filesize=$(ls -l $binpath | awk '{ print $5 }')
+ 			if [ $filesize -gt 8000000 ]; then
+--- a/luasrc/controller/AdGuardHome.lua
++++ b/luasrc/controller/AdGuardHome.lua
+@@ -116,7 +116,11 @@
+ function check_update()
+ 	http.prepare_content("text/plain; charset=utf-8")
+ 	local fdp=tonumber(fs.readfile("/var/run/lucilogpos")) or 0
+-	local f=io.open("/tmp/AdGuardHome_update.log", "r+")
++	local f=io.open("/tmp/AdGuardHome_update.log", "r")
++	if not f then
++		http.write("")
++		return
++	end
+ 	f:seek("set",fdp)
+ 	local a=f:read(2048000) or ""
+ 	fdp=f:seek()

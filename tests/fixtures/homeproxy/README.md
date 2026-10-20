@@ -48,3 +48,14 @@ the resulting LF file blobs after this patch plus #641 and #672. The generator
 blob is `02d8f0da0371e90e097f5655f196399e7066d368`.
 Tests cover all eight applied-patch subsets, repeat application, unknown and
 partial changes, and updating through the real clone entrypoint for this baseline.
+
+The build now also applies `homeproxy-routing-cleanup.patch`, adapted from
+[closed, unmerged PR #644](https://github.com/immortalwrt/homeproxy/pull/644).
+It fixes the LAN chain name, uses route replacement, and drains every matching
+stale policy rule before adding one and during stop. Both blob lists now record
+init blob `469bae34f94c287081ae5838ea98c1aee6b341ff` after all four patches.
+The source was also checked against the separately fetched complete fadaa676
+init script. Both baselines cover all 16 patch subsets; the routing test executes
+the actual routing sections with an `ip` model to cover repeated start/stop,
+IPv4/IPv6, TProxy/TUN and preservation of unrelated rules. This is not a live
+kernel or router test.

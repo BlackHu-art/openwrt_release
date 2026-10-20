@@ -1,0 +1,2 @@
+# Preserve upstream patch context prefixes and whitespace exactly.
+*.patch text eol=lf -whitespace

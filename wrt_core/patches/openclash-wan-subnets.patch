@@ -1,0 +1,43 @@
+Subject: OpenClash: selected fix from 271c263967663a8ed34c881416205391c7582a46
+
+Source: https://github.com/vernesong/OpenClash/commit/271c263967663a8ed34c881416205391c7582a46
+Only the selected file is backported; retain the stable UI and other runtime defaults.
+
+diff --git a/root/etc/init.d/openclash b/root/etc/init.d/openclash
+--- a/root/etc/init.d/openclash
++++ b/root/etc/init.d/openclash
+@@ -1410,6 +1410,12 @@ if [ -n "$FW4" ]; then
+       done
+    fi
+ 
++   if [ -n "$lan_ip4s" ]; then
++      for lan_ip4 in $lan_ip4s; do
++         nft add element inet fw4 localnetwork { "$lan_ip4" }
++      done
++   fi
++
+    #common ports
+    if [ -n "$common_ports" ] && [ "$common_ports" != "0" ]; then
+       nft 'add set inet fw4 common_ports { type inet_service; flags interval; }'
+@@ -2246,6 +2252,12 @@ if [ -z "$FW4" ]; then
+       done
+    fi
+ 
++   if [ -n "$lan_ip4s" ]; then
++      for lan_ip4 in $lan_ip4s; do
++         ipset add localnetwork "$lan_ip4"
++      done
++   fi
++
+    #common ports
+    if [ -n "$common_ports" ] && [ "$common_ports" != "0" ]; then
+       ipset create common_ports bitmap:port range 0-65535
+@@ -3751,6 +3763,8 @@ get_config()
+ 
+    wan_ip4s=$(/usr/share/openclash/openclash_get_network.lua "wanip" 2>/dev/null)
+    wan_ip6s=$(ifconfig | grep 'inet6 addr' | awk '{print $3}' 2>/dev/null)
++   # Populate non-PPPoE WAN subnets before proxy rules, as the watchdog does.
++   lan_ip4s=$(/usr/share/openclash/openclash_get_network.lua "lan_cidr" 2>/dev/null)
+    log_level=$(uci_get_config "log_level")
+    intranet_allowed=$(uci_get_config "intranet_allowed")
+    enable_udp_proxy=$(uci_get_config "enable_udp_proxy" || echo 1)

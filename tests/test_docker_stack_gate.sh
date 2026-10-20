@@ -120,6 +120,41 @@ expect_update_rejected_before_stages() {
 expect_update_rejected_before_stages "missing Docker stack selection" url branch "$tmp_dir/direct-build" commit
 expect_update_rejected_before_stages "invalid Docker stack selection" url branch "$tmp_dir/direct-build" commit invalid
 
+# Unselected firmware must not download Dockerman/luci-lib-docker or replace
+# the upstream package. Exercise the real updater with only network I/O stubbed.
+dockerman_build="$tmp_dir/dockerman-build"
+dockerman_makefile="$dockerman_build/feeds/luci/applications/luci-app-dockerman/Makefile"
+mkdir -p "$(dirname "$dockerman_makefile")"
+printf '%s\n' 'original Dockerman package' > "$dockerman_makefile"
+if ! (
+    source "$repo_root/wrt_core/update.sh"
+    export NETWORK_MARKER="$network_marker"
+    export PATH="$network_stub_dir:$PATH"
+    BUILD_DIR="$dockerman_build"
+    DOCKER_STACK_SELECTED=0
+    git_retry() { git "$@"; }
+    update_dockerman
+    [[ ! -e $network_marker ]] || exit 1
+    [[ $(cat "$dockerman_makefile") == 'original Dockerman package' ]] || exit 1
+    [[ ! -d "$BUILD_DIR/feeds/luci/libs" ]] || exit 1
+); then
+    fail "unselected Docker stack must skip Dockerman source preparation"
+fi
+
+if (
+    source "$repo_root/wrt_core/update.sh"
+    export NETWORK_MARKER="$network_marker"
+    export PATH="$network_stub_dir:$PATH"
+    BUILD_DIR="$dockerman_build"
+    DOCKER_STACK_SELECTED=1
+    git_retry() { git "$@"; }
+    update_dockerman
+) > "$tmp_dir/dockerman-selected.log" 2>&1; then
+    fail "selected Dockerman updater unexpectedly succeeded with network unavailable"
+fi
+[[ -s $network_marker ]] || fail "selected Docker stack must still attempt source preparation"
+rm -f "$network_marker"
+
 # Loading update.sh is a library operation: it must not enable errexit or
 # errtrace in a caller that deliberately disabled both options.
 if ! (
@@ -184,8 +219,11 @@ fi
 preview=$(cd "$repo_root" && ADD_CONFIG_FRAGMENTS=docker_deps ./build.sh cmcc_rax3000m_immwrt config_preview)
 [[ $preview == *"Docker stack selected: 0"* ]] || fail "docker_deps alone should not select Docker"
 
-preview=$(cd "$repo_root" && ./build.sh x64_immwrt config_preview)
-[[ $preview == *"Docker stack selected: 1"* ]] || fail "x64_immwrt should select Docker"
+for model in x64_immwrt n1_immwrt link_nn6000v2_immwrt; do
+    preview=$(cd "$repo_root" && ./build.sh "$model" config_preview)
+    [[ $preview == *"Docker stack selected: 1"* ]] || fail "$model should keep Docker selected"
+    [[ $preview == *"docker_deps"* ]] || fail "$model should keep Docker dependencies"
+done
 
 for model in jdcloud_ipq60xx_immwrt jdcloud_ipq60xx_libwrt jdcloud_ax6000_immwrt; do
     preview=$(cd "$repo_root" && ./build.sh "$model" config_preview)

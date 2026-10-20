@@ -130,7 +130,7 @@ S20M 支持同步自构建上游 [`90a9591`](https://github.com/ZqinKing/wrt_rel
 - 所有设备默认包含 `proxy`。
 - IPQ60xx / IPQ807x 设备默认额外包含 `nss`。
 - 只有已显式选择 Dockerman 或明确适合运行 Docker 的设备默认包含 `docker_deps`，用于预置手动安装 Docker 所需的运行依赖，避免 NAND 空间紧张或无 USB 设备被默认加入 Docker 依赖。
-- 京东云的 IPQ60xx（ImmortalWrt、LiBwrt）和 AX6000 配置不再编译 Docker、Dockerman 及容器运行时，也不默认加载 `docker_deps`。
+- 京东云的 IPQ60xx（ImmortalWrt、LiBwrt）和 AX6000 配置不编译 Docker、Dockerman、Compose、LuCI Docker 库及容器运行时，也不默认加载 `docker_deps`。未选 Docker 时跳过 Dockerman 和 LuCI Docker 库的额外源码更新；`make defconfig` 后检查显式禁用的 Docker 包，若被依赖重新选入则停止编译并列出包名。X64、N1、Link NN6000v2 保留现有 Docker 编译配置。
 
 `ADD_CONFIG_FRAGMENTS` 会在默认片段后追加，`REMOVE_CONFIG_FRAGMENTS` 会从最终片段中移除对应配置片段。移除只表示“不追加这个 fragment”，不会反向修改设备 `.config` 或 `compile_base.config` 中已经写明的配置。
 

@@ -25,6 +25,7 @@ source "$SCRIPT_DIR/modules/package_source_updates.sh"
 source "$SCRIPT_DIR/modules/target_fixes.sh"
 source "$SCRIPT_DIR/modules/luci_fixes.sh"
 source "$SCRIPT_DIR/modules/service_fixes.sh"
+source "$SCRIPT_DIR/modules/plugin_compat.sh"
 
 
 # 阶段顺序不可随意调整：feeds install 前后依赖的目录不同。
@@ -53,7 +54,9 @@ stage_custom_feed_prepare() {
 
 stage_pre_install_source_fixes() {
     # 这里仅修改源码树与 feeds/*，不能依赖 package/feeds/*。
+    ensure_libffi_source || return 1
     update_homeproxy || return 1
+    fix_openclash_compat "$(get_custom_feed_worktree_dir)/luci-app-openclash" || return 1
     fix_default_set
     fix_miniupnpd || return 1
     update_golang
@@ -112,7 +115,7 @@ stage_post_install_package_fixes() {
     verify_custom_feed_installed_paths
     docker_stack_sync_nftables_compat_if_selected "$DOCKER_STACK_SELECTED" "$BUILD_DIR" "0"
     fix_easytier_lua
-    update_adguardhome
+    update_adguardhome || return 1
     update_script_priority
     update_geoip
     fix_openssl_ktls

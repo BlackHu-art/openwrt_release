@@ -2,3 +2,8 @@ homeproxy-7c6ded7-sing-box-1.14.patch text eol=lf
 homeproxy-fadaa676-sing-box-1.14.patch text eol=lf
 homeproxy-1a32fca-acl-domains.patch text eol=lf
 homeproxy-10f4244-feature-cache.patch text eol=lf
+# Unified diff context prefixes are required data, including blank context lines.
+adguardhome-update-safety.patch text eol=lf whitespace=-blank-at-eol,-space-before-tab
+homeproxy-routing-cleanup.patch text eol=lf whitespace=-blank-at-eol,-space-before-tab
+openclash-checksum-filename.patch text eol=lf whitespace=-blank-at-eol,-space-before-tab
+openclash-wan-subnets.patch text eol=lf whitespace=-blank-at-eol,-space-before-tab

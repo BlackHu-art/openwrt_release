@@ -51,3 +51,13 @@ miniupnpd 已升级为 2.3.11，但 packages feed 保留了旧 `020-descr-filter
 修复在 `update_argon_config` 检测上游 `root/usr/share/argon/config-integrated` 标记，确认兼容包存在后清理旧独立配置源码，保留主题内的兼容包让后续 feeds 索引发现。旧版主题继续使用原独立配置源。主题或兼容包缺失时提前报错。主题设置、中文翻译及现有固件功能选择均保留。
 
 验证先复现旧逻辑的重复文件归属，再检查新旧主题、残留源码清理、重复执行和失败保护；`bash tests/run_all.sh` 的 10 个检查脚本全部通过。对上述两份真实上游源码的独立验证确认：日志中的 9 个冲突路径均存在；修复后无重复运行文件，主题源码逐文件哈希未改变，中文翻译仍在。执行该固件固定源码的 feeds 文件扫描规则和原始 `scan.awk`，确认能发现主题及其嵌套兼容包。此结果不等同于完整 feeds 元数据生成、Linux 固件交叉编译或设备运行验证；完整 CI 仍需使用本次修复后的提交另行执行。
+
+## 2026-10-20 任务 #99：上游 miniupnpd 补丁刷新被兼容检查拦截
+
+[任务 #98](https://github.com/BlackHu-art/openwrt_release/actions/runs/39029848446) 已在提交 `bba9afb` 完成构建。[任务 #99](https://github.com/BlackHu-art/openwrt_release/actions/runs/39402810799/job/118561431130) 使用 `f3e4bac`，在北京时间 17:56:12 报告 `miniupnpd 2.3.11: unrecognized 040-improve-logging.patch`。Build Firmware 执行约 53 秒即在源码准备阶段停止，尚未执行下载和编译阶段，因此没有生成 `logs/compile.log`。
+
+当天 packages 上游提交 [`e765fb8`](https://github.com/immortalwrt/packages/commit/e765fb8870b5911992eb4b5a1624ad451e42f4a8) 已删除 `020` / `030` 并刷新 `010`、`040`、`900`。固件主源码仍固定在 `3fd1e27a`，packages feed 则跟随远端更新；本地兼容函数只识别旧补丁与自己的替换补丁，导致已修复的上游 `040` 被拒绝。
+
+修复让兼容函数识别并原样保留审核后的上游 `040`，保留旧基线修复、未知内容失败保护和租约补丁。回归覆盖最新补丁保留、重复执行、残留旧补丁清理以及未知补丁不得绕过检查。官方 2.3.11 源码验证已通过旧兼容路径和完整上游补丁链；新提交的完整固件编译仍需另行验证。
+
+本次检查时，主项目上游 `ZqinKing/wrt_release` 最新仍为 [`90a9591`](https://github.com/ZqinKing/wrt_release/commit/90a9591817720d7876e95b8df51e895d643eba19)（2026-10-15），其 S20M 支持已在本仓库 `ca5dd72` 同步；本次新增兼容的是 packages 上游的 miniupnpd 修复。

@@ -89,7 +89,10 @@ require(
 )
 for model in ["jdcloud_ipq60xx_immwrt", "jdcloud_ipq60xx_libwrt", "jdcloud_ax6000_immwrt"]:
     config = f"wrt_core/deconfig/{model}.config"
-    for package in ["luci-app-dockerman", "luci-i18n-dockerman-zh-cn", "docker", "dockerd", "containerd", "runc"]:
+    for package in [
+        "luci-app-dockerman", "luci-i18n-dockerman-zh-cn", "luci-lib-docker",
+        "docker", "dockerd", "docker-compose", "containerd", "runc",
+    ]:
         require(config, f"CONFIG_PACKAGE_{package}=n")
         reject(config, f" {package}")
     reject(f"wrt_core/compilecfg/{model}.ini", "docker_deps")

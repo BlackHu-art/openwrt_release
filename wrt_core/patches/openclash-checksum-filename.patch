@@ -1,0 +1,17 @@
+Subject: OpenClash: selected fix from 4015008110e8a40b41c416677c0e7224635d9379
+
+Source: https://github.com/vernesong/OpenClash/commit/4015008110e8a40b41c416677c0e7224635d9379
+Only the selected file is backported; retain the stable UI and other runtime defaults.
+
+diff --git a/root/usr/share/openclash/openclash_curl.sh b/root/usr/share/openclash/openclash_curl.sh
+--- a/root/usr/share/openclash/openclash_curl.sh
++++ b/root/usr/share/openclash/openclash_curl.sh
+@@ -275,7 +275,7 @@ verify_sha256_checksum() {
+ 
+     local expected_hash
+     expected_hash=$(curl -sL -m 15 --connect-timeout 5 -H "User-Agent: $ua" "$checksum_url" 2>/dev/null \
+-        | awk -v n="$expected_name" '$2 ~ n {print $1; exit} $0 ~ n {print $1; exit}')
++        | awk -v n="$expected_name" 'index($2, n) {print $1; exit} index($0, n) {print $1; exit}')
+ 
+     if [ -z "$expected_hash" ]; then
+         LOG_WARN "Checksum file unavailable or entry not found, skip verification for【$expected_name】"

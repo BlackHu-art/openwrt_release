@@ -179,6 +179,11 @@ _sync_luci_lib_docker() {
 
 
 update_dockerman() {
+    if [[ ${DOCKER_STACK_SELECTED:-} == 0 ]]; then
+        echo "Docker stack not selected; skipping Dockerman source update."
+        return 0
+    fi
+
     local path="$BUILD_DIR/feeds/luci/applications/luci-app-dockerman"
     local repo_url="https://github.com/lisaac/luci-app-dockerman.git"
 

@@ -4,7 +4,8 @@
 remove_unwanted_packages() {
     # 移除将由 custom_feed 接管或会产生冲突的上游包。
     local luci_packages=(
-        "luci-app-passwall" "luci-app-ddns-go" "luci-app-rclone" "luci-app-ssr-plus"
+        "luci-app-passwall" "luci-app-passwall2" "luci-app-partexp"
+        "luci-app-ddns-go" "luci-app-rclone" "luci-app-ssr-plus"
         "luci-app-vssr" "luci-app-daed" "luci-app-dae" "luci-app-alist" "luci-app-homeproxy"
         "luci-app-haproxy-tcp" "luci-app-openclash" "luci-app-mihomo" "luci-app-appfilter"
         "luci-app-msd_lite" "luci-app-unblockneteasemusic" "luci-app-adguardhome"
@@ -53,6 +54,7 @@ fix_homeproxy_compat() {
     local patch_files=(
         "$BASE_PATH/patches/homeproxy-1a32fca-acl-domains.patch"
         "$BASE_PATH/patches/homeproxy-10f4244-feature-cache.patch"
+        "$BASE_PATH/patches/homeproxy-routing-cleanup.patch"
     )
     local pending_patches=()
 
@@ -102,7 +104,7 @@ fix_homeproxy_compat() {
     patch_files=("$compatibility_patch" "${patch_files[@]}")
 
     # 保留 PR #673 第一提交的剩余修复，追加 #641 和 #672，不引入 VPN 接口选择变化。
-    # 三份补丁可独立预检；全部通过后才修改源码，避免后续补丁漂移时
+    # 补丁可独立预检；全部通过后才修改源码，避免后续补丁漂移时
     # 留下已应用的前序补丁或依赖变更。上游已包含的修复逐份跳过。
     for patch_file in "${patch_files[@]}"; do
         if git -C "$package_dir" apply --check "$patch_file" >/dev/null 2>&1; then

@@ -1,0 +1,36 @@
+   if [ -n "$wan_ip4s" ]; then
+      for wan_ip4 in $wan_ip4s; do
+         nft add element inet fw4 localnetwork { "$wan_ip4" }
+      done
+   fi
+
+   #common ports
+   if [ -n "$common_ports" ] && [ "$common_ports" != "0" ]; then
+      nft 'add set inet fw4 common_ports { type inet_service; flags interval; }'
+      for i in $common_port; do
+         nft add element inet fw4 common_ports { "$i" }
+      done
+   fi
+
+# Original source excerpt
+   if [ -n "$wan_ip4s" ]; then
+      for wan_ip4 in $wan_ip4s; do
+         ipset add localnetwork "$wan_ip4"
+      done
+   fi
+
+   #common ports
+   if [ -n "$common_ports" ] && [ "$common_ports" != "0" ]; then
+      ipset create common_ports bitmap:port range 0-65535
+      for i in $common_port; do
+         ipset add common_ports $i
+      done
+   fi
+
+# Original source excerpt
+
+   wan_ip4s=$(/usr/share/openclash/openclash_get_network.lua "wanip" 2>/dev/null)
+   wan_ip6s=$(ifconfig | grep 'inet6 addr' | awk '{print $3}' 2>/dev/null)
+   log_level=$(uci_get_config "log_level")
+   intranet_allowed=$(uci_get_config "intranet_allowed")
+   enable_udp_proxy=$(uci_get_config "enable_udp_proxy" || echo 1)

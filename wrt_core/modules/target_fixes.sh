@@ -1,6 +1,23 @@
 #!/usr/bin/env bash
 # target、kernel 与 base system 源码修正。
 
+ensure_libffi_source() {
+    # packages 70ac3a8440 将 libffi 移入主源码；固定的 NSS 源码可能尚未同步。
+    # 保留任何现有 recipe，仅在所有源码位置均缺失时恢复迁移前的版本。
+    if find "$BUILD_DIR/package" "$BUILD_DIR/feeds" \
+        -type f -path '*/libffi/Makefile' -print -quit | grep -q .; then
+        return 0
+    fi
+    local fallback="$BASE_PATH/compat/libffi/Makefile"
+    if [[ ! -f "$fallback" ]]; then
+        echo "错误：libffi 已从 feeds 移除，但兼容 recipe 不存在：$fallback" >&2
+        return 1
+    fi
+    install -Dm644 "$fallback" "$BUILD_DIR/package/libs/libffi/Makefile" || return 1
+    echo "已补齐 libffi 3.4.7 源码，兼容固定 NSS 源码与新版 packages feed。"
+}
+
+
 fix_default_set() {
     # 注入默认主题、系统设置和目标平台通用补丁。
     if [ -d "$BUILD_DIR/feeds/luci/collections/" ]; then
@@ -32,6 +49,7 @@ fix_miniupnpd() {
 
 fix_miniupnpd_2311_patches() {
     local package_dir=$1 version name expected actual replacement
+    local keep_upstream_logging=0
     [[ -f "$package_dir/Makefile" ]] || return 0
     version=$(sed -n 's/^PKG_VERSION[[:space:]]*:=[[:space:]]*//p' "$package_dir/Makefile" | tr -d '\r')
     [[ "$version" == "2.3.11" ]] || return 0
@@ -44,6 +62,11 @@ fix_miniupnpd_2311_patches() {
         [[ -f "$package_dir/patches/$name" ]] || continue
         actual=$(tr -d '\r' < "$package_dir/patches/$name" | sha256sum)
         actual=${actual%% *}
+        # ImmortalWrt e765fb8 refreshed this patch for 2.3.11; retain its contents.
+        if [[ "$name" == "040-improve-logging.patch" && "$actual" == "69fb7a80e422b6533086b48c1a531eb2eb20c068a8a7f0722fc11ce905e83f23" ]]; then
+            keep_upstream_logging=1
+            continue
+        fi
         if [[ "$name" == "040-improve-logging.patch" && "$actual" == "c7cfb9e05be7ce9a40d1c56e8545c09e56714d63a15d62967932fe7d3ad3cf16" ]]; then
             continue
         fi
@@ -58,10 +81,12 @@ fix_miniupnpd_2311_patches() {
 PATCH_HASHES
 
     rm -f "$package_dir/patches/020-descr-filter-fix.patch" "$package_dir/patches/030-allow-private-fix.patch" || return 1
-    if [[ -f "$package_dir/patches/040-improve-logging.patch" ]]; then
+    if [[ "$keep_upstream_logging" == 1 ]]; then
+        echo "miniupnpd 2.3.11: preserved upstream e765fb8 logging patch"
+    elif [[ -f "$package_dir/patches/040-improve-logging.patch" ]]; then
         install -m644 "$replacement" "$package_dir/patches/040-improve-logging.patch" || return 1
+        echo "miniupnpd 2.3.11: removed merged patches and refreshed logging patch"
     fi
-    echo "miniupnpd 2.3.11: removed merged patches and refreshed logging patch"
 }
 
 

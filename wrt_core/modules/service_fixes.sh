@@ -12,6 +12,7 @@ update_adguardhome() {
         echo "错误：从 $repo_url 克隆 luci-app-adguardhome 仓库失败" >&2
         exit 1
     fi
+    fix_adguardhome_compat "$adguardhome_dir" || return 1
 }
 
 
