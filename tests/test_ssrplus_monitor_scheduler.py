@@ -24,6 +24,31 @@ if os.name == "nt" and not BASH:
     BASH = "C:/Program Files/Git/bin/bash.exe"
 
 
+def relocate_locked_init(source, root, runtime):
+    source = re.sub(r"/(?:etc|var|tmp)/",
+                    lambda match: root + match.group(0), source)
+    source = source.replace("/usr/bin/ssr-rules", "test_ssr_rules")
+    source = source.replace("/bin/busybox", "busybox")
+    # Inject host paths last: Linux temporary directories also start with /tmp/.
+    return source.replace('${IPKG_INSTROOT:-}/usr/share/shadowsocksr/ssrp-runtime.sh',
+                          runtime)
+
+
+class InitBoundaryRelocationRegressions(unittest.TestCase):
+    def test_posix_runtime_path_is_not_relocated_twice(self):
+        source = ('. "${IPKG_INSTROOT:-}/usr/share/shadowsocksr/ssrp-runtime.sh"\n'
+                  'LOG_FILE="/var/log/ssrplus.log"\n'
+                  'CONFIG="/etc/config/shadowsocksr"\n'
+                  'WORK="/tmp/ssrplus"\n')
+        relocated = relocate_locked_init(source, "/tmp/ssrplus-monitor-test",
+                                         "/tmp/ssrplus-monitor-test/runtime.sh")
+        self.assertEqual(relocated,
+                         '. "/tmp/ssrplus-monitor-test/runtime.sh"\n'
+                         'LOG_FILE="/tmp/ssrplus-monitor-test/var/log/ssrplus.log"\n'
+                         'CONFIG="/tmp/ssrplus-monitor-test/etc/config/shadowsocksr"\n'
+                         'WORK="/tmp/ssrplus-monitor-test/tmp/ssrplus"\n')
+
+
 @unittest.skipUnless(BASH, "Bash is required to execute the upstream scripts")
 class MonitorSchedulerRegressions(unittest.TestCase):
     def setUp(self):
@@ -268,12 +293,7 @@ config_foreach() { "$1" backup; }
             encoding="utf-8").replace("/etc/init.d/dnsmasq", "test_dnsmasq"),
             encoding="utf-8", newline="\n")
         source = init.read_text(encoding="utf-8")
-        source = source.replace('${IPKG_INSTROOT:-}/usr/share/shadowsocksr/ssrp-runtime.sh',
-                                runtime.as_posix())
-        source = source.replace("/usr/bin/ssr-rules", "test_ssr_rules")
-        source = source.replace("/bin/busybox", "busybox")
-        source = re.sub(r"/(?:etc|var|tmp)/",
-                        lambda match: self.base.as_posix() + match.group(0), source)
+        source = relocate_locked_init(source, self.base.as_posix(), runtime.as_posix())
         init.write_text(source, encoding="utf-8", newline="\n")
         for directory in ("var/log", "var/lock", "etc/crontabs", "etc/ssrplus",
                           "dnsmasq.d", "tmp"):
@@ -328,9 +348,13 @@ exit "$result"
         self.env.update(SSR_LOCKED_INIT=init.as_posix(), SSR_ENTRY=entry.as_posix(),
                         TEST_BASH=str(BASH))
 
-        def await_file(name):
+        def await_file(name, process):
             deadline = time.monotonic() + 10
             while not (self.base / name).exists() and time.monotonic() < deadline:
+                if process.poll() is not None:
+                    stdout, stderr = process.communicate(timeout=5)
+                    self.fail(f"did not reach {name}: child exited {process.returncode}\n"
+                              f"stdout:\n{stdout}\nstderr:\n{stderr}")
                 time.sleep(0.02)
             self.assertTrue((self.base / name).exists(), f"did not reach {name}")
 
@@ -339,12 +363,12 @@ exit "$result"
                                 text=True, encoding="utf-8", errors="replace")
         monitor = None
         try:
-            await_file("stop-held")
+            await_file("stop-held", stop)
             monitor = self.shell(r'''
 test_lifecycle() { "$TEST_BASH" "$SSR_ENTRY" monitor "$@"; }
 . "$SSR_MONITOR" "$@"
 ''', args=(0, 0, 0, 0, 0, 5), asynchronous=True)
-            await_file("monitor-queued")
+            await_file("monitor-queued", monitor)
             self.assertEqual(self.lines("order"), [],
                              "activation ran while concurrent stop held the lifecycle")
             self.assertEqual(self.lines("direct-launch"), [])
