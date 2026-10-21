@@ -35,7 +35,7 @@ sync_sparse_packages_to_feed_dir() {
     local tmp_dir
     local missing_packages=()
     local clone_args=(clone --depth 1 --filter=blob:none --sparse)
-    local pkg
+    local pkg source_revision
 
     tmp_dir=$(mktemp -d)
 
@@ -58,8 +58,13 @@ sync_sparse_packages_to_feed_dir() {
         return 1
     fi
 
+    source_revision=$(git -C "$tmp_dir" rev-parse HEAD) || return 1
+
     for pkg in "${packages[@]}"; do
         if [ -d "$tmp_dir/$pkg" ]; then
+            if [[ "$pkg" == luci-app-ssr-plus ]]; then
+                printf '%s\n' "$source_revision" > "$tmp_dir/$pkg/.ssrplus-upstream-commit" || return 1
+            fi
             rm -rf "$target_dir/$pkg"
             mv "$tmp_dir/$pkg" "$target_dir/"
         else

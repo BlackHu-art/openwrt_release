@@ -1,0 +1,433 @@
+diff --git a/root/etc/init.d/shadowsocksr b/root/etc/init.d/shadowsocksr
+--- a/root/etc/init.d/shadowsocksr
++++ b/root/etc/init.d/shadowsocksr
+@@ -432,3 +432,3 @@
+ 
+-				cat <<-EOF >> "$TMP_DNSMASQ_PATH/chinadns_fixed_server.conf"
++				cat <<-EOF >> "$TMP_DNSMASQ_PATH/chinadns_fixed_server.conf" || return 1
+ 					no-poll
+@@ -442,8 +442,9 @@
+ 	if [ "$(uci_get_by_type global apple_optimization 1)" == "1" ]; then
++		cp -f /etc/ssrplus/applechina.conf "$TMP_DNSMASQ_PATH/applechina.conf" || return 1
+ 		local new_appledns="$(uci_get_by_type global apple_dns)"
+ 		if [ -n "$new_appledns" ]; then		
+-			sed -i 's/[[:space:]]//g' /etc/ssrplus/applechina.conf #去除所有空白字符
+-			local old_appledns=$(grep -oE '[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+' /etc/ssrplus/applechina.conf | sort -u)
++			sed -i 's/[[:space:]]//g' "$TMP_DNSMASQ_PATH/applechina.conf" || return 1 #去除所有空白字符
++			local old_appledns=$(grep -oE '[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+' "$TMP_DNSMASQ_PATH/applechina.conf" | sort -u)
+ 			if [ -n "$old_appledns" ] && [ "$old_appledns" != "$new_appledns" ]; then
+-				sed -i "s,$(printf '%s' "$old_appledns"),$(printf '%s' "$new_appledns"),g" /etc/ssrplus/applechina.conf
++				sed -i "s,$(printf '%s' "$old_appledns"),$(printf '%s' "$new_appledns"),g" "$TMP_DNSMASQ_PATH/applechina.conf" || return 1
+ 			fi
+@@ -451,3 +452,2 @@
+ 		echolog "Apple 域名中国大陆 CDN 的 优化规则正在加载。"
+-		cp -f /etc/ssrplus/applechina.conf $TMP_DNSMASQ_PATH/
+ 		echolog "Apple 域名中国大陆 CDN 的 优化规则加载完毕。"
+@@ -1582,3 +1582,3 @@
+ 	fi
+-	/usr/share/shadowsocksr/gfw2ipset.sh
++	SSRP_DNS_STAGE="$TMP_DNSMASQ_PATH" /usr/share/shadowsocksr/gfw2ipset.sh || return 1
+ 	/usr/bin/ssr-rules \
+@@ -1609,5 +1609,6 @@
+ 	echolog "----------start------------"
+-	mkdir -p /var/run /var/lock /var/log $DNSMASQ_CONF_DIR $TMP_BIN_PATH $TMP_DNSMASQ_PATH
+-	echo "conf-dir=${TMP_DNSMASQ_PATH}" >"$DNSMASQ_CONF_DIR/dnsmasq-ssrplus.conf"
++	ssrp_dns_begin || return 1
++	mkdir -p /var/run /var/lock /var/log "$DNSMASQ_CONF_DIR" "$TMP_BIN_PATH" "$TMP_DNSMASQ_PATH" || return 1
+ 	check_run_environment
++	check_server || :
+ 	if load_config; then
+@@ -1615,4 +1616,4 @@
+ 		start_xhttp_addr
+-		start_rules
+-		start_dns
++		start_rules || return 1
++		start_dns || return 1
+ 		# Restore ipsets after rules creation
+@@ -1630,3 +1631,3 @@
+ 		echolog "未启动主节点，禁止连接的域名正在加载。"
+-		cat /etc/ssrplus/deny.list | sed '/^$/d' | sed '/#/d' | sed "/.*/s/.*/address=\/&\//" >$TMP_DNSMASQ_PATH/denylist.conf
++		sed -e '/^$/d' -e '/#/d' -e "/.*/s/.*/address=\/&\//" /etc/ssrplus/deny.list >"$TMP_DNSMASQ_PATH/denylist.conf" || return 1
+ 		echolog "禁止连接的域名加载完毕。"
+@@ -1634,3 +1635,3 @@
+ 			echolog "未启动主节点，广告过滤正在加载。"
+-			cp -f /etc/ssrplus/ad.conf $TMP_DNSMASQ_PATH/
++			cp -f /etc/ssrplus/ad.conf $TMP_DNSMASQ_PATH/ || return 1
+ 			if [ -f "$TMP_DNSMASQ_PATH/ad.conf" ]; then
+@@ -1640,8 +1641,8 @@
+ 						# Clean list file (remove comments and empty lines)
+-						grep -vE '^\s*#|^\s*$' "$list_file" > "${list_file}.clean"
+-						if [ -s "${list_file}.clean" ]; then
+-							grep -v -F -f "${list_file}.clean" "$TMP_DNSMASQ_PATH/ad.conf" > "$TMP_DNSMASQ_PATH/ad.conf.tmp"
+-							mv "$TMP_DNSMASQ_PATH/ad.conf.tmp" "$TMP_DNSMASQ_PATH/ad.conf"
++						ssrp_filter -vE '^\s*#|^\s*$' "$list_file" > "$TMP_DNSMASQ_PATH/.${list_file##*/}.clean" || return 1
++						if [ -s "$TMP_DNSMASQ_PATH/.${list_file##*/}.clean" ]; then
++							ssrp_filter -v -F -f "$TMP_DNSMASQ_PATH/.${list_file##*/}.clean" "$TMP_DNSMASQ_PATH/ad.conf" > "$TMP_DNSMASQ_PATH/ad.conf.tmp" || return 1
++							mv "$TMP_DNSMASQ_PATH/ad.conf.tmp" "$TMP_DNSMASQ_PATH/ad.conf" || return 1
+ 						fi
+-						rm -f "${list_file}.clean"
++						rm -f "$TMP_DNSMASQ_PATH/.${list_file##*/}.clean" || return 1
+ 					fi
+@@ -1652,4 +1653,4 @@
+ 	fi
+-	/etc/init.d/dnsmasq restart >/dev/null 2>&1
+-	check_server
++	ssrp_dns_publish || return 1
++	ssrp_dnsmasq restart >/dev/null 2>&1 || return 1
+ 	if [ "$USE_TABLES" = "nftables" ]; then
+@@ -1764,3 +1765,3 @@
+ 	fi
+-	if [ -f "$DNSMASQ_CONF_DIR/dnsmasq-ssrplus.conf" ]; then
++	if [ "${SSRP_KEEP_DNS:-0}" != 1 ] && [ -f "$DNSMASQ_CONF_DIR/dnsmasq-ssrplus.conf" ]; then
+ 		rm -rf $DNSMASQ_CONF_DIR/dnsmasq-ssrplus.conf \
+@@ -1771,3 +1772,3 @@
+ 
+-		/etc/init.d/dnsmasq restart >/dev/null 2>&1
++		ssrp_dnsmasq restart >/dev/null 2>&1 || return 1
+ 	fi
+diff --git a/root/usr/share/shadowsocksr/gfw2ipset.sh b/root/usr/share/shadowsocksr/gfw2ipset.sh
+--- a/root/usr/share/shadowsocksr/gfw2ipset.sh
++++ b/root/usr/share/shadowsocksr/gfw2ipset.sh
+@@ -4,2 +4,5 @@
+ 
++ssrp_generate_dns() (
++set -e
++ssrp_filter() { grep "$@" || [ "$?" -eq 1 ]; }
+ check_run_environment
+@@ -24,8 +27,8 @@
+ 	if [ -f "$TMP_DNSMASQ_PATH/gfw_list.conf" ] && [ -s /etc/ssrplus/netflix.list ]; then
+-		grep -vE '^\s*#|^\s*$' /etc/ssrplus/netflix.list > /tmp/ssrplus_netflix.list.clean
+-		if [ -s /tmp/ssrplus_netflix.list.clean ]; then
+-			grep -v -F -f /tmp/ssrplus_netflix.list.clean "$TMP_DNSMASQ_PATH/gfw_list.conf" > "$TMP_DNSMASQ_PATH/gfw_list.conf.tmp"
++		ssrp_filter -vE '^\s*#|^\s*$' /etc/ssrplus/netflix.list > "$TMP_DNSMASQ_PATH/.netflix.list.clean"
++		if [ -s "$TMP_DNSMASQ_PATH/.netflix.list.clean" ]; then
++			ssrp_filter -v -F -f "$TMP_DNSMASQ_PATH/.netflix.list.clean" "$TMP_DNSMASQ_PATH/gfw_list.conf" > "$TMP_DNSMASQ_PATH/gfw_list.conf.tmp"
+ 			mv "$TMP_DNSMASQ_PATH/gfw_list.conf.tmp" "$TMP_DNSMASQ_PATH/gfw_list.conf"
+ 			if [ -f "$TMP_DNSMASQ_PATH/gfw_base.conf" ]; then
+-				grep -v -F -f /tmp/ssrplus_netflix.list.clean "$TMP_DNSMASQ_PATH/gfw_base.conf" > "$TMP_DNSMASQ_PATH/gfw_base.conf.tmp"
++				ssrp_filter -v -F -f "$TMP_DNSMASQ_PATH/.netflix.list.clean" "$TMP_DNSMASQ_PATH/gfw_base.conf" > "$TMP_DNSMASQ_PATH/gfw_base.conf.tmp"
+ 				mv "$TMP_DNSMASQ_PATH/gfw_base.conf.tmp" "$TMP_DNSMASQ_PATH/gfw_base.conf"
+@@ -33,3 +36,3 @@
+ 		fi
+-		rm -f /tmp/ssrplus_netflix.list.clean
++		rm -f "$TMP_DNSMASQ_PATH/.netflix.list.clean"
+ 	fi
+@@ -37,5 +40,5 @@
+ 		# 移除 ipset
+-		cat /etc/ssrplus/netflix.list | sed '/^$/d' | sed '/#/d' | sed "/.*/s/.*/server=\/&\/127.0.0.1#$port\nnftset=\/&\/inet#ss_spec#netflix/" >$TMP_DNSMASQ_PATH/netflix_forward.conf
++		sed -e '/^$/d' -e '/#/d' -e "/.*/s/.*/server=\/&\/127.0.0.1#$port\nnftset=\/&\/inet#ss_spec#netflix/" "/etc/ssrplus/netflix.list" >"$TMP_DNSMASQ_PATH/netflix_forward.conf"
+ 	elif [ "$nft_support" = "0" ]; then
+-		cat /etc/ssrplus/netflix.list | sed '/^$/d' | sed '/#/d' | sed "/.*/s/.*/server=\/&\/127.0.0.1#$port\nipset=\/&\/netflix/" >$TMP_DNSMASQ_PATH/netflix_forward.conf
++		sed -e '/^$/d' -e '/#/d' -e "/.*/s/.*/server=\/&\/127.0.0.1#$port\nipset=\/&\/netflix/" "/etc/ssrplus/netflix.list" >"$TMP_DNSMASQ_PATH/netflix_forward.conf"
+ 	fi
+@@ -53,3 +56,3 @@
+ 
+-for conf_file in gfw_base.conf gfw_list.conf; do
++for conf_file in gfw_base.conf gfw_list.conf oversea_list.conf; do
+ 	conf="$TMP_DNSMASQ_PATH/$conf_file"
+@@ -57,3 +60,3 @@
+ 
+-	if [ "$run_mode" = "gfw" ]; then
++	if [ "$run_mode" = "gfw" ] || [ "$run_mode" = "oversea" ]; then
+ 		if [ "$nft_support" = "1" ]; then
+@@ -65,3 +68,3 @@
+ 		# sed -i '/^[[:space:]]*\(ipset=\|nftset=\)/d' "$conf"
+-		sed -i '/^[[:space:]]*ipset=/d' "$conf"
++		sed -i '/^[[:space:]]*\(ipset=\|nftset=\)/d' "$conf"
+ 	fi
+@@ -92,7 +95,7 @@
+ 	if [ -s "$list_file" ]; then
+-		grep -vE '^\s*#|^\s*$' "$list_file" > "${list_file}.clean"
+-		if [ -s "${list_file}.clean" ]; then
++		ssrp_filter -vE '^\s*#|^\s*$' "$list_file" > "$TMP_DNSMASQ_PATH/.${list_file##*/}.clean"
++		if [ -s "$TMP_DNSMASQ_PATH/.${list_file##*/}.clean" ]; then
+ 			for target_file in "$TMP_DNSMASQ_PATH/gfw_list.conf" "$TMP_DNSMASQ_PATH/gfw_base.conf"; do
+ 				if [ -f "$target_file" ]; then
+-					grep -v -F -f "${list_file}.clean" "$target_file" > "${target_file}.tmp"
++					ssrp_filter -v -F -f "$TMP_DNSMASQ_PATH/.${list_file##*/}.clean" "$target_file" > "${target_file}.tmp"
+ 					mv "${target_file}.tmp" "$target_file"
+@@ -101,3 +104,3 @@
+ 		fi
+-		rm -f "${list_file}.clean"
++		rm -f "$TMP_DNSMASQ_PATH/.${list_file##*/}.clean"
+ 	fi
+@@ -107,9 +110,9 @@
+ if [ "$nft_support" = "1" ]; then
+-	cat /etc/ssrplus/black.list | sed '/^$/d' | sed '/#/d' | sed "/.*/s/.*/server=\/&\/127.0.0.1#$dns_port\nnftset=\/&\/inet#ss_spec#blacklist/" >$TMP_DNSMASQ_PATH/blacklist_forward.conf
+-	cat /etc/ssrplus/white.list | sed '/^$/d' | sed '/#/d' | sed "/.*/s/.*/server=\/&\/127.0.0.1\nnftset=\/&\/inet#ss_spec#whitelist/" >$TMP_DNSMASQ_PATH/whitelist_forward.conf
++	sed -e '/^$/d' -e '/#/d' -e "/.*/s/.*/server=\/&\/127.0.0.1#$dns_port\nnftset=\/&\/inet#ss_spec#blacklist/" "/etc/ssrplus/black.list" >"$TMP_DNSMASQ_PATH/blacklist_forward.conf"
++	sed -e '/^$/d' -e '/#/d' -e "/.*/s/.*/server=\/&\/127.0.0.1\nnftset=\/&\/inet#ss_spec#whitelist/" "/etc/ssrplus/white.list" >"$TMP_DNSMASQ_PATH/whitelist_forward.conf"
+ elif [ "$nft_support" = "0" ]; then
+-	cat /etc/ssrplus/black.list | sed '/^$/d' | sed '/#/d' | sed "/.*/s/.*/server=\/&\/127.0.0.1#$dns_port\nipset=\/&\/blacklist/" >$TMP_DNSMASQ_PATH/blacklist_forward.conf
+-	cat /etc/ssrplus/white.list | sed '/^$/d' | sed '/#/d' | sed "/.*/s/.*/server=\/&\/127.0.0.1\nipset=\/&\/whitelist/" >$TMP_DNSMASQ_PATH/whitelist_forward.conf
++	sed -e '/^$/d' -e '/#/d' -e "/.*/s/.*/server=\/&\/127.0.0.1#$dns_port\nipset=\/&\/blacklist/" "/etc/ssrplus/black.list" >"$TMP_DNSMASQ_PATH/blacklist_forward.conf"
++	sed -e '/^$/d' -e '/#/d' -e "/.*/s/.*/server=\/&\/127.0.0.1\nipset=\/&\/whitelist/" "/etc/ssrplus/white.list" >"$TMP_DNSMASQ_PATH/whitelist_forward.conf"
+ fi
+-cat /etc/ssrplus/deny.list | sed '/^$/d' | sed '/#/d' | sed "/.*/s/.*/address=\/&\//" >$TMP_DNSMASQ_PATH/denylist.conf
++sed -e '/^$/d' -e '/#/d' -e "/.*/s/.*/address=\/&\//" "/etc/ssrplus/deny.list" >"$TMP_DNSMASQ_PATH/denylist.conf"
+ 
+@@ -120,8 +123,8 @@
+ 			if [ -s "$list_file" ]; then
+-				grep -vE '^\s*#|^\s*$' "$list_file" > "${list_file}.clean"
+-				if [ -s "${list_file}.clean" ]; then
+-					grep -v -F -f "${list_file}.clean" "$TMP_DNSMASQ_PATH/ad.conf" > "$TMP_DNSMASQ_PATH/ad.conf.tmp"
++				ssrp_filter -vE '^\s*#|^\s*$' "$list_file" > "$TMP_DNSMASQ_PATH/.${list_file##*/}.clean"
++				if [ -s "$TMP_DNSMASQ_PATH/.${list_file##*/}.clean" ]; then
++					ssrp_filter -v -F -f "$TMP_DNSMASQ_PATH/.${list_file##*/}.clean" "$TMP_DNSMASQ_PATH/ad.conf" > "$TMP_DNSMASQ_PATH/ad.conf.tmp"
+ 					mv "$TMP_DNSMASQ_PATH/ad.conf.tmp" "$TMP_DNSMASQ_PATH/ad.conf"
+ 				fi
+-				rm -f "${list_file}.clean"
++				rm -f "$TMP_DNSMASQ_PATH/.${list_file##*/}.clean"
+ 			fi
+@@ -132 +135,15 @@
+ fi
++
++)
++
++if [ -n "${SSRP_DNS_STAGE:-}" ]; then
++    case "$SSRP_DNS_STAGE" in
++        "$DNSMASQ_CONF_DIR"/.ssrplus-dns.*) ;;
++        *) exit 1 ;;
++    esac
++    TMP_DNSMASQ_PATH="$SSRP_DNS_STAGE"
++    ssrp_generate_dns
++else
++    # A direct update must join the same locked, validated publication path.
++    /etc/init.d/shadowsocksr reload
++fi
+diff --git a/root/usr/share/shadowsocksr/update.lua b/root/usr/share/shadowsocksr/update.lua
+--- a/root/usr/share/shadowsocksr/update.lua
++++ b/root/usr/share/shadowsocksr/update.lua
+@@ -8,2 +8,13 @@
+ require "luci.model.uci"
++local update_root = luci.sys.exec("mktemp -d /tmp/ssr-update.XXXXXX"):gsub("%s+$", "")
++if not update_root:match("^/tmp/ssr%-update%.[%w]+$") then
++    error("Unable to create private SSR update directory")
++end
++local update_id = update_root:match("([^/]+)$")
++local function finish(code)
++    os.remove(update_root .. "/ssr-update.tmp")
++    os.remove(update_root)
++    os.exit(code)
++end
++local update_status = 0
+ local icount = 0
+@@ -11,21 +22,2 @@
+ local uci = require "luci.model.uci".cursor()
+-
+--- 以下设置更新数据库至 DNSMASQ 配置路径
+--- 获取 DNSMASQ 配置 ID
+-local DNSMASQ_UCI_CONFIG = uci:get_first("dhcp", "dnsmasq", ".name")
+-
+--- 获取 DNSMASQ 默认配置文件
+-local DNSMASQ_CONF_PATH = "/tmp/etc/dnsmasq.conf." .. DNSMASQ_UCI_CONFIG
+-
+--- 检查 DNSMASQ 配置文件是否存在，如果存在则提取 conf-dir
+-for line in io.lines(DNSMASQ_CONF_PATH) do
+-    local conf_dir = line:match("^conf%-dir=(.+)")
+-    if conf_dir then
+-        DNSMASQ_CONF_DIR = conf_dir:gsub("%s+", "") -- 去除空白字符
+-        break
+-    end
+-end
+-
+--- 设置 dnsmasq-ssrplus.d 目录路径，并去除路径末尾的斜杠
+-local TMP_DNSMASQ_PATH = DNSMASQ_CONF_DIR:match("^(.-)/?$") .. "/dnsmasq-ssrplus.d"
+ 
+@@ -81,4 +73,4 @@
+     local domains, domains_map = {}, {}
+-    local out = io.open("/tmp/ssr-update." .. type, "w")
+-    for line in io.lines("/tmp/ssr-update.tmp") do
++    local out = io.open(update_root .. "/ssr-update." .. type, "w")
++    for line in io.lines(update_root .. "/ssr-update.tmp") do
+         if not (string.find(line, comment_pattern) or string.find(line, ip_pattern) or check_excluded_domain(line)) then
+@@ -96,3 +88,3 @@
+     out:close()
+-    os.remove("/tmp/ssr-update.tmp")
++    os.remove(update_root .. "/ssr-update.tmp")
+ end
+@@ -102,4 +94,4 @@
+ 	local domains, domains_map = {}, {}
+-	local out = io.open("/tmp/ssr-update." .. type, "w")
+-	for line in io.lines("/tmp/ssr-update.tmp") do
++	local out = io.open(update_root .. "/ssr-update." .. type, "w")
++	for line in io.lines(update_root .. "/ssr-update.tmp") do
+ 		if not (string.find(line, comment_pattern)) then
+@@ -119,3 +111,3 @@
+ 	out:close()
+-	os.remove("/tmp/ssr-update.tmp")
++	os.remove(update_root .. "/ssr-update.tmp")
+ end
+@@ -125,4 +117,4 @@
+ 	local domains, domains_map = {}, {}
+-	local out = io.open("/tmp/ssr-update." .. type, "w")
+-	for line in io.lines("/tmp/ssr-update.tmp") do
++	local out = io.open(update_root .. "/ssr-update." .. type, "w")
++	for line in io.lines(update_root .. "/ssr-update.tmp") do
+ 		if not (string.find(line, comment_pattern)) then
+@@ -139,3 +131,3 @@
+ 	out:close()
+-	os.remove("/tmp/ssr-update.tmp")
++	os.remove(update_root .. "/ssr-update.tmp")
+ end
+@@ -143,2 +135,3 @@
+ local log = function(...)
++	if select(1, ...) == -1 then update_status = 1 end
+ 	if args then
+@@ -150,5 +143,22 @@
+ 
++-- Reconcile runtime even after a prior canonical update could not activate.
++local function activate(file, type, file2)
++    if type ~= "ip_data" then
++        return luci.sys.call("/etc/init.d/shadowsocksr reload")
++    end
++    if file2 then
++        local staged_runtime = file2 .. "." .. update_id
++        local status = luci.sys.call("cp -f " .. file .. " " .. staged_runtime .. " && mv -f " .. staged_runtime .. " " .. file2)
++        os.remove(staged_runtime)
++        if status ~= 0 then return status end
++    end
++    if luci.sys.call("command -v ipset >/dev/null 2>&1") == 0 then
++        return luci.sys.call("/usr/share/shadowsocksr/chinaipset.sh " .. TMP_PATH .. "/china_ssr.txt")
++    end
++    return 0
++end
++
+ local function update(url, file, type, file2)
+ 	local Num = 1
+-	local refresh_cmd = "curl -sSL --insecure -o /tmp/ssr-update." .. type .. " " .. url
++	local refresh_cmd = "curl -sSL --insecure -o " .. update_root .. "/ssr-update." .. type .. " " .. url
+ 	local sret = luci.sys.call(refresh_cmd)
+@@ -156,3 +166,3 @@
+ 		if type == "gfw_data" then
+-			local gfwlist = io.open("/tmp/ssr-update." .. type, "r")
++			local gfwlist = io.open(update_root .. "/ssr-update." .. type, "r")
+ 			local decode = gfwlist:read("*a")
+@@ -163,3 +173,3 @@
+ 			-- 写回gfwlist
+-			gfwlist = io.open("/tmp/ssr-update.tmp", "w")
++			gfwlist = io.open(update_root .. "/ssr-update.tmp", "w")
+ 			gfwlist:write(decode)
+@@ -170,3 +180,3 @@
+ 		if type == "apple_data" then
+-			local apple = io.open("/tmp/ssr-update." .. type, "r")
++			local apple = io.open(update_root .. "/ssr-update." .. type, "r")
+ 			local decode = apple:read("*a")
+@@ -177,3 +187,3 @@
+ 			-- 写回applechina
+-			apple = io.open("/tmp/ssr-update.tmp", "w")
++			apple = io.open(update_root .. "/ssr-update.tmp", "w")
+ 			apple:write(decode)
+@@ -185,3 +195,3 @@
+ 		if type == "ad_data" then
+-			local adblock = io.open("/tmp/ssr-update." .. type, "r")
++			local adblock = io.open(update_root .. "/ssr-update." .. type, "r")
+ 			local decode = adblock:read("*a")
+@@ -192,3 +202,3 @@
+ 				-- 写回adblock
+-				adblock = io.open("/tmp/ssr-update.tmp", "w")
++				adblock = io.open(update_root .. "/ssr-update.tmp", "w")
+ 				adblock:write(decode)
+@@ -198,5 +208,10 @@
+ 		end
+-		local new_md5 = luci.sys.exec("echo -n $([ -f '/tmp/ssr-update." .. type .. "' ] && md5sum /tmp/ssr-update." .. type .. " | awk '{print $1}')")
++		local new_md5 = luci.sys.exec("echo -n $([ -f '" .. update_root .. "/ssr-update." .. type .. "' ] && md5sum " .. update_root .. "/ssr-update." .. type .. " | awk '{print $1}')")
+ 		local old_md5 = luci.sys.exec("echo -n $([ -f '" .. file .. "' ] && md5sum " .. file .. " | awk '{print $1}')")
+ 		if new_md5 == old_md5 then
++			if activate(file, type, file2) ~= 0 then
++				os.remove(update_root .. "/ssr-update." .. type)
++				log(-1)
++				return
++			end
+ 			if args then
+@@ -207,13 +222,16 @@
+ 		else
+-			icount = luci.sys.exec("cat /tmp/ssr-update." .. type .. " | wc -l")
+-			luci.sys.exec("cp -f /tmp/ssr-update." .. type .. " " .. file)
+-			if file2 then
+-				luci.sys.exec("cp -f /tmp/ssr-update." .. type .. " " .. file2)
+-			end
+-			if type == "gfw_data" or type == "ad_data" then
+-				luci.sys.call("/usr/share/shadowsocksr/gfw2ipset.sh")
+-			else
+-				if luci.sys.call("command -v ipset >/dev/null 2>&1") == 0 then
+-					luci.sys.call("/usr/share/shadowsocksr/chinaipset.sh " .. TMP_PATH .. "/china_ssr.txt")
+-				end
++			icount = luci.sys.exec("cat " .. update_root .. "/ssr-update." .. type .. " | wc -l")
++			local staged_file = file .. "." .. update_id
++			if luci.sys.call("cp -f " .. update_root .. "/ssr-update." .. type .. " " .. staged_file .. " && mv -f " .. staged_file .. " " .. file) ~= 0 then
++				os.remove(staged_file)
++				os.remove(update_root .. "/ssr-update." .. type)
++				log(-1)
++				return
++			end
++			-- DNS activation joins the locked, validated publication path.
++			local applied = activate(file, type, file2)
++			if applied ~= 0 then
++				os.remove(update_root .. "/ssr-update." .. type)
++				log(-1)
++				return
+ 			end
+@@ -226,2 +244,3 @@
+ 	else
++		update_status = 1
+ 		if args then
+@@ -232,3 +251,3 @@
+ 	end
+-	os.remove("/tmp/ssr-update." .. type)
++	os.remove(update_root .. "/ssr-update." .. type)
+ end
+@@ -237,4 +256,4 @@
+ 	if args == "gfw_data" then
+-		update(uci:get_first("shadowsocksr", "global", "gfwlist_url"), "/etc/ssrplus/gfw_list.conf", args, TMP_DNSMASQ_PATH .. "/gfw_list.conf")
+-		os.exit(0)
++		update(uci:get_first("shadowsocksr", "global", "gfwlist_url"), "/etc/ssrplus/gfw_list.conf", args)
++		finish(update_status)
+ 	end
+@@ -242,15 +261,15 @@
+ 		update(uci:get_first("shadowsocksr", "global", "chnroute_url"), "/etc/ssrplus/china_ssr.txt", args, TMP_PATH .. "/china_ssr.txt")
+-		os.exit(0)
++		finish(update_status)
+ 	end
+ 	if args == "apple_data" then
+-		update(uci:get_first("shadowsocksr", "global", "apple_url"), "/etc/ssrplus/applechina.conf", args, TMP_DNSMASQ_PATH .. "/applechina.conf")
+-		os.exit(0)
++		update(uci:get_first("shadowsocksr", "global", "apple_url"), "/etc/ssrplus/applechina.conf", args)
++		finish(update_status)
+ 	end
+ 	if args == "ad_data" then
+-		update(uci:get_first("shadowsocksr", "global", "adblock_url"), "/etc/ssrplus/ad.conf", args, TMP_DNSMASQ_PATH .. "/ad.conf")
+-		os.exit(0)
++		update(uci:get_first("shadowsocksr", "global", "adblock_url"), "/etc/ssrplus/ad.conf", args)
++		finish(update_status)
+ 	end
+ 	if args == "nfip_data" then
+-		update(uci:get_first("shadowsocksr", "global", "nfip_url"), "/etc/ssrplus/netflixip.list", args, TMP_DNSMASQ_PATH .. "/netflixip.list")
+-		os.exit(0)
++		update(uci:get_first("shadowsocksr", "global", "nfip_url"), "/etc/ssrplus/netflixip.list", args)
++		finish(update_status)
+ 	end
+@@ -258,3 +277,3 @@
+ 	log("正在更新【GFW列表】数据库")
+-	update(uci:get_first("shadowsocksr", "global", "gfwlist_url"), "/etc/ssrplus/gfw_list.conf", "gfw_data", TMP_DNSMASQ_PATH .. "/gfw_list.conf")
++	update(uci:get_first("shadowsocksr", "global", "gfwlist_url"), "/etc/ssrplus/gfw_list.conf", "gfw_data")
+ 	log("正在更新【国内IP段】数据库")
+@@ -263,3 +282,3 @@
+ 		log("正在更新【Apple域名】数据库")
+-		update(uci:get_first("shadowsocksr", "global", "apple_url"), "/etc/ssrplus/applechina.conf", "apple_data", TMP_DNSMASQ_PATH .. "/applechina.conf")
++		update(uci:get_first("shadowsocksr", "global", "apple_url"), "/etc/ssrplus/applechina.conf", "apple_data")
+ 	end
+@@ -267,3 +286,3 @@
+ 		log("正在更新【广告屏蔽】数据库")
+-		update(uci:get_first("shadowsocksr", "global", "adblock_url"), "/etc/ssrplus/ad.conf", "ad_data", TMP_DNSMASQ_PATH .. "/ad.conf")
++		update(uci:get_first("shadowsocksr", "global", "adblock_url"), "/etc/ssrplus/ad.conf", "ad_data")
+ 	end
+@@ -271,3 +290,3 @@
+ 		log("正在更新【Netflix IP段】数据库")
+-		update(uci:get_first("shadowsocksr", "global", "nfip_url"), "/etc/ssrplus/netflixip.list", "nfip_data", TMP_DNSMASQ_PATH .. "/netflixip.list")
++		update(uci:get_first("shadowsocksr", "global", "nfip_url"), "/etc/ssrplus/netflixip.list", "nfip_data")
+ 	end
+@@ -276 +295,3 @@
+ end
++
++finish(update_status)

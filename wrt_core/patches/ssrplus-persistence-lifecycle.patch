@@ -1,0 +1,692 @@
+--- a/root/usr/bin/ssr-rules
++++ b/root/usr/bin/ssr-rules
+@@ -51,11 +51,127 @@
+ 
+ if [ "$USE_NFT" = "1" ]; then
+ 	# NFTables persistence directory
+-	NFTABLES_RULES_DIR="/usr/share/nftables.d/ruleset-post"
++	NFTABLES_RULES_DIR="/etc/ssrplus/nftables"
+ 	NFTABLES_RULES_FILE="$NFTABLES_RULES_DIR/99-shadowsocksr.nft"
+ 	# Auto-update configuration
+ 	AUTO_UPDATE_INTERVAL=300  # auto-update check interval (seconds), 0 means disable
+ fi
++
++# Persistence uses its own lock, separate from the init lifecycle lock (FD 9).
++# Keep the inode permanently; unlinking it would let concurrent writers bypass it.
++SSRP_RULES_SCRIPT="/usr/bin/ssr-rules"
++SSRP_PROC_ROOT="/proc"
++SSRP_PERSIST_LOCK="/var/lock/ssr-rules-persistence.lock"
++SSRP_DAEMON_PID_FILE="/var/run/ssr-rules-daemon.pid"
++SSRP_LEGACY_FILE="/usr/share/nftables.d/ruleset-post/99-shadowsocksr.nft"
++SSRP_BACKUP_FILE="/etc/ssrplus/ssrplus-persist/99-shadowsocksr.save"
++SSRP_AUTO_RESTORE_FILE="/var/run/ssr-rules-auto-restore.enabled"
++
++disable_auto_restore() { rm -f "$SSRP_AUTO_RESTORE_FILE"; }
++
++list_file_fingerprint() {
++	if [ -z "$1" ] || [ ! -e "$1" ]; then
++		printf 'missing\n'
++		return 0
++	fi
++	[ -f "$1" ] && [ -r "$1" ] || return 1
++	# This is a cache-change fingerprint, not a security signature.
++	local digest
++	digest=$(md5sum "$1" 2>/dev/null) || return 1
++	printf '%s\n' "${digest%% *}"
++}
++
++complete_persistence_setup() {
++	# Commit fingerprints only after rules/export/daemon setup succeeded. A
++	# failed rebuild must remain different on retry instead of restoring old sets.
++	printf '%s\n' "$IGNORE_LIST_HASH" > /tmp/.last_ignore_list_hash &&
++		printf '%s\n' "$SHUNT_LIST_HASH" > /tmp/.last_shunt_list_hash &&
++		: > "$SSRP_AUTO_RESTORE_FILE"
++}
++
++persistence_lock() {
++	mkdir -p "${SSRP_PERSIST_LOCK%/*}" "${SSRP_DAEMON_PID_FILE%/*}" || return 1
++	exec 8>"$SSRP_PERSIST_LOCK" || return 1
++	flock -w 30 -x 8
++}
++
++migrate_persistence() {
++	# Dynamic snapshots must never participate in fw4's basic NAT transaction.
++	# Do not import the old public include: older versions may have malformed
++	# metadata. A saved stop/start backup is private and is checked on restore.
++	rm -f "$SSRP_LEGACY_FILE" || return 1
++	if [ ! -f "$NFTABLES_RULES_FILE" ] && [ -f "$SSRP_BACKUP_FILE" ]; then
++		mkdir -p "$NFTABLES_RULES_DIR" || return 1
++		mv "$SSRP_BACKUP_FILE" "$NFTABLES_RULES_FILE" || return 1
++	fi
++}
++
++# Linux stat's comm field can contain spaces and parentheses. Strip through
++# its final ') ' before reading starttime (field 22, or field 20 afterwards).
++daemon_starttime() {
++	local stat
++	case "$1" in ''|*[!0-9]*|0|1) return 1 ;; esac
++	IFS= read -r stat 2>/dev/null < "$SSRP_PROC_ROOT/$1/stat" || return 1
++	stat=${stat##*) }
++	printf '%s\n' "$stat" | awk '{ if ($20 ~ /^[0-9]+$/) print $20; else exit 1 }'
++}
++
++daemon_pid_matches() {
++	local current
++	case "$2" in ''|*[!0-9]*) return 1 ;; esac
++	current=$(daemon_starttime "$1") || return 1
++	[ "$current" = "$2" ] || return 1
++	# Require the exact internal mode in argv, not a substring/ps grep that
++	# could match the service's caller, another ssr-rules CLI, or dnsmasq.
++	tr '\000' '\n' 2>/dev/null < "$SSRP_PROC_ROOT/$1/cmdline" |
++		awk -v script="$SSRP_RULES_SCRIPT" '
++			$0 == script { s = NR }
++			$0 == "--persistence-daemon" { d = NR }
++			END { exit !((s == 1 || s == 2) && d == s + 1 && NR == d) }
++		'
++}
++
++# Accept only the canonical nft-exported SSR table blocks. Track braces outside
++# strings/comments so a comment, string literal or nested set cannot end a table
++# early and admit a top-level flush/include or a foreign table declaration.
++snapshot_has_only_ssr_tables() {
++	awk '
++		function bad() { failed = 1; exit 1 }
++		{
++			line = $0
++			if (depth == 0) {
++				if (line ~ /^[ \t]*(#.*)?$/) next
++				if (line ~ /^table inet ss_spec[ \t]*\{[ \t]*$/) {
++					if (inet++) bad()
++				} else if (line ~ /^table ip ss_spec_mangle[ \t]*\{[ \t]*$/) {
++					if (mangle++) bad()
++				} else bad()
++			}
++			quoted = 0; escaped = 0
++			for (i = 1; i <= length(line); i++) {
++				c = substr(line, i, 1)
++				if (quoted) {
++					if (escaped) escaped = 0
++					else if (c == "\\") escaped = 1
++					else if (c == "\"") quoted = 0
++					continue
++				}
++				if (c == "#") break
++				if (c == "\"") { quoted = 1; continue }
++				if (substr(line, i) ~ /^include([ \t]|$)/ &&
++					(i == 1 || substr(line, i - 1, 1) !~ /[[:alnum:]_]/)) bad()
++				if (c == "{") depth++
++				if (c == "}") {
++					depth--
++					if (depth < 0) bad()
++					if (depth == 0 && substr(line, i + 1) !~ /^[ \t]*(#.*)?$/) bad()
++				}
++			}
++			if (quoted) bad()
++		}
++		END { if (failed || depth != 0 || !(inet || mangle)) exit 1 }
++	' "$1"
++}
+ 
+ # Modified usage function
+ usage() {
+@@ -137,82 +253,85 @@
+ 
+ # Cleanup persistence and runtime module files
+ cleanup_persistence_files() {
++	local cleanup_status=0
+ 	if [ "$USE_NFT" != "1" ]; then
+ 		return 0
+ 	fi
+ 
+ 	# Remove persistence rule file
+ 	if [ -f "$NFTABLES_RULES_FILE" ]; then
+-		rm -f "$NFTABLES_RULES_FILE" 2>/dev/null
++		rm -f "$NFTABLES_RULES_FILE" "$SSRP_BACKUP_FILE" 2>/dev/null || cleanup_status=1
+ 		loger 5 "Removed persistence file: $NFTABLES_RULES_FILE"
+ 	fi
+ 
+ 	# Remove run mode file
+ 	if [ -f "/tmp/.ssr_run_mode" ]; then
+-		rm -f "/tmp/.ssr_run_mode" 2>/dev/null
++		rm -f "/tmp/.ssr_run_mode" 2>/dev/null || cleanup_status=1
+ 		loger 5 "Removed run mode file: /tmp/.ssr_run_mode"
+ 	fi
+ 
+ 	# Remove TPROXY file
+ 	if [ -f "/tmp/.last_tproxy" ]; then
+-		rm -f "/tmp/.last_tproxy" 2>/dev/null
++		rm -f "/tmp/.last_tproxy" 2>/dev/null || cleanup_status=1
+ 		loger 5 "Removed run mode file: /tmp/.last_tproxy"
+ 	fi
+ 
+ 	# Remove PROXY_PORTS file
+ 	if [ -f "/tmp/.last_proxy_ports" ]; then
+-		rm -f "/tmp/.last_proxy_ports" 2>/dev/null
++		rm -f "/tmp/.last_proxy_ports" 2>/dev/null || cleanup_status=1
+ 		loger 5 "Removed run mode file: /tmp/.last_proxy_ports"
+ 	fi
+ 
+ 	# Remove WAN_BP_IP file
+ 	if [ -f "/tmp/.last_wan_bp_ip" ]; then
+-		rm -f "/tmp/.last_wan_bp_ip" 2>/dev/null
++		rm -f "/tmp/.last_wan_bp_ip" 2>/dev/null || cleanup_status=1
+ 		loger 5 "Removed run mode file: /tmp/.last_wan_bp_ip"
+ 	fi
+ 
+ 	# Remove LAN_AC_IP file
+ 	if [ -f "/tmp/.last_lan_ac_ip" ]; then
+-		rm -f "/tmp/.last_lan_ac_ip" 2>/dev/null
++		rm -f "/tmp/.last_lan_ac_ip" 2>/dev/null || cleanup_status=1
+ 		loger 5 "Removed run mode file: /tmp/.last_lan_ac_ip"
+ 	fi
+ 
+ 	# Remove LAN_BP_IP file
+ 	if [ -f "/tmp/.last_lan_bp_ip" ]; then
+-		rm -f "/tmp/.last_lan_bp_ip" 2>/dev/null
++		rm -f "/tmp/.last_lan_bp_ip" 2>/dev/null || cleanup_status=1
+ 		loger 5 "Removed run mode file: /tmp/.last_lan_bp_ip"
+ 	fi
+ 
+ 	# Remove WAN_FW_IP file
+ 	if [ -f "/tmp/.last_wan_fw_ip" ]; then
+-		rm -f "/tmp/.last_wan_fw_ip" 2>/dev/null
++		rm -f "/tmp/.last_wan_fw_ip" 2>/dev/null || cleanup_status=1
+ 		loger 5 "Removed run mode file: /tmp/.last_wan_fw_ip"
+ 	fi
+ 
+ 	# Remove LAN_FP_IP file
+ 	if [ -f "/tmp/.last_lan_fp_ip" ]; then
+-		rm -f "/tmp/.last_lan_fp_ip" 2>/dev/null
++		rm -f "/tmp/.last_lan_fp_ip" 2>/dev/null || cleanup_status=1
+ 		loger 5 "Removed run mode file: /tmp/.last_lan_fp_ip"
+ 	fi
+ 
+ 	# Remove LAN_GM_IP file
+ 	if [ -f "/tmp/.last_lan_gm_ip" ]; then
+-		rm -f "/tmp/.last_lan_gm_ip" 2>/dev/null
++		rm -f "/tmp/.last_lan_gm_ip" 2>/dev/null || cleanup_status=1
+ 		loger 5 "Removed run mode file: /tmp/.last_lan_gm_ip"
+ 	fi
+ 
+ 	# Remove xhttp file state and hash files
+ 	if [ -f "/tmp/.last_xhttp_file" ]; then
+-		rm -f "/tmp/.last_xhttp_file" 2>/dev/null
++		rm -f "/tmp/.last_xhttp_file" 2>/dev/null || cleanup_status=1
+ 		loger 5 "Removed xhttp file state: /tmp/.last_xhttp_file"
+ 	fi
+ 	if [ -f "/tmp/.last_xhttp_hash" ]; then
+-		rm -f "/tmp/.last_xhttp_hash" 2>/dev/null
++		rm -f "/tmp/.last_xhttp_hash" 2>/dev/null || cleanup_status=1
+ 		loger 5 "Removed xhttp hash file: /tmp/.last_xhttp_hash"
+ 	fi
+ 
+-	loger 5 "Persistence cleanup completed"
+-	return 0
++	disable_auto_restore || cleanup_status=1
++	rm -f /tmp/.last_ignore_list_hash /tmp/.last_shunt_list_hash || cleanup_status=1
++	loger 5 "Persistence cleanup attempted"
++	return "$cleanup_status"
+ }
+ 
+ flush_r() {
+@@ -221,10 +340,12 @@
+ 	else
+ 		flush_iptables_legacy
+ 	fi
+-	return 0
++	return $?
+ }
+ 
+ flush_nftables() {
++	local flush_status=0 tables rules routes
++	disable_auto_restore || flush_status=1
+ 	# Delete inet ss_spec table
+ 	if $NFT list table inet ss_spec >/dev/null 2>&1; then
+ 		# Delete all chains
+@@ -242,7 +363,7 @@
+ 		done
+ 
+ 		# Delete entire table
+-		$NFT delete table inet ss_spec 2>/dev/null
++		$NFT delete table inet ss_spec 2>/dev/null || flush_status=1
+ 	fi
+ 
+ 	# Delete ip ss_spec_mangle table (if exists)
+@@ -261,15 +382,15 @@
+ 			$NFT delete set ip ss_spec_mangle $setname 2>/dev/null
+ 		done
+ 		# Delete entire table
+-		$NFT delete table ip ss_spec_mangle 2>/dev/null
++		$NFT delete table ip ss_spec_mangle 2>/dev/null || flush_status=1
+ 	fi
+ 
+ 	# Delete policy routing mark rules
+ 	if ip rule show | grep -Eq "fwmark ${FWMARK}.*lookup 999"; then
+-		ip rule del fwmark ${FWMARK} table 999 2>/dev/null
++		ip rule del fwmark ${FWMARK} table 999 2>/dev/null || flush_status=1
+ 	fi
+ 	if ip route show table 999 | grep -Eq "^local.*dev lo"; then
+-		ip route del local 0.0.0.0/0 dev lo table 999 2>/dev/null
++		ip route del local 0.0.0.0/0 dev lo table 999 2>/dev/null || flush_status=1
+ 	fi
+ 
+ 	# Optional: force delete all ss_spec related sets (even if table was accidentally deleted)
+@@ -280,16 +401,32 @@
+ 	done
+ 
+ 	# Reset firewall include file
+-	[ -n "$FWI" ] && echo '#!/bin/sh' >"$FWI"
++	if [ -n "$FWI" ]; then
++		printf '#!/bin/sh\n' > "$FWI" || flush_status=1
++	fi
+ 
+ 	# Cleanup persistence and runtime module files
+ 	if [ "$CLEANUP_PERSISTENCE" = "1" ]; then
+-		cleanup_persistence_files
+-	fi
+-
+-	loger 6 "Memory rules flushed successfully"
+-
+-	return 0
++		cleanup_persistence_files || flush_status=1
++	fi
++
++	if tables=$($NFT list tables 2>/dev/null); then
++		printf '%s\n' "$tables" | grep -Eq '^table (inet ss_spec|ip ss_spec_mangle)[[:space:]]*$' && flush_status=1
++	else
++		flush_status=1
++	fi
++	if rules=$(ip rule show 2>/dev/null); then
++		printf '%s\n' "$rules" | grep -Eq "fwmark ${FWMARK}.*lookup 999" && flush_status=1
++	else
++		flush_status=1
++	fi
++	if routes=$(ip route show table all 2>/dev/null); then
++		printf '%s\n' "$routes" | grep -E '^local.*dev lo' | grep -Eq 'table 999([[:space:]]|$)' && flush_status=1
++	else
++		flush_status=1
++	fi
++	[ "$flush_status" = 0 ] && loger 6 "Memory rules flushed successfully"
++	return "$flush_status"
+ }
+ 
+ flush_iptables_legacy() {
+@@ -1191,25 +1328,25 @@
+ 	return $?
+ }
+ 
+-# Modified gen_include_nft to call persistence function
++# A fixed shell hook is independent of the dynamic snapshot. fw4 can finish
++# installing basic NAT even when SSR restore fails validation.
+ gen_include_nft() {
+-	# Generate nftables include file for firewall4
+-	[ -n "$FWI" ] && echo '#!/bin/sh' >"$FWI"
+-	cat <<-EOF >>"$FWI"
+-		# Clear existing ss_spec tables
+-		nft delete table inet ss_spec 2>/dev/null
+-		nft delete table ip ss_spec 2>/dev/null
+-		nft delete table ip ss_spec_mangle 2>/dev/null
+-
+-		# Restore shadowsocks nftables rules from persistent file
+-		if [ -f "/usr/share/nftables.d/ruleset-post/99-shadowsocksr.nft" ]; then
+-			nft -f /usr/share/nftables.d/ruleset-post/99-shadowsocksr.nft
+-		else
+-			# Fallback: restore from current ruleset (filtered)
+-			nft list ruleset | awk '/^table (inet|ip) ss_spec/{flag=1} /^table / && !/^table (inet|ip) ss_spec/{flag=0} flag' | nft -f -
+-		fi
++	[ -n "$FWI" ] || return 0
++	local include_file
++	include_file=$(mktemp "$FWI.XXXXXX") || return 1
++	if ! cat > "$include_file" <<-EOF
++		#!/bin/sh
++		"$SSRP_RULES_SCRIPT" --firewall-restore >/dev/null 2>&1 || logger -t ssr-rules "Private SSR snapshot restore failed"
++		exit 0
+ 	EOF
+-	chmod +x "$FWI"
++	then
++		rm -f "$include_file"
++		return 1
++	fi
++	if ! chmod 755 "$include_file" || ! mv -f "$include_file" "$FWI"; then
++		rm -f "$include_file"
++		return 1
++	fi
+ }
+ 
+ gen_include_iptables() {
+@@ -1400,69 +1537,82 @@
+ 	return 0
+ }
+ 
+-# Auto-update daemon
++# Only this internal process is a daemon. The parent owns the PID file and
++# records $!, never $$ from a background subshell (which is the caller's PID).
++persistence_daemon_loop() {
++	local worker_pid=""
++	trap '
++		trap - TERM INT
++		if [ -n "$worker_pid" ]; then
++			kill -TERM "$worker_pid" 2>/dev/null
++			wait "$worker_pid" 2>/dev/null
++		fi
++		exit 0
++	' TERM INT
++	while :; do
++		sleep "$AUTO_UPDATE_INTERVAL" &
++		worker_pid=$!
++		wait "$worker_pid" || return 1
++		worker_pid=""
++		[ -x "$SSRP_RULES_SCRIPT" ] || return 1
++		"$SSRP_RULES_SCRIPT" -C >/dev/null 2>&1 &
++		worker_pid=$!
++		if wait "$worker_pid"; then
++			worker_pid=""
++			continue
++		fi
++		worker_pid=""
++		# A queued exporter must be interruptible by -K while -K holds FD 8.
++		"$SSRP_RULES_SCRIPT" -P >/dev/null 2>&1 &
++		worker_pid=$!
++		wait "$worker_pid"
++		worker_pid=""
++	done
++}
++
+ start_auto_update_daemon() {
+-	if [ "$USE_NFT" != "1" ] || [ "$AUTO_UPDATE_INTERVAL" = "0" ]; then
+-		return 0
+-	fi
+-
+-	loger 6 "Starting nftables rules auto-update daemon"
+-
+-	# Stop already running daemon
+-	stop_auto_update_daemon
+-
+-	# Start daemon directly in background
+-	(
+-		logger -t ssr-rules[daemon] "Auto-update daemon started - PID: $$"
+-		echo $$ > "/var/run/ssr-rules-daemon.pid"
+-
+-		while true; do
+-			sleep "$AUTO_UPDATE_INTERVAL"
+-			if [ -x "/usr/bin/ssr-rules" ]; then
+-				# -C returns 0 if rules are OK, non-zero if need update
+-				if /usr/bin/ssr-rules -C >/dev/null 2>&1; then
+-					logger -t ssr-rules[daemon] "Rules status OK, no update needed"
+-				else
+-					logger -t ssr-rules[daemon] "Rules changed or missing, updating persistence"
+-					if /usr/bin/ssr-rules -P >/dev/null 2>&1; then
+-						logger -t ssr-rules[daemon] "Persistence rules updated successfully"
+-					else
+-						logger -t ssr-rules[daemon] "Failed to update persistence"
+-					fi
+-				fi
+-			else
+-				logger -t ssr-rules[daemon] "Script not found, exiting daemon"
+-				exit 1
++	[ "$USE_NFT" = "1" ] && [ "$AUTO_UPDATE_INTERVAL" != "0" ] || return 0
++	stop_auto_update_daemon || return 1
++	"$SSRP_RULES_SCRIPT" --persistence-daemon 8>&- 9>&- >/dev/null 2>&1 &
++	local daemon_pid=$! started="" count=0 pid_file
++	while [ "$count" -lt 20 ]; do
++		started=$(daemon_starttime "$daemon_pid")
++		if [ -n "$started" ] && daemon_pid_matches "$daemon_pid" "$started"; then
++			pid_file=$(mktemp "$SSRP_DAEMON_PID_FILE.XXXXXX")
++			if [ -n "$pid_file" ] && printf '%s %s\n' "$daemon_pid" "$started" > "$pid_file" &&
++				mv -f "$pid_file" "$SSRP_DAEMON_PID_FILE"; then
++				return 0
+ 			fi
++			rm -f "$pid_file"
++			if daemon_pid_matches "$daemon_pid" "$started"; then
++				kill -TERM "$daemon_pid" 2>/dev/null
++				wait "$daemon_pid" 2>/dev/null
++			fi
++			return 1
++		fi
++		count=$((count + 1))
++		sleep 0.05
++	done
++	loger 3 "Auto-update daemon failed to establish its process identity"
++	return 1
++}
++
++stop_auto_update_daemon() {
++	local daemon_pid started extra count=0
++	[ -f "$SSRP_DAEMON_PID_FILE" ] || return 0
++	read -r daemon_pid started extra < "$SSRP_DAEMON_PID_FILE"
++	if [ -z "$extra" ] && daemon_pid_matches "$daemon_pid" "$started"; then
++		kill -TERM "$daemon_pid" 2>/dev/null || return 1
++		while daemon_pid_matches "$daemon_pid" "$started"; do
++			if [ "$count" -ge 50 ]; then
++				loger 3 "Timed out stopping verified persistence daemon"
++				return 1
++			fi
++			count=$((count + 1))
++			sleep 0.1
+ 		done
+-	) &
+-
+-	local DAEMON_PID=$!
+-	sleep 2
+-
+-	if kill -0 "$DAEMON_PID" 2>/dev/null; then
+-		loger 6 "Auto-update daemon started with PID: $DAEMON_PID"
+-		return 0
+-	else
+-		loger 3 "Auto-update daemon failed to start"
+-		return 1
+-	fi
+-}
+-
+-# Stop auto-update daemon function
+-stop_auto_update_daemon() {
+-	local PID_FILE="/var/run/ssr-rules-daemon.pid"
+-
+-	if [ -f "$PID_FILE" ]; then
+-		local DAEMON_PID=$(cat "$PID_FILE" 2>/dev/null)
+-		if [ -n "$DAEMON_PID" ] && kill -0 "$DAEMON_PID" 2>/dev/null; then
+-			kill "$DAEMON_PID" 2>/dev/null
+-			loger 6 "Stopped auto-update daemon (PID: $DAEMON_PID)"
+-		fi
+-		rm -f "$PID_FILE" 2>/dev/null
+-	fi
+-
+-	loger 6 "Auto-update daemon stopped"
++	fi
++	rm -f "$SSRP_DAEMON_PID_FILE"
+ }
+ 
+ # Force update persistence rules function
+@@ -1484,32 +1634,63 @@
+ 	fi
+ }
+ 
+-# Restore rules from persistence file
++# Restore only SSR-owned tables in one nft transaction, after a dry run.
++# Failure leaves the live ruleset, including fw4 basic NAT, untouched.
+ restore_from_persistence() {
+-	if [ "$USE_NFT" != "1" ]; then
+-		loger 3 "NFTables not in use, cannot restore rules"
++	[ "$USE_NFT" = "1" ] && [ -s "$NFTABLES_RULES_FILE" ] || return 1
++	snapshot_has_only_ssr_tables "$NFTABLES_RULES_FILE" || {
++		loger 4 "Private snapshot is malformed or contains non-SSR statements"
+ 		return 1
+-	fi
+-
+-	if [ ! -f "$NFTABLES_RULES_FILE" ]; then
+-		loger 4 "Persistence file not found: $NFTABLES_RULES_FILE"
++	}
++	local transaction tables
++	transaction=$(mktemp "$NFTABLES_RULES_DIR/.ssr-restore.XXXXXX") || return 1
++	if ! tables=$($NFT list tables 2>/dev/null); then
++		rm -f "$transaction"
+ 		return 1
+ 	fi
+-
+-	loger 6 "Restoring rules from persistence file"
+-
+-	# Cleanup existing rules
+-	flush_r
+-
+-	# Restore rules from file
+-	if $NFT -f "$NFTABLES_RULES_FILE" 2>/dev/null; then
+-		loger 5 "Rules restored successfully from persistence file"
+-		return 0
+-	else
+-		loger 4 "Failed to restore rules from persistence file"
++	if ! {
++		if printf '%s\n' "$tables" | grep -Eq '^table inet ss_spec[[:space:]]*$'; then
++			printf 'delete table inet ss_spec\n'
++		fi
++		if printf '%s\n' "$tables" | grep -Eq '^table ip ss_spec_mangle[[:space:]]*$'; then
++			printf 'delete table ip ss_spec_mangle\n'
++		fi
++		cat "$NFTABLES_RULES_FILE"
++	} > "$transaction" || ! $NFT -c -f "$transaction" 2>/dev/null; then
++		rm -f "$transaction"
+ 		return 1
+ 	fi
+-}
++	if ! $NFT -f "$transaction" 2>/dev/null; then
++		rm -f "$transaction"
++		return 1
++	fi
++	rm -f "$transaction"
++	# nft snapshots do not contain policy routing. Recreate the fixed SSR
++	# fwmark/local-route pair only when the restored TPROXY table needs it.
++	if grep -Eq '^table ip ss_spec_mangle[[:space:]]*\{' "$NFTABLES_RULES_FILE"; then
++		if ! ip rule show | grep -Eq "fwmark ${FWMARK}.*lookup 999"; then
++			ip rule add fwmark "$FWMARK" table 999 || return 1
++		fi
++		if ! ip route show table 999 | grep -Eq '^local.*dev lo'; then
++			ip route add local 0.0.0.0/0 dev lo table 999 || return 1
++		fi
++	fi
++	return 0
++}
++
++# The private daemon must not acquire a lock for its lifetime or run CLI setup.
++if [ "$1" = "--persistence-daemon" ]; then
++	[ "$#" -eq 1 ] || exit 1
++	persistence_daemon_loop
++	exit $?
++fi
++
++FIREWALL_RESTORE=0
++if [ "$1" = "--firewall-restore" ]; then
++	[ "$#" -eq 1 ] || exit 1
++	FIREWALL_RESTORE=1
++	set -- -R
++fi
+ 
+ while getopts ":m:s:l:S:L:i:e:a:B:b:w:p:G:D:F:N:M:I:oOuUfgrczAKPCRXh" arg; do
+ 	case "$arg" in
+@@ -1618,6 +1799,21 @@
+ 		;;
+ 	esac
+ done
++
++# One lock covers daemon metadata, migration, rule mutations and exports.
++# The daemon closes this FD before exec; its periodic -P takes a fresh lock.
++if [ "$CHECK_STATUS" != "1" ] && { [ "$USE_NFT" = "1" ] || [ "$STOP_AUTO_UPDATE" = "1" ]; }; then
++	persistence_lock || exit 1
++	if [ "$USE_NFT" = "1" ]; then
++		migrate_persistence || exit 1
++	fi
++fi
++
++# A previously dispatched hook may wait behind stop's -f. Recheck intent only
++# after acquiring FD 8, so it cannot recreate SSR tables after stop completed.
++if [ "$FIREWALL_RESTORE" = "1" ] && [ ! -f "$SSRP_AUTO_RESTORE_FILE" ]; then
++	exit 0
++fi
+ 
+ # First process options that need immediate exit
+ if [ "$CHECK_STATUS" = "1" ]; then
+@@ -1627,7 +1823,7 @@
+ 
+ if [ "$STOP_AUTO_UPDATE" = "1" ]; then
+ 	stop_auto_update_daemon
+-	exit 0
++	exit $?
+ fi
+ 
+ # Only -X option, cleanup and exit
+@@ -1667,7 +1863,7 @@
+ 
+ # Force flush rules
+ if [ "$FLUSH_RULES" = "1" ]; then
+-	flush_r
++	flush_r || exit 1
+ 	# If only -f option, then exit
+ 	if [ -z "$server" ] && [ -z "$local_port" ] && [ "$FORCE_UPDATE" != "1" ] && \
+ 		[ "$RESTORE_RULES" != "1" ] && [ "$ENABLE_AUTO_UPDATE" != "1" ] && \
+@@ -1738,6 +1934,7 @@
+ 
+ 	if [ "$USE_NFT" = "1" ]; then
+ 		# NFTables
++		disable_auto_restore || exit 1
+ 		# Save previous TPROXY state file
+ 		TPROXY_STATE_FILE="/tmp/.last_tproxy"
+ 		if [ -f "$TPROXY_STATE_FILE" ]; then
+@@ -1801,6 +1998,11 @@
+ 		else
+ 			LAST_LAN_GM_IP=""
+ 		fi
++
++		IGNORE_LIST_HASH=$(list_file_fingerprint "$IGNORE_LIST") || exit 1
++		SHUNT_LIST_HASH=$(list_file_fingerprint "$SHUNT_LIST") || exit 1
++		LAST_IGNORE_LIST_HASH=$(cat /tmp/.last_ignore_list_hash 2>/dev/null) || LAST_IGNORE_LIST_HASH=""
++		LAST_SHUNT_LIST_HASH=$(cat /tmp/.last_shunt_list_hash 2>/dev/null) || LAST_SHUNT_LIST_HASH=""
+ 
+ 		# Check for changes in the existence and content of the server XHTTP address file
+ 		XHTTP_FILE_STATE_FILE="/tmp/.last_xhttp_file"
+@@ -1855,6 +2057,10 @@
+ 
+ 		# STEP 2.5: Check if any IP list has changed
+ 		ANY_IP_LIST_CHANGED=0
++		if [ "$IGNORE_LIST_HASH" != "$LAST_IGNORE_LIST_HASH" ] ||
++			[ "$SHUNT_LIST_HASH" != "$LAST_SHUNT_LIST_HASH" ]; then
++			ANY_IP_LIST_CHANGED=1
++		fi
+ 		
+ 		# Check WAN_BP_IP
+ 		check_ip_list_changed "$WAN_BP_IP" "$LAST_WAN_BP_IP" "WAN_BP_IP"
+@@ -1971,7 +2177,10 @@
+ 			if flush_r && ipset_r && fw_rule && ac_rule && tp_rule && gen_include; then
+ 				loger 5 "NFT rules applied successfully (forced rebuild)"
+ 				persist_nftables_rules || exit 1
+-				[ "$ENABLE_AUTO_UPDATE" = "1" ] && start_auto_update_daemon
++				if [ "$ENABLE_AUTO_UPDATE" = "1" ]; then
++					start_auto_update_daemon || exit 1
++				fi
++				complete_persistence_setup || exit 1
+ 				exit 0
+ 			else
+ 				loger 3 "NFT forced rebuild failed!"
+@@ -1984,8 +2193,11 @@
+ 			# Restore rules
+ 			if restore_from_persistence; then
+ 				loger 5 "NFT rules restored from persistence"
+-				gen_include
+-				[ "$ENABLE_AUTO_UPDATE" = "1" ] && start_auto_update_daemon
++				gen_include || exit 1
++				if [ "$ENABLE_AUTO_UPDATE" = "1" ]; then
++					start_auto_update_daemon || exit 1
++				fi
++				complete_persistence_setup || exit 1
+ 				exit 0
+ 			else
+ 				loger 3 "Restore failed → fallback to full setup"
+@@ -1997,7 +2209,10 @@
+ 		if flush_r && ipset_r && fw_rule && ac_rule && tp_rule && gen_include; then
+ 			loger 5 "NFTables rules applied successfully"
+ 			persist_nftables_rules || exit 1
+-			[ "$ENABLE_AUTO_UPDATE" = "1" ] && start_auto_update_daemon
++			if [ "$ENABLE_AUTO_UPDATE" = "1" ]; then
++				start_auto_update_daemon || exit 1
++			fi
++			complete_persistence_setup || exit 1
+ 			exit 0
+ 		else
+ 			loger 3 "NFTables setup failed!"

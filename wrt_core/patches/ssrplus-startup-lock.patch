@@ -1,0 +1,124 @@
+diff --git a/root/etc/init.d/shadowsocksr b/root/etc/init.d/shadowsocksr
+--- a/root/etc/init.d/shadowsocksr
++++ b/root/etc/init.d/shadowsocksr
+@@ -151,29 +151,4 @@
+ 
+-set_lock() {
+-	exec 1000>"$LOCK_FILE"
+-	flock -xn 1000
+-}
+-
+-unset_lock() {
+-	flock -u 1000
+-	rm -rf "$LOCK_FILE"
+-}
+-
+-unlock() {
+-	failcount=1
+-	while [ "$failcount" -le 10 ]; do
+-		if [ -f "$LOCK_FILE" ]; then
+-			let "failcount++"
+-			sleep 1s
+-			[ "$failcount" -ge 10 ] && unset_lock
+-		else
+-			break
+-		fi
+-	done
+-}
+-
+ _exit() {
+-	local rc=$1
+-	unset_lock
+-	exit ${rc}
++	exit "$1"
+ }
+@@ -202,3 +177,3 @@
+ 	ulimit -n 1000000
+-	${file_func:-echolog "  - ${ln_name}"} "$@" >/dev/null 2>&1 &
++	${file_func:-echolog "  - ${ln_name}"} "$@" 9>&- >/dev/null 2>&1 &
+ }
+@@ -1116,3 +1091,3 @@
+ 		[ "$password" != "" ] && password="--key "$password
+-		service_start /usr/bin/kcptun-client -r $kcp_server:$kcp_port -l :$server_port $password $kcp_param
++		service_start /usr/bin/kcptun-client -r $kcp_server:$kcp_port -l :$server_port $password $kcp_param 9>&-
+ 		kcp_enable_flag=1
+@@ -1351,3 +1326,2 @@
+ 			fi
+-			/etc/init.d/shadowsocksr restart
+ 		fi
+@@ -1477,3 +1451,3 @@
+ 			local switch_timeout=$(uci_get_by_type global switch_timeout)
+-			service_start /usr/bin/ssr-switch start $switch_time $switch_timeout
++			service_start /usr/bin/ssr-switch start $switch_time $switch_timeout 9>&-
+ 		fi
+@@ -1486,3 +1460,3 @@
+ 		if [ $total_count -gt 0 ]; then
+-			service_start /usr/bin/ssr-monitor $server_count $redir_tcp $redir_udp $kcp_enable_flag $local_enable $pdnsd_enable_flag
++			service_start /usr/bin/ssr-monitor $server_count $redir_tcp $redir_udp $kcp_enable_flag $local_enable $pdnsd_enable_flag 9>&-
+ 		fi
+@@ -1606,4 +1580,3 @@
+ 
+-start() {
+-	set_lock
++ssrp_start() {
+ 	echolog "----------start------------"
+@@ -1665,3 +1638,2 @@
+ 	echolog "-----------end------------"
+-	unset_lock
+ }
+@@ -1669,10 +1641,6 @@
+ boot() {
+-	echolog "boot！"
+-	mkdir -p /var/run /var/lock /var/log $DNSMASQ_CONF_DIR $TMP_BIN_PATH $TMP_DNSMASQ_PATH
+-	start
+-}
+-
+-stop() {
+-	unlock
+-	set_lock
++	start "$@"
++}
++
++ssrp_stop() {
+ 	check_run_environment
+@@ -1740,3 +1708,3 @@
+ 	if [ -z "$switch_server" ]; then
+-		$PS -w | grep -v "grep" | grep ssr-switch | awk '{print $1}' | xargs kill -9 >/dev/null 2>&1 &
++		$PS -w | grep -v "grep" | grep ssr-switch | awk '{print $1}' | xargs kill -9 >/dev/null 2>&1
+ 		rm -f /var/lock/ssr-switch.lock
+@@ -1744,5 +1712,5 @@
+ 	fi
+-	$PS -w | grep -v "grep" | grep ssr-monitor | awk '{print $1}' | xargs kill -9 >/dev/null 2>&1 &
+-	$PS -w | grep -v "grep" | grep ssr-rules | awk '{print $1}' | xargs kill -9 >/dev/null 2>&1 &
+-	$PS -w | grep -v "grep" | grep "sleep 0000" | awk '{print $1}' | xargs kill -9 >/dev/null 2>&1 &
++	$PS -w | grep -v "grep" | grep ssr-monitor | awk '{print $1}' | xargs kill -9 >/dev/null 2>&1
++	$PS -w | grep -v "grep" | grep ssr-rules | awk '{print $1}' | xargs kill -9 >/dev/null 2>&1
++	$PS -w | grep -v "grep" | grep "sleep 0000" | awk '{print $1}' | xargs kill -9 >/dev/null 2>&1
+ 	( \
+@@ -1774,8 +1742,7 @@
+ 	del_cron
+-	unset_lock
+-}
+-
+-reset() {
+-	stop
+-	set_lock
++	return 0
++}
++
++ssrp_reset() {
++	ssrp_stop "$@" || return 1
+ 	rm -rf /etc/config/shadowsocksr $LOG_FILE
+@@ -1784,3 +1751,10 @@
+ 	cp /usr/share/shadowsocksr/shadowsocksr.config /etc/config/shadowsocksr
+-	unset_lock
+-}
++}
++
++. "${IPKG_INSTROOT:-}/usr/share/shadowsocksr/ssrp-runtime.sh"
++
++start() { ssrp_run_locked ssrp_start_locked "$@"; }
++stop() { ssrp_run_locked ssrp_stop "$@"; }
++restart() { ssrp_run_locked ssrp_restart_locked "$@"; }
++reload() { restart "$@"; }
++reset() { ssrp_run_locked ssrp_reset "$@"; }

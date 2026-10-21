@@ -1,0 +1,288 @@
+diff --git a/root/usr/share/shadowsocksr/update.lua b/root/usr/share/shadowsocksr/update.lua
+--- a/root/usr/share/shadowsocksr/update.lua
++++ b/root/usr/share/shadowsocksr/update.lua
+@@ -6,6 +6,32 @@
+ ------------------------------------------------
+ require "luci.sys"
+ require "luci.model.uci"
++local function shell_quote(value)
++    return "'" .. tostring(value):gsub("'", "'\"'\"'") .. "'"
++end
++
++-- The Lua worker owns FD8 for its whole transaction. A forged environment
++-- marker cannot skip locking: verify the descriptor and the held lock first.
++if os.getenv("SSRP_UPDATER_LOCKED") ~= "1" then
++    local argument = arg[1] and (" " .. shell_quote(arg[1])) or ""
++    local command = "( umask 077; exec 8>>/var/lock/ssrplus-update.lock && " ..
++        "flock -w 30 -x 8 && SSRP_UPDATER_LOCKED=1 /usr/bin/lua " ..
++        "/usr/share/shadowsocksr/update.lua" .. argument .. " )"
++    os.exit(luci.sys.call(command))
++end
++if luci.sys.call('fd=$(readlink -f /proc/self/fd/8) && lock=$(readlink -f /var/lock/ssrplus-update.lock) && [ -n "$fd" ] && [ "$fd" = "$lock" ] && flock -n -x 8') ~= 0 then
++    os.exit(1)
++end
++
++-- curl before 8.4 cannot cap unknown-length transfers. Refuse that runtime
++-- before allocating scratch or downloading, rather than implying a byte bound.
++local curl_major, curl_minor = luci.sys.exec("curl --version 8>&-"):match("^curl (%d+)%.(%d+)")
++curl_major, curl_minor = tonumber(curl_major) or 0, tonumber(curl_minor) or 0
++if curl_major < 8 or (curl_major == 8 and curl_minor < 4) then
++    print("SSR updater requires curl 8.4 or newer for bounded downloads")
++    os.exit(1)
++end
++
+ local update_root = luci.sys.exec("mktemp -d /tmp/ssr-update.XXXXXX"):gsub("%s+$", "")
+ if not update_root:match("^/tmp/ssr%-update%.[%w]+$") then
+     error("Unable to create private SSR update directory")
+@@ -141,115 +167,142 @@
+ 	end
+ end
+ 
+--- Reconcile runtime even after a prior canonical update could not activate.
+-local function activate(file, type, file2)
+-    if type ~= "ip_data" then
+-        return luci.sys.call("/etc/init.d/shadowsocksr reload")
+-    end
+-    if file2 then
+-        local staged_runtime = file2 .. "." .. update_id
+-        local status = luci.sys.call("cp -f " .. file .. " " .. staged_runtime .. " && mv -f " .. staged_runtime .. " " .. file2)
+-        os.remove(staged_runtime)
+-        if status ~= 0 then return status end
+-    end
+-    if luci.sys.call("command -v ipset >/dev/null 2>&1") == 0 then
+-        return luci.sys.call("/usr/share/shadowsocksr/chinaipset.sh " .. TMP_PATH .. "/china_ssr.txt")
+-    end
+-    return 0
+-end
+-
+-local function update(url, file, type, file2)
+-	local Num = 1
+-	local refresh_cmd = "curl -sSL --insecure -o " .. update_root .. "/ssr-update." .. type .. " " .. url
+-	local sret = luci.sys.call(refresh_cmd)
+-	if sret == 0 then
+-		if type == "gfw_data" then
+-			local gfwlist = io.open(update_root .. "/ssr-update." .. type, "r")
+-			local decode = gfwlist:read("*a")
+-			if not decode:find("google") then
+-				decode = base64_dec(decode)
+-			end
+-			gfwlist:close()
+-			-- 写回gfwlist
+-			gfwlist = io.open(update_root .. "/ssr-update.tmp", "w")
+-			gfwlist:write(decode)
+-			gfwlist:close()
+-			generate_gfwlist(type)
+-			Num = 2
+-		end
+-		if type == "apple_data" then
+-			local apple = io.open(update_root .. "/ssr-update." .. type, "r")
+-			local decode = apple:read("*a")
+-			if not decode:find("apple") then
+-				decode = base64_dec(decode)
+-			end
+-			apple:close()
+-			-- 写回applechina
+-			apple = io.open(update_root .. "/ssr-update.tmp", "w")
+-			apple:write(decode)
+-			apple:close()
+-			if new_appledns and new_appledns ~= "" then
+-				generate_apple(type)
+-			end
+-		end
+-		if type == "ad_data" then
+-			local adblock = io.open(update_root .. "/ssr-update." .. type, "r")
+-			local decode = adblock:read("*a")
+-			if decode:find("address=") then
+-				adblock:close()
+-			else
+-				adblock:close()
+-				-- 写回adblock
+-				adblock = io.open(update_root .. "/ssr-update.tmp", "w")
+-				adblock:write(decode)
+-				adblock:close()
+-				generate_adblock(type)
+-			end
+-		end
+-		local new_md5 = luci.sys.exec("echo -n $([ -f '" .. update_root .. "/ssr-update." .. type .. "' ] && md5sum " .. update_root .. "/ssr-update." .. type .. " | awk '{print $1}')")
+-		local old_md5 = luci.sys.exec("echo -n $([ -f '" .. file .. "' ] && md5sum " .. file .. " | awk '{print $1}')")
+-		if new_md5 == old_md5 then
+-			if activate(file, type, file2) ~= 0 then
+-				os.remove(update_root .. "/ssr-update." .. type)
+-				log(-1)
+-				return
+-			end
+-			if args then
+-				log(1)
+-			else
+-				log("你已经是最新数据，无需更新！")
+-			end
+-		else
+-			icount = luci.sys.exec("cat " .. update_root .. "/ssr-update." .. type .. " | wc -l")
+-			local staged_file = file .. "." .. update_id
+-			if luci.sys.call("cp -f " .. update_root .. "/ssr-update." .. type .. " " .. staged_file .. " && mv -f " .. staged_file .. " " .. file) ~= 0 then
+-				os.remove(staged_file)
+-				os.remove(update_root .. "/ssr-update." .. type)
+-				log(-1)
+-				return
+-			end
+-			-- DNS activation joins the locked, validated publication path.
+-			local applied = activate(file, type, file2)
+-			if applied ~= 0 then
+-				os.remove(update_root .. "/ssr-update." .. type)
+-				log(-1)
+-				return
+-			end
+-			if args then
+-				log(0, tonumber(icount) / Num)
+-			else
+-				log("更新成功！ 新的总记录数：" .. tostring(tonumber(icount) / Num))
+-			end
+-		end
+-	else
+-		update_status = 1
+-		if args then
+-			log(-1)
+-		else
+-			log("更新失败！")
+-		end
+-	end
+-	os.remove(update_root .. "/ssr-update." .. type)
++local MAX_DOWNLOAD = 16777216
++local function call(command)
++    -- The worker keeps FD8. Network/init children must not leak it to daemons.
++    return luci.sys.call(command .. " 8>&-")
++end
++local function read_file(path)
++    local input = assert(io.open(path, "rb"))
++    local data = input:read(MAX_DOWNLOAD + 1) or ""
++    input:close()
++    assert(#data <= MAX_DOWNLOAD, "rule download exceeds size limit")
++    return data
++end
++local function write_file(path, data)
++    local output = assert(io.open(path, "wb"))
++    local written, message = output:write(data)
++    local closed, close_message = output:close()
++    assert(written and closed, message or close_message or "rule write failed")
++end
++local function hash(path)
++    return luci.sys.exec("md5sum " .. shell_quote(path) .. " 8>&- | awk '{print $1}'"):gsub("%s+$", "")
++end
++local function envelope(data)
++    assert(data:find("%S"), "rule download is empty")
++    assert(not data:find("%z") and not data:find("<[%a!/?][^>]*>"), "rule download is HTML or binary")
++end
++local function valid_v4(value)
++    local a, b, c, d = value:match("^(%d+)%.(%d+)%.(%d+)%.(%d+)$")
++    if not a then return false end
++    for _, part in ipairs({a, b, c, d}) do
++        if #part > 3 or tonumber(part) > 255 then return false end
++    end
++    return true
++end
++local function valid_domain(value)
++    value = value:gsub("^%*%.", ""):gsub("^%.", ""):gsub("%.$", "")
++    if #value > 253 or not value:find("%.") or value:find("[^%w_.%-]") or value:find("%.%.") then return false end
++    for label in value:gmatch("[^.]+") do
++        if #label > 63 or label:match("^%-") or label:match("%-$") then return false end
++    end
++    return value ~= ""
++end
++local function validate_rules(data, kind)
++    envelope(data)
++    local count = 0
++    for line in (data .. "\n"):gmatch("([^\n]*)\n") do
++        line = line:gsub("^%s+", ""):gsub("%s+$", "")
++        if line ~= "" and not line:match("^[#!]") then
++            if kind == "ip_data" or kind == "nfip_data" then
++                local address, bits = line:match("^([^/]+)/(%d+)$")
++                assert(address and valid_v4(address) and tonumber(bits) <= 32, "invalid IPv4 CIDR rule")
++            else
++                local directive, domain, target = line:match("^(%a+)=/([^/]+)/([^%s/]*)$")
++                assert(domain and valid_domain(domain), "invalid DNS domain rule")
++                if kind == "gfw_data" then
++                    assert((directive == "server" and target == "127.0.0.1#5335") or
++                        (directive == "ipset" and target == "gfwlist"), "invalid GFW directive")
++                elseif kind == "apple_data" then
++                    assert(directive == "server" and valid_v4(target), "invalid Apple DNS directive")
++                else
++                    assert(directive == "address" and (target == "" or target == "#" or valid_v4(target)), "invalid adblock directive")
++                end
++            end
++            count = count + 1
++        end
++    end
++    assert(count > 0, "rule conversion produced no rules")
++    return count
++end
++
++-- Canonical sources are a transaction too: a failed activation restores the
++-- previous complete source. Keep the candidate in .pending for diagnosis/retry.
++local function update(url, file, kind, file2)
++    local downloaded = update_root .. "/ssr-update." .. kind
++    local staged = file .. "." .. update_id
++    local backup = file .. ".previous." .. update_id
++    local pending = file .. ".pending"
++    local keep_backup = false
++    local ok, message = pcall(function()
++        assert(type(url) == "string" and url:match("^https?://"), "invalid rule URL")
++        local command = "curl -f -sSL --insecure --connect-timeout 5 --max-time 30 " ..
++            "--max-filesize " .. MAX_DOWNLOAD .. " --proto '=http,https' --proto-redir '=http,https' -o " ..
++            shell_quote(downloaded) .. " -- " .. shell_quote(url)
++        assert(call(command) == 0, "rule download failed")
++        local raw = read_file(downloaded)
++        envelope(raw)
++        if kind == "gfw_data" or kind == "apple_data" then
++            if raw:match("^[%w+/%s=]+$") then raw = base64_dec(raw) end
++            envelope(raw)
++            write_file(update_root .. "/ssr-update.tmp", raw)
++            if kind == "gfw_data" then generate_gfwlist(kind) else generate_apple(kind) end
++        elseif kind == "ad_data" and not raw:find("address=", 1, true) then
++            write_file(update_root .. "/ssr-update.tmp", raw)
++            generate_adblock(kind)
++        end
++        local candidate = read_file(downloaded)
++        local count = validate_rules(candidate, kind)
++        local candidate_hash, old_hash = hash(downloaded), hash(file)
++        assert(candidate_hash ~= "", "unable to hash rule candidate")
++        local changed = candidate_hash ~= old_hash
++        write_file(pending, candidate)
++        if changed then
++            if old_hash ~= "" then
++                assert(call("cp -f " .. shell_quote(file) .. " " .. shell_quote(backup)) == 0, "source backup failed")
++            end
++            assert(call("cp -f " .. shell_quote(pending) .. " " .. shell_quote(staged) ..
++                " && mv -f " .. shell_quote(staged) .. " " .. shell_quote(file)) == 0, "source publication failed")
++        end
++        -- Every type, including China/Netflix IP lists, activates under the
++        -- service lifecycle lock. Never call chinaipset directly from here.
++        if call("/etc/init.d/shadowsocksr reload") ~= 0 then
++            if changed and hash(file) == candidate_hash then
++                if old_hash ~= "" then
++                    keep_backup = true
++                    assert(call("mv -f " .. shell_quote(backup) .. " " .. shell_quote(file)) == 0,
++                        "activation and canonical rollback failed; old source backup retained")
++                    keep_backup = false
++                else
++                    assert(os.remove(file), "activation failed; unable to remove new canonical source")
++                end
++            elseif changed then
++                log("activation failed; newer external canonical write preserved")
++            end
++            error("rule activation failed; pending candidate retained")
++        end
++        assert(os.remove(pending), "activated rules but unable to clear pending candidate")
++        if args then log(changed and 0 or 1, kind == "gfw_data" and count / 2 or count)
++        else log("规则更新及激活成功") end
++    end)
++    os.remove(downloaded)
++    os.remove(update_root .. "/ssr-update.tmp")
++    os.remove(staged)
++    if not keep_backup then os.remove(backup) end
++    if not ok then
++        log(-1)
++        if not args then log(tostring(message)) end
++    end
+ end
+ 
+ if args then

@@ -1,0 +1,189 @@
+#!/usr/bin/env python3
+"""Exercise selected SSR configuration and package/rootfs collection gates."""
+import os
+from pathlib import Path
+import shutil
+import subprocess
+import tempfile
+import unittest
+import test_ssrplus_artifacts as artifacts
+import test_ssrplus_runtime_regressions as runtime_cases
+
+ROOT = artifacts.ROOT
+REQUIRED = ("CONFIG_PACKAGE_firewall4", "CONFIG_PACKAGE_dnsmasq-full",
+            "CONFIG_PACKAGE_dnsmasq_full_nftset", "CONFIG_PACKAGE_flock",
+            "CONFIG_PACKAGE_luci-app-ssr-plus_Nftables_Transparent_Proxy")
+
+
+class BuildGate(unittest.TestCase):
+    def setUp(self):
+        self.case = artifacts.ArtifactVerification()
+        self.case.setUp()
+        self.addCleanup(self.case.doCleanups)
+        self.base = self.case.base
+        self.env = os.environ.copy()
+        self.env.pop("MSYS_NO_PATHCONV", None)
+        self.env.update(TEST_ROOT=self.base.as_posix(),
+                        SSR_BUILD_MODULE=(ROOT / "wrt_core/modules/ssrplus_build.sh").as_posix())
+
+    def config(self, selected="m", missing=None, per_device=False, device_ssr=False):
+        lines = ["CONFIG_PACKAGE_luci-app-ssr-plus=" + selected]
+        lines += [key + "=y" for key in REQUIRED if key != missing]
+        if per_device:
+            lines.append("CONFIG_TARGET_PER_DEVICE_ROOTFS=y")
+        if device_ssr:
+            lines += ["CONFIG_TARGET_DEVICE_qualcommax_ipq60xx_DEVICE_fixture=y",
+                      'CONFIG_TARGET_DEVICE_PACKAGES_qualcommax_ipq60xx_DEVICE_fixture="luci-app-ssr-plus"']
+        (self.base / ".config").write_text("\n".join(lines) + "\n", encoding="utf-8")
+
+    def prepare_artifacts(self):
+        target = self.base / "bin/packages/test/luci/luci-app-ssr-plus_190-4_all.ipk"
+        target.parent.mkdir(parents=True)
+        self.case.make_package().replace(target)
+        expected = self.base / "feeds/custom_feed/luci-app-ssr-plus/root" / artifacts.MANIFEST_TARGET
+        expected.parent.mkdir(parents=True)
+        expected.write_bytes(self.case.expected.read_bytes())
+
+    def install_root(self, relative):
+        target = self.base / relative
+        shutil.copytree(self.case.root, target)
+        return target
+
+    def shell(self, body):
+        return subprocess.run([runtime_cases.BASH, "--noprofile", "--norc", "-c",
+            '. "$SSR_BUILD_MODULE" || exit; cd "$TEST_ROOT" || exit; ' + body],
+            env=self.env, capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=30)
+
+    def test_unselected_ssr_does_not_require_other_plugins_backend(self):
+        self.config(selected="n")
+        result = self.shell("verify_ssrplus_final_config .config && verify_ssrplus_built_artifacts")
+        self.assertEqual(result.returncode, 0, result.stderr)
+
+    def test_selected_ssr_accepts_nft_dnsmasq_and_flock(self):
+        self.config()
+        result = self.shell("verify_ssrplus_final_config .config")
+        self.assertEqual(result.returncode, 0, result.stderr)
+
+    def test_each_missing_dependency_fails_before_compilation(self):
+        for key in REQUIRED:
+            with self.subTest(key=key):
+                self.config(missing=key)
+                self.assertNotEqual(self.shell("verify_ssrplus_final_config .config").returncode, 0)
+
+    def test_compiled_module_package_verified_without_requiring_rootfs_install(self):
+        self.config()
+        target = self.base / "bin/packages/test/luci/luci-app-ssr-plus_190-4_all.ipk"
+        target.parent.mkdir(parents=True)
+        self.case.make_package().replace(target)
+        expected = self.base / "feeds/custom_feed/luci-app-ssr-plus/root" / artifacts.MANIFEST_TARGET
+        expected.parent.mkdir(parents=True)
+        expected.write_bytes(self.case.expected.read_bytes())
+        result = self.shell("verify_ssrplus_built_artifacts")
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+
+    def test_selected_rootfs_package_cannot_pass_without_final_rootfs(self):
+        self.config(selected="y")
+        target = self.base / "bin/packages/test/luci/luci-app-ssr-plus_190-4_all.ipk"
+        target.parent.mkdir(parents=True)
+        self.case.make_package().replace(target)
+        expected = self.base / "feeds/custom_feed/luci-app-ssr-plus/root" / artifacts.MANIFEST_TARGET
+        expected.parent.mkdir(parents=True)
+        expected.write_bytes(self.case.expected.read_bytes())
+        self.assertNotEqual(self.shell("verify_ssrplus_built_artifacts").returncode, 0)
+
+    def test_missing_package_and_manifest_fail_closed(self):
+        self.config()
+        self.assertNotEqual(self.shell("verify_ssrplus_built_artifacts").returncode, 0)
+
+    def test_per_device_build_cannot_pass_with_only_the_common_root(self):
+        self.config(selected="y", per_device=True)
+        self.prepare_artifacts()
+        self.install_root("build_dir/target-fixture/root-qualcommax")
+        result = self.shell("verify_ssrplus_built_artifacts")
+        self.assertNotEqual(result.returncode, 0, result.stdout + result.stderr)
+
+    def test_every_final_per_device_root_requires_intact_repair_files(self):
+        self.config(selected="y", per_device=True)
+        self.prepare_artifacts()
+        self.install_root("build_dir/target-fixture/root-qualcommax")
+        self.install_root("build_dir/target-fixture/linux-qualcommax_ipq60xx/target-dir-12345678")
+        other = self.install_root("build_dir/target-fixture/linux-qualcommax_ipq60xx/target-dir-deadbeef")
+        protected = other / artifacts.PROTECTED
+        for damage in ("missing", "changed"):
+            with self.subTest(damage=damage):
+                if damage == "missing":
+                    protected.unlink()
+                else:
+                    protected.write_bytes(b"unrepaired device payload\n")
+                result = self.shell("verify_ssrplus_built_artifacts")
+                self.assertNotEqual(result.returncode, 0, result.stdout + result.stderr)
+
+    def test_valid_per_device_roots_ignore_temporary_and_non_target_trees(self):
+        self.config(selected="y", per_device=True)
+        self.prepare_artifacts()
+        self.install_root("build_dir/target-fixture/root-qualcommax")
+        for suffix in ("12345678", "deadbeef"):
+            self.install_root("build_dir/target-fixture/linux-qualcommax_ipq60xx/target-dir-" + suffix)
+        for relative in ("build_dir/target-fixture/linux-qualcommax_ipq60xx/tmp/target-dir-aabbccdd",
+                         "build_dir/target-fixture/work/target-dir-aabbccdd",
+                         "build_dir/host/linux-qualcommax_ipq60xx/target-dir-aabbccdd",
+                         "build_dir/target-fixture/linux-qualcommax_ipq60xx/target-dir-aabbccdd.work"):
+            (self.base / relative).mkdir(parents=True)
+        result = self.shell("verify_ssrplus_built_artifacts")
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+
+    def test_module_selected_by_device_requires_an_installed_final_root(self):
+        self.config(per_device=True, device_ssr=True)
+        self.prepare_artifacts()
+        result = self.shell("verify_ssrplus_built_artifacts")
+        self.assertNotEqual(result.returncode, 0, result.stdout + result.stderr)
+        (self.base / "build_dir/target-fixture/linux-qualcommax_ipq60xx/target-dir-deadbeef").mkdir(parents=True)
+        result = self.shell("verify_ssrplus_built_artifacts")
+        self.assertNotEqual(result.returncode, 0, result.stdout + result.stderr)
+
+    def test_module_selected_by_device_checks_its_repair_payload(self):
+        self.config(per_device=True, device_ssr=True)
+        self.prepare_artifacts()
+        root = self.install_root("build_dir/target-fixture/linux-qualcommax_ipq60xx/target-dir-deadbeef")
+        (root / artifacts.PROTECTED).write_bytes(b"unrepaired device payload\n")
+        result = self.shell("verify_ssrplus_built_artifacts")
+        self.assertNotEqual(result.returncode, 0, result.stdout + result.stderr)
+
+    def test_module_selected_by_device_allows_other_devices_without_ssr(self):
+        self.config(per_device=True, device_ssr=True)
+        self.prepare_artifacts()
+        self.install_root("build_dir/target-fixture/linux-qualcommax_ipq60xx/target-dir-deadbeef")
+        (self.base / "build_dir/target-fixture/linux-qualcommax_ipq60xx/target-dir-aabbccdd").mkdir(parents=True)
+        result = self.shell("verify_ssrplus_built_artifacts")
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+
+    def test_plain_module_build_with_per_device_support_does_not_require_roots(self):
+        self.config(per_device=True)
+        self.prepare_artifacts()
+        result = self.shell("verify_ssrplus_built_artifacts")
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+
+    def test_unselected_device_or_negative_package_does_not_require_ssr_roots(self):
+        self.prepare_artifacts()
+        for selection, packages in (("n", "luci-app-ssr-plus"), ("y", "-luci-app-ssr-plus")):
+            with self.subTest(selection=selection, packages=packages):
+                self.config(per_device=True)
+                with (self.base / ".config").open("a", encoding="utf-8") as config:
+                    config.write("CONFIG_TARGET_DEVICE_qualcommax_ipq60xx_DEVICE_fixture=" + selection + "\n")
+                    config.write('CONFIG_TARGET_DEVICE_PACKAGES_qualcommax_ipq60xx_DEVICE_fixture="' + packages + '"\n')
+                result = self.shell("verify_ssrplus_built_artifacts")
+                self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+
+    def test_device_package_metadata_cannot_hide_missing_repair_payload(self):
+        self.config(per_device=True, device_ssr=True)
+        self.prepare_artifacts()
+        root = self.base / "build_dir/target-fixture/linux-qualcommax_ipq60xx/target-dir-deadbeef"
+        status = root / "usr/lib/opkg/status"
+        status.parent.mkdir(parents=True)
+        status.write_text("Package: luci-app-ssr-plus\nVersion: 190-4\n", encoding="utf-8")
+        result = self.shell("verify_ssrplus_built_artifacts")
+        self.assertNotEqual(result.returncode, 0, result.stdout + result.stderr)
+
+
+if __name__ == "__main__":
+    unittest.main()

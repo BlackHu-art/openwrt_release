@@ -1,0 +1,3 @@
+# Local regression tooling only; not included in firmware.
+PyYAML==6.0.3
+lupa==2.8

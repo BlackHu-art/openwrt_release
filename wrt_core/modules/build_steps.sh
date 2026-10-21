@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 # Keep full logs on disk, show progress live, and expand details only on failure.
+source "$(dirname "${BASH_SOURCE[0]}")/ssrplus_build.sh"
 
 summarize_build_output() {
     awk -v root="${1%/}/" '
@@ -78,5 +79,6 @@ build_firmware() {
     if grep -qE '^CONFIG_PACKAGE_miniupnpd(-(nftables|iptables))?=[ym]$' .config; then
         run_build_step miniupnpd-prepare make package/feeds/packages/miniupnpd/prepare -j1 V=s BUILD_LOG=1 || return $?
     fi
-    run_build_step compile make "-j$jobs" V=s BUILD_LOG=1
+    run_build_step compile make "-j$jobs" V=s BUILD_LOG=1 || return $?
+    verify_ssrplus_built_artifacts
 }

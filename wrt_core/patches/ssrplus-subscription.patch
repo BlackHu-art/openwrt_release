@@ -1,0 +1,696 @@
+--- a/root/usr/share/shadowsocksr/subscribe.lua
++++ b/root/usr/share/shadowsocksr/subscribe.lua
+@@ -9,6 +9,19 @@
+ require "luci.util"
+ require "luci.sys"
+ require "luci.jsonc"
++
++-- lockf/tlock is process-owned and released on exit; never unlink the inode.
++-- Acquire before opening the UCI cursor, so cooperating subscribers see fresh data.
++local subscription_lock = nixio.open("/var/lock/ssrplus-subscribe.lock", "a")
++if not subscription_lock then
++	print("subscription writer lock could not be opened")
++	os.exit(1)
++end
++if not subscription_lock:lock("tlock") then
++	subscription_lock:close()
++	print("subscription update already running")
++	os.exit(1)
++end
+ 
+ -- these global functions are accessed all the time by the event handler
+ -- so caching them is worth the effort
+@@ -22,7 +35,79 @@
+ local nodeResult = setmetatable({}, {__index = cache}) -- update result
+ local name = 'shadowsocksr'
+ local uciType = 'servers'
+-local ucic = require "luci.model.uci".cursor()
++-- luci.model.uci can be an RPC singleton and cannot isolate saved deltas.
++-- Use the declared libuci-lua dependency directly, with an owned savedir.
++local native_uci = require "uci"
++local uci_state_dir = (luci.sys.exec("mktemp -d /tmp/ssr-subscribe.XXXXXX") or ""):match("^(/tmp/ssr%-subscribe%.[%w]+)%s*$")
++if not uci_state_dir then
++	subscription_lock:close()
++	print("could not create private subscription UCI state directory")
++	os.exit(1)
++end
++
++local function finish_subscription(code)
++	local delta = uci_state_dir .. "/" .. name
++	if nixio.fs.access(delta) and not nixio.fs.remove(delta) then
++		print("could not clean private subscription UCI delta")
++		code = 1
++	end
++	if not nixio.fs.remove(uci_state_dir) then
++		print("could not clean private subscription UCI state directory")
++		code = 1
++	end
++	subscription_lock:close()
++	os.exit(code)
++end
++
++local function shared_uci_changes()
++	local cursor = native_uci.cursor()
++	local changes = cursor:changes(name)
++	cursor:unload(name)
++	return type(changes) ~= "table" or next(changes[name] or {}) ~= nil
++end
++
++-- Only these three convenience methods are added to a native libuci cursor.
++local function subscription_cursor()
++	local raw = native_uci.cursor(nil, uci_state_dir)
++	local cursor = {}
++	for _, method in ipairs({"get", "get_all", "foreach", "add", "set", "delete", "commit", "unload"}) do
++		cursor[method] = function(self, ...) return raw[method](raw, ...) end
++	end
++	function cursor:get_first(config, kind, option, default)
++		local result, found
++		raw:foreach(config, kind, function(section)
++			if not found then
++				found = true
++				if option then result = section[option] else result = section[".name"] end
++			end
++			return false
++		end)
++		if result == nil then return default end
++		return result
++	end
++	function cursor:tset(config, sid, values)
++		for key, value in pairs(values) do
++			if key:sub(1, 1) ~= "." and not raw:set(config, sid, key, value) then return false end
++		end
++		return true
++	end
++	function cursor:section(config, kind, sid, values)
++		if sid then
++			if not raw:set(config, sid, kind) then return nil end
++		else
++			sid = raw:add(config, kind)
++		end
++		if not sid or (values and not self:tset(config, sid, values)) then return nil end
++		return sid
++	end
++	return cursor
++end
++
++if shared_uci_changes() then
++	print("subscription refused: shared UCI changes are pending")
++	finish_subscription(1)
++end
++local ucic = subscription_cursor()
+ local proxy = ucic:get_first(name, 'server_subscribe', 'proxy') or '0'
+ local switch = ucic:get_first(name, 'server_subscribe', 'switch') or '1'
+ local allow_insecure = ucic:get_first(name, 'server_subscribe', 'allow_insecure') or '0'
+@@ -1421,7 +1506,7 @@
+ 
+ -- 将订阅分组最新内容的 MD5 值保存到对应的临时文件中，以便下次更新时进行对比。
+ local function write_new_md5(groupHash, md5)
+-	nixio.fs.writefile(get_md5_path(groupHash), md5)
++	return nixio.fs.writefile(get_md5_path(groupHash), md5)
+ end
+ 
+ -- curl
+@@ -1527,196 +1612,288 @@
+ 	end)
+ end
+ 
++-- Parse a group completely before it can participate in the UCI diff.
++local function parse_group(raw, groupHash)
++	cache[groupHash] = {}
++	local nodes, szType
++	-- SSD 似乎是这种格式 ssd:// 开头的
++	if raw:find('ssd://') then
++		szType = 'ssd'
++		local nEnd = select(2, raw:find('ssd://'))
++		nodes = base64Decode(raw:sub(nEnd + 1, #raw))
++		nodes = jsonParse(nodes)
++		local extra = {
++			airport = nodes.airport,
++			port = nodes.port,
++			encryption = nodes.encryption,
++			password = nodes.password
++		}
++		local servers = {}
++		-- SS里面包着 干脆直接这样
++		for _, server in ipairs(nodes.servers or {}) do
++			tinsert(servers, setmetatable(server, {__index = extra}))
++		end
++		nodes = servers
++	-- SS SIP008 直接使用 Json 格式
++	elseif type(jsonParse(raw)) == "table" then
++		nodes = jsonParse(raw).servers or jsonParse(raw)
++		if nodes[1] and nodes[1].server and nodes[1].method then
++			szType = 'sip008'
++		end
++	-- 其他 base64 格式
++	else
++		-- ssd 外的格式
++		nodes = split(base64Decode(raw):gsub("\r\n", "\n"), "\n")
++	end
++
++	-- 临时存储该订阅解析出的节点（带原始别名）
++	local groupRawNodes = {}
++
++	for _, v in ipairs(nodes) do
++		if type(v) == "table" or (type(v) == "string" and not v:match("^%s*$")) then
++			xpcall(function()
++				local result
++				if szType then
++					result = processData(szType, v)
++				elseif not szType then
++					local node = trim(v)
++					-- 一些奇葩的链接用"&amp;"、"&lt;"当做"&"，"#"前后带空格
++					local link = node:gsub("&[a-zA-Z]+;", "&"):gsub("%s*#%s*", "#")
++					local dat = split(link, "://")
++					if dat and dat[1] and dat[2] then
++						local dat3 = ""
++						if dat[3] then
++							dat3 = "://" .. dat[3]
++						end
++						if dat[1] == 'ss' or dat[1] == 'trojan' or dat[1] == 'tuic' then
++							result = processData(dat[1], dat[2] .. dat3)
++						else
++							result = processData(dat[1], base64Decode(dat[2]))
++						end
++					end
++				else
++					log('跳过未知类型: ' .. szType)
++				end
++				-- log(result)
++				if result then
++					-- 中文做地址的 也没有人拿中文域名搞，就算中文域也有Puny Code SB 机场
++					if type(result.server) ~= "string" or result.server == ""
++					or not tonumber(result.server_port)
++					or tonumber(result.server_port) < 1 or tonumber(result.server_port) > 65535
++						or result.server == "127.0.0.1"
++						or result.alias == "NULL"
++						or check_filer(result)
++						or result.server:match("[^0-9a-zA-Z%-_%.%s]")
++						or cache[groupHash][result.hashkey] then
++						log('丢弃无效节点: ' .. result.alias)
++					else
++						-- 暂存节点
++						table.insert(groupRawNodes, result)
++					end
++				end
++			end, function(err)
++				log(string.format("解析节点出错: %s\n原始数据: %s", tostring(err), tostring(v)))
++			end)
++		end
++	end
++
++	if #groupRawNodes == 0 then
++		error("订阅未包含可用节点")
++	end
++	tinsert(nodeResult, {})
++	local index = #nodeResult
++
++	-- 对该组节点进行别名编号：重复节点加后缀，唯一节点不加
++	local freq = {}
++	for _, node in ipairs(groupRawNodes) do
++		local raw = node.raw_alias or ""
++		freq[raw] = (freq[raw] or 0) + 1
++	end
++	local aliasCount = {}
++	for _, node in ipairs(groupRawNodes) do
++		local raw = node.raw_alias or ""
++		if freq[raw] > 1 then
++			local count = (aliasCount[raw] or 0) + 1
++			aliasCount[raw] = count
++			node.alias = raw .. "_" .. count
++		else
++			node.alias = raw
++		end
++		-- 清理临时字段
++		node.raw_alias = nil
++		-- 存入 nodeResult
++		node.grouphashkey = groupHash
++		table.insert(nodeResult[index], node)
++		cache[groupHash][node.hashkey] = node
++	end
++
++	log('成功解析节点数量: ' .. #groupRawNodes)
++end
++
++local function checked(result, message)
++	if not result then error(message) end
++	return result
++end
++
++-- UCI values are scalars or lists. Ignore cursor-only metadata such as .index.
++local function copy_value(value)
++	if type(value) ~= "table" then return value end
++	local result = {}
++	for key, item in pairs(value) do result[key] = copy_value(item) end
++	return result
++end
++
++local function equal_value(a, b)
++	if type(a) ~= type(b) then return false end
++	if type(a) ~= "table" then return a == b end
++	for key, value in pairs(a) do
++		if not equal_value(value, b[key]) then return false end
++	end
++	for key in pairs(b) do if a[key] == nil then return false end end
++	return true
++end
++
++local function read_section(cursor, sid)
++	local data = cursor:get_all(name, sid)
++	if not data then return false end
++	local result = {[".type"] = data[".type"]}
++	for key, value in pairs(data) do
++		if key:sub(1, 1) ~= "." then result[key] = copy_value(value) end
++	end
++	return result
++end
++
++local function changed_fields(before, after)
++	local keys = {}
++	for key in pairs(before) do
++		if key:sub(1, 1) ~= "." and not equal_value(before[key], after[key]) then keys[key] = true end
++	end
++	for key in pairs(after) do
++		if key:sub(1, 1) ~= "." and not equal_value(before[key], after[key]) then keys[key] = true end
++	end
++	return keys
++end
++
++local function restart_service()
++	local ok, status = pcall(luci.sys.call, "/etc/init.d/" .. name .. " restart > /dev/null 2>&1")
++	return ok and status == 0
++end
++
++-- Reverse only this update's writes, through a fresh cursor. Full-section
++-- reversal is allowed only for sections we created/deleted and whose expected
++-- state still matches. Existing sections restore only changed option fields.
++local function rollback_subscription(before, after, global_section, old_global, new_global)
++	local recovery = subscription_cursor()
++	local ok, err = pcall(function()
++		checked(not shared_uci_changes(), "rollback conflict: shared UCI changes are pending")
++		-- Validate every touched section before staging any recovery writes.
++		for sid, old in pairs(before) do
++			local written, current = after[sid], read_section(recovery, sid)
++			if old == false or written == false then
++				checked(equal_value(current, written), "rollback conflict in node " .. sid)
++			else
++				checked(current and current[".type"] == written[".type"], "rollback conflict in node type " .. sid)
++				for key in pairs(changed_fields(old, written)) do
++					checked(equal_value(current[key], written[key]), "rollback conflict in node field " .. sid .. "." .. key)
++				end
++			end
++		end
++		if old_global ~= new_global then
++			checked(recovery:get(name, global_section) == "global" and
++				recovery:get(name, global_section, "global_server") == new_global, "rollback conflict in global_server")
++		end
++		for sid, old in pairs(before) do
++			local written = after[sid]
++			if old == false then
++				checked(recovery:delete(name, sid), "rollback delete failed: " .. sid)
++			elseif written == false then
++				checked(recovery:section(name, old[".type"], sid), "rollback recreate failed: " .. sid)
++				for key, value in pairs(old) do
++					if key:sub(1, 1) ~= "." then
++						checked(recovery:set(name, sid, key, value), "rollback restore failed: " .. sid .. "." .. key)
++					end
++				end
++			else
++				for key in pairs(changed_fields(old, written)) do
++					if old[key] == nil then
++						checked(recovery:delete(name, sid, key), "rollback option delete failed: " .. sid .. "." .. key)
++					else
++						checked(recovery:set(name, sid, key, old[key]), "rollback option restore failed: " .. sid .. "." .. key)
++					end
++				end
++			end
++		end
++		if old_global ~= new_global then
++			if old_global == nil then
++				checked(recovery:delete(name, global_section, "global_server"), "rollback global option delete failed")
++			else
++				checked(recovery:set(name, global_section, "global_server", old_global), "rollback global option restore failed")
++			end
++		end
++		checked(recovery:commit(name), "rollback commit failed")
++	end)
++	if not ok then
++		-- unload discards only this cursor's in-memory edits; revert would also
++		-- remove shared saved UCI deltas belonging to other configuration clients.
++		recovery:unload(name)
++		log("subscription rollback failed: " .. tostring(err))
++		return false
++	end
++	if not restart_service() then
++		log("subscription config restored; recovery restart failed; service state is degraded")
++		return false
++	end
++	log("previous subscription config restored; recovery restart completed")
++	return true
++end
++
+ local execute = function()
+-	local updated = false
+-	local service_stopped = false
+-	for k, url in ipairs(subscribe_url) do
+-		local raw, new_md5 = curl(url)
+-		log("raw 长度: "..#raw)
++	local pending_md5 = {}
++	local failed = false
++	for _, url in ipairs(subscribe_url) do
+ 		local groupHash = md5(url)
+-		local old_md5 = read_old_md5(groupHash)
+-
+-		log("处理订阅: " .. url)
+-		log("groupHash: " .. groupHash)
+-		log("old_md5: " .. tostring(old_md5))
+-		log("new_md5: " .. tostring(new_md5))
+-
+-		if #raw > 0 then
+-			if old_md5 and new_md5 == old_md5 then
+-				log("订阅未变化, 跳过无需更新的订阅: " .. url)
+-				-- 防止 diff 阶段误删未更新订阅节点
++		local ok, err = pcall(function()
++			local raw, new_md5 = curl(url, user_agent)
++			if #raw == 0 or type(new_md5) ~= "string" or #new_md5 ~= 32 then
++				error("订阅下载失败或内容为空")
++			end
++			if new_md5 == read_old_md5(groupHash) then
+ 				loadOldNodes(groupHash)
+-				--ucic:foreach(name, uciType, function(s)
+-				--	if s.grouphashkey == groupHash and s.hashkey then
+-				--		cache[groupHash][s.hashkey] = s
+-				--		tinsert(nodeResult[index], s)
+-				--	end
+-				--end)
+-			else
+-				updated = true
+-				-- 保存更新后的 MD5 值到以 groupHash 为标识的临时文件中，用于下次订阅更新时进行对比
+-				write_new_md5(groupHash, new_md5)
+-
+-				-- 暂停服务（仅当 MD5 有变化时才执行）
+-				if proxy == '0' and not service_stopped then
+-					log('服务正在暂停')
+-					luci.sys.init.stop(name)
+-					service_stopped = true
+-				end
+-
+-				cache[groupHash] = {}
+-				tinsert(nodeResult, {})
+-				local index = #nodeResult
+-				local nodes, szType
+-
+-				-- SSD 似乎是这种格式 ssd:// 开头的
+-				if raw:find('ssd://') then
+-					szType = 'ssd'
+-					local nEnd = select(2, raw:find('ssd://'))
+-					nodes = base64Decode(raw:sub(nEnd + 1, #raw))
+-					nodes = jsonParse(nodes)
+-					local extra = {
+-						airport = nodes.airport,
+-						port = nodes.port,
+-						encryption = nodes.encryption,
+-						password = nodes.password
+-					}
+-					local servers = {}
+-					-- SS里面包着 干脆直接这样
+-					for _, server in ipairs(nodes.servers or {}) do
+-						tinsert(servers, setmetatable(server, {__index = extra}))
+-					end
+-					nodes = servers
+-				-- SS SIP008 直接使用 Json 格式
+-				elseif jsonParse(raw) then
+-					nodes = jsonParse(raw).servers or jsonParse(raw)
+-					if nodes[1] and nodes[1].server and nodes[1].method then
+-						szType = 'sip008'
+-					end
+-				-- 其他 base64 格式
+-				else
+-					-- ssd 外的格式
+-					nodes = split(base64Decode(raw):gsub("\r\n", "\n"), "\n")
+-				end
+-
+-				-- 临时存储该订阅解析出的节点（带原始别名）
+-				local groupRawNodes = {}
+-
+-				for _, v in ipairs(nodes) do
+-					if v and not string.match(v, "^%s*$") then
+-						xpcall(function()
+-							local result
+-							if szType then
+-								result = processData(szType, v)
+-							elseif not szType then
+-								local node = trim(v)
+-								-- 一些奇葩的链接用"&amp;"、"&lt;"当做"&"，"#"前后带空格
+-								local link = node:gsub("&[a-zA-Z]+;", "&"):gsub("%s*#%s*", "#")
+-								local dat = split(link, "://")
+-								if dat and dat[1] and dat[2] then
+-									local dat3 = ""
+-									if dat[3] then
+-										dat3 = "://" .. dat[3]
+-									end
+-									if dat[1] == 'ss' or dat[1] == 'trojan' or dat[1] == 'tuic' then
+-										result = processData(dat[1], dat[2] .. dat3)
+-									else
+-										result = processData(dat[1], base64Decode(dat[2]))
+-									end
+-								end
+-							else
+-								log('跳过未知类型: ' .. szType)
+-							end
+-							-- log(result)
+-							if result then
+-								-- 中文做地址的 也没有人拿中文域名搞，就算中文域也有Puny Code SB 机场
+-								if not result.server or not result.server_port
+-									or result.server == "127.0.0.1"
+-									or result.alias == "NULL"
+-									or check_filer(result)
+-									or result.server:match("[^0-9a-zA-Z%-_%.%s]")
+-									or cache[groupHash][result.hashkey] then
+-									log('丢弃无效节点: ' .. result.alias)
+-								else
+-									-- 暂存节点
+-									table.insert(groupRawNodes, result)
+-								end
+-							end
+-						end, function(err)
+-							log(string.format("解析节点出错: %s\n原始数据: %s", tostring(err), tostring(v)))
+-						end)
+-					end
+-				end
+-
+-				-- 对该组节点进行别名编号：重复节点加后缀，唯一节点不加
+-				local freq = {}
+-				for _, node in ipairs(groupRawNodes) do
+-					local raw = node.raw_alias or ""
+-					freq[raw] = (freq[raw] or 0) + 1
+-				end
+-				local aliasCount = {}
+-				for _, node in ipairs(groupRawNodes) do
+-					local raw = node.raw_alias or ""
+-					if freq[raw] > 1 then
+-						local count = (aliasCount[raw] or 0) + 1
+-						aliasCount[raw] = count
+-						node.alias = raw .. "_" .. count
+-					else
+-						node.alias = raw
+-					end
+-					-- 清理临时字段
+-					node.raw_alias = nil
+-					-- 存入 nodeResult
+-					node.grouphashkey = groupHash
+-					table.insert(nodeResult[index], node)
+-					cache[groupHash][node.hashkey] = node
+-				end
+-
+-				log('成功解析节点数量: ' .. #groupRawNodes)
+-			end
+-		else
+-			log(url .. ': 获取内容为空')
+-		end
+-	end
+-	-- 输出日志并判断是否需要进行 diff
+-	if not updated then
+-		log("订阅未变化，无需更新节点信息。")
+-		log('保留手动添加的节点。')
+-		return
+-	end
+-
+-	-- diff 阶段
+-	if next(nodeResult) == nil then
+-		log("更新失败，没有可用的节点信息")
+-		if proxy == '0' then
+-			luci.sys.init.start(name)
+-			log('订阅失败, 恢复服务')
+-		end
+-		return
++				log("订阅未变化: " .. url)
++			else
++				parse_group(raw, groupHash)
++				pending_md5[groupHash] = new_md5
++			end
++		end)
++		if not ok then
++			failed = true
++			loadOldNodes(groupHash)
++			log("保留失败订阅的原有节点: " .. url .. ": " .. tostring(err))
++		end
++	end
++	if next(pending_md5) == nil then
++		return not failed
++	end
++	local before, after = {}, {}
++	local function remember(sid)
++		if before[sid] == nil then before[sid] = read_section(ucic, sid) end
+ 	end
+ 	local add, del = 0, 0
+ 	ucic:foreach(name, uciType, function(old)
+-		if old.grouphashkey or old.hashkey then -- 没有 hash 的不参与删除
++		if old.grouphashkey and old.hashkey and pending_md5[old.grouphashkey] then
+ 			if not nodeResult[old.grouphashkey] or not nodeResult[old.grouphashkey][old.hashkey] then
+-				ucic:delete(name, old['.name'])
++				remember(old['.name'])
++				checked(ucic:delete(name, old['.name']), '删除节点失败')
+ 				del = del + 1
+ 			else
+ 				local dat = nodeResult[old.grouphashkey][old.hashkey]
+-				ucic:tset(name, old['.name'], dat)
++				remember(old['.name'])
++				checked(ucic:tset(name, old['.name'], dat), '更新节点失败')
+ 				-- 标记一下
+ 				setmetatable(nodeResult[old.grouphashkey][old.hashkey], {__index = {_ignore = true}})
+ 			end
+ 		else
+-			if not old.alias then
+-				if old.server or old.server_port then
+-					old.alias = old.server .. ':' .. old.server_port
+-					log('忽略手动添加的节点: ' .. old.alias)
+-				else
+-					ucic:delete(name, old['.name'])
+-				end
+-			else
+-				log('忽略手动添加的节点: ' .. old.alias)
+-			end
++			log('保留手动节点或未成功更新的订阅节点: ' .. old['.name'])
+ 		end
+ 	end)
+ 	-- 1615-1653 行为生成 sid
+@@ -1743,32 +1920,34 @@
+ 	for _, v in ipairs(nodeResult) do
+ 		for _, vv in ipairs(v) do
+ 			if not vv._ignore then
+-				local sid = ucic:add(name, uciType)
++				local sid = checked(ucic:add(name, uciType), '创建节点失败')
+ 				if sid then
+ 					local suffix = sid:sub(-4)
+-					ucic:delete(name, sid)
++					checked(ucic:delete(name, sid), '替换节点编号失败')
+ 					local id = get_next_sid()
+ 					local cfgid = string.format("cfg%02x%s", id, suffix)
+-					local section = ucic:section(name, uciType, cfgid)
++					checked(not ucic:get(name, cfgid), '新节点编号冲突')
++					remember(cfgid)
++					local section = checked(ucic:section(name, uciType, cfgid), '创建节点编号失败')
+ 					if section then
+-						ucic:tset(name, section, vv)
+-						ucic:set(name, section, "switch_enable", switch)
++						checked(ucic:tset(name, section, vv), '保存节点失败')
++						checked(ucic:set(name, section, "switch_enable", switch), '保存节点选项失败')
+ 						-- 为 Xray 节点添加域名解析配置
+ 						if vv.type == "v2ray" then
+ 							if domain_resolver and domain_resolver ~= "" then
+-								ucic:set(name, section, "domain_resolver", domain_resolver)
++								checked(ucic:set(name, section, "domain_resolver", domain_resolver), '保存节点选项失败')
+ 								if domain_resolver == "https" then
+ 									if domain_resolver_dns_https and domain_resolver_dns_https ~= "" then
+-										ucic:set(name, section, "domain_resolver_dns_https", domain_resolver_dns_https)
++										checked(ucic:set(name, section, "domain_resolver_dns_https", domain_resolver_dns_https), '保存节点选项失败')
+ 									end
+ 								else
+ 									if domain_resolver_dns and domain_resolver_dns ~= "" then
+-										ucic:set(name, section, "domain_resolver_dns", domain_resolver_dns)
++										checked(ucic:set(name, section, "domain_resolver_dns", domain_resolver_dns), '保存节点选项失败')
+ 									end
+ 								end
+ 							end
+ 							if domain_strategy and domain_strategy ~= "" then
+-								ucic:set(name, section, "domain_strategy", domain_strategy)
++								checked(ucic:set(name, section, "domain_strategy", domain_strategy), '保存节点选项失败')
+ 							end
+ 						end
+ 						add = add + 1
+@@ -1777,44 +1956,41 @@
+ 			end
+ 		end
+ 	end
+-	ucic:commit(name)
+-	-- 如果原有服务器节点已经不见了就尝试换为第一个节点
+-	local globalServer = ucic:get_first(name, 'global', 'global_server', '')
+-	if globalServer ~= "nil" then
+-		local firstServer = ucic:get_first(name, uciType)
+-		if firstServer then
+-			if not ucic:get(name, globalServer) then
+-				luci.sys.call("/etc/init.d/" .. name .. " stop > /dev/null 2>&1 &")
+-				ucic:commit(name)
+-				ucic:set(name, ucic:get_first(name, 'global'), 'global_server', firstServer)
+-				ucic:commit(name)
+-				log('当前主服务器节点已被删除，正在自动更换为第一个节点。')
+-				luci.sys.call("/etc/init.d/" .. name .. " start > /dev/null 2>&1 &")
+-			else
+-				log('维持当前主服务器节点。')
+-				luci.sys.call("/etc/init.d/" .. name .. " restart > /dev/null 2>&1 &")
+-			end
+-		else
+-			log('没有服务器节点了，停止服务')
+-			luci.sys.call("/etc/init.d/" .. name .. " stop > /dev/null 2>&1 &")
+-		end
++	-- Commit the new selection with its nodes before any service operation.
++	local global_section = ucic:get_first(name, 'global')
++	local old_global = ucic:get(name, global_section, 'global_server')
++	local globalServer = old_global or ''
++	local firstServer = ucic:get_first(name, uciType)
++	if globalServer ~= "nil" and not ucic:get(name, globalServer) then
++		checked(firstServer, '没有可用服务器节点')
++		checked(ucic:set(name, global_section, 'global_server', firstServer), '保存主服务器失败')
++	end
++	local new_global = ucic:get(name, global_section, 'global_server')
++	for sid in pairs(before) do after[sid] = read_section(ucic, sid) end
++	checked(not shared_uci_changes(), 'shared UCI changes appeared before subscription commit')
++	checked(ucic:commit(name), '提交订阅配置失败')
++	if globalServer ~= "nil" and not restart_service() then
++		log('subscription restart failed; restoring the previous subscription configuration')
++		rollback_subscription(before, after, global_section, old_global, new_global)
++		return false
++	end
++	-- A failed download, parse, UCI write, commit or restart never advances MD5.
++	for groupHash, new_md5 in pairs(pending_md5) do
++		checked(write_new_md5(groupHash, new_md5), '保存订阅 MD5 失败')
+ 	end
+ 	log('新增节点数量: ' .. add .. ', 删除节点数量: ' .. del)
+ 	log('订阅更新成功')
++	return not failed
+ end
+ 
+ if subscribe_url and #subscribe_url > 0 then
+-	xpcall(execute, function(e)
+-		log(e)
++	local ok, result = xpcall(execute, function(e)
++		log(tostring(e))
+ 		log(debug.traceback())
+-		log('发生错误, 正在恢复服务')
+-		local firstServer = ucic:get_first(name, uciType)
+-		if firstServer then
+-			luci.sys.call("/etc/init.d/" .. name .. " restart > /dev/null 2>&1 &") -- 不加&的话日志会出现的更早
+-			log('重启服务成功')
+-		else
+-			luci.sys.call("/etc/init.d/" .. name .. " stop > /dev/null 2>&1 &") -- 不加&的话日志会出现的更早
+-			log('停止服务成功')
+-		end
+ 	end)
+-end
++	if not ok then
++		ucic:unload(name)
++	end
++	finish_subscription(ok and result ~= false and 0 or 1)
++end
++finish_subscription(0)

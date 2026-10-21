@@ -51,3 +51,22 @@ for upstream in Openwrt-Passwall/openwrt-passwall2 fw876/helloworld sirpdboy/luc
 done
 grep -Fq "src-link custom_feed $BUILD_DIR/custom_feed" "$BUILD_DIR/$FEEDS_CONF"
 echo "custom feed selected plugins: PASS"
+
+# Exercise the real sparse import locally: the package loses its Git directory,
+# so its exact source commit must survive in the receipt for the repair manifest.
+source "$repo_root/wrt_core/modules/custom_feed.sh"
+source_repo="$test_root/local-upstream"
+receipt_target="$test_root/imported"
+mkdir -p "$source_repo/luci-app-ssr-plus" "$receipt_target"
+git -C "$source_repo" init -q
+git -C "$source_repo" config user.name 'SSR regression'
+git -C "$source_repo" config user.email 'ssr-regression@example.invalid'
+printf 'PKG_NAME:=luci-app-ssr-plus\n' > "$source_repo/luci-app-ssr-plus/Makefile"
+git -C "$source_repo" add .
+git -C "$source_repo" -c commit.gpgsign=false commit -qm 'Local import fixture'
+expected_revision=$(git -C "$source_repo" rev-parse HEAD)
+git_retry() { git "$@"; }
+sync_sparse_packages_to_feed_dir "$source_repo" '' "$receipt_target" 'local regression' luci-app-ssr-plus
+[[ "$(cat "$receipt_target/luci-app-ssr-plus/.ssrplus-upstream-commit")" == "$expected_revision" ]]
+[[ ! -e "$receipt_target/luci-app-ssr-plus/.git" ]]
+echo "custom feed source commit receipt: PASS"

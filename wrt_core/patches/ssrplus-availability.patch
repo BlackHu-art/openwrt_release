@@ -1,0 +1,230 @@
+diff --git a/root/etc/init.d/shadowsocksr b/root/etc/init.d/shadowsocksr
+--- a/root/etc/init.d/shadowsocksr
++++ b/root/etc/init.d/shadowsocksr
+@@ -18,5 +18,5 @@
+ TMP_PATH=/var/etc/ssrplus
+ TMP_BIN_PATH=$TMP_PATH/bin
+-PERSIST_DIR="/usr/share/nftables.d/ruleset-post"
++PERSIST_DIR="/etc/ssrplus/nftables"
+ PERSIST_FILE="$PERSIST_DIR/99-shadowsocksr.nft"
+ BACKUP_DIR="/etc/ssrplus/ssrplus-persist"
+@@ -89,10 +89,10 @@
+ 
+ uci_set_by_name() {
+-	uci set $NAME.$1.$2=$3 2>/dev/null
++	uci set "$NAME.$1.$2=$3" 2>/dev/null || return $?
+ 	uci commit $NAME
+ }
+ 
+ uci_set_by_type() {
+-	uci set $NAME.@$1[0].$2=$3 2>/dev/null
++	uci set "$NAME.@$1[0].$2=$3" 2>/dev/null || return $?
+ 	uci commit $NAME
+ }
+@@ -104,22 +104,35 @@
+ 
+ get_host_ip() {
+-	local host=$(uci_get_by_name $1 server)
+-	local ip=$host
+-	if [ -z "$(echo $host | grep -E "([0-9]{1,3}[\.]){3}[0-9]{1,3}")" ]; then
+-		if [ "$host" == "${host#*:[0-9a-fA-F]}" ]; then
+-			ip=$(resolveip -4 -t 3 $host | awk 'NR==1{print}')
+-			[ -z "$ip" ] && ip=$(curl -sSL "http://119.29.29.29/d?dn=$host" | awk -F ';' '{print $1}')
+-		fi
+-	fi
+-	[ -z "$ip" ] || uci_set_by_name $1 ip $ip
+-	[ -n "$ip" ] || ip="$(uci_get_by_name $1 ip "ERROR")"
+-
+-	local chinadns="$(uci_get_by_type global chinadns_forward)"
+-	if [ -n "$chinadns" ] && [ "$ip" != "$host" ]; then
+-		grep -q "$host" "$TMP_DNSMASQ_PATH/chinadns_fixed_server.conf" 2>"/dev/null" || \
+-			echo -e "address=/$host/$ip" >> "$TMP_DNSMASQ_PATH/chinadns_fixed_server.conf"
+-	fi
+-
+-	echo $ip
++    local host ip cached candidate
++    host=$(uci_get_by_name "$1" server)
++    cached=$(uci_get_by_name "$1" ip "")
++    if ssrp_valid_ip "$host"; then
++        ip=$host
++    else
++        case "$host" in ''|*[!a-zA-Z0-9._-]*) return 1 ;; esac
++        candidate=$(resolveip -4 -t 3 "$host" 2>/dev/null | awk 'NR==1{print; exit}')
++        if ! ssrp_valid_ip "$candidate"; then
++            candidate=$(curl -fsSL --connect-timeout 3 --max-time 6 --max-filesize 4096 --get \
++                --data-urlencode "dn=$host" "http://119.29.29.29/d" 2>/dev/null) || candidate=
++            candidate=$(printf '%s\n' "$candidate" | awk -F ';' 'NR==1{print $1; exit}')
++        fi
++        if ssrp_valid_ip "$candidate"; then
++            ip=$candidate
++        elif ssrp_valid_ip "$cached"; then
++            ip=$cached
++        else
++            printf 'SSR: unable to resolve node %s within deadlines, no valid cached IP\n' "$1" >&2
++            return 1
++        fi
++    fi
++    if [ "${SSRP_PREPARE_ONLY:-0}" != 1 ] && [ "$ip" != "$cached" ]; then
++        uci_set_by_name "$1" ip "$ip" || return 1
++    fi
++    local chinadns="$(uci_get_by_type global chinadns_forward)"
++    if [ -n "$chinadns" ] && [ "$ip" != "$host" ]; then
++        grep -qF "address=/$host/" "$TMP_DNSMASQ_PATH/chinadns_fixed_server.conf" 2>/dev/null ||
++            printf 'address=/%s/%s\n' "$host" "$ip" >> "$TMP_DNSMASQ_PATH/chinadns_fixed_server.conf" || return 1
++    fi
++    printf '%s\n' "$ip"
+ }
+ 
+@@ -159,4 +172,8 @@
+ 
+ ln_start_bin() {
++	if [ "${SSRP_PREPARE_ONLY:-0}" = 1 ]; then
++		[ -x "$1" ] || _exit 1
++		return 0
++	fi
+ 	local file_func=${1}
+ 	local ln_name=${2}
+@@ -239,4 +256,5 @@
+ 
+ add_dns_into_ipset() {
++	[ "${SSRP_PREPARE_ONLY:-0}" != 1 ] || return 0
+ 	case "$1" in
+ 	gfw) ipset add gfwlist ${2%:*} 2>/dev/null ;;
+@@ -583,4 +601,10 @@
+ 		;;
+ 	esac
++	if [ "${SSRP_PREPARE_ONLY:-0}" = 1 ]; then
++		case "$2" in socks5|tun)
++			printf '%s\n' "$config_file" >> "$TMP_PATH/.non-json-configs" || _exit 1
++			;;
++		esac
++	fi
+ 	sed -i 's/\\//g' $TMP_PATH/*-ssr-*.json #>/dev/null > 2>&1
+ }
+@@ -1090,5 +1114,5 @@
+ 		local kcp_param=$(uci_get_by_name $GLOBAL_SERVER kcp_param)
+ 		[ "$password" != "" ] && password="--key "$password
+-		service_start /usr/bin/kcptun-client -r $kcp_server:$kcp_port -l :$server_port $password $kcp_param 9>&-
++		ssrp_service_start /usr/bin/kcptun-client -r $kcp_server:$kcp_port -l :$server_port $password $kcp_param 9>&-
+ 		kcp_enable_flag=1
+ 		ARG_UDP=""
+@@ -1450,5 +1474,5 @@
+ 			local switch_time=$(uci_get_by_type global switch_time)s
+ 			local switch_timeout=$(uci_get_by_type global switch_timeout)
+-			service_start /usr/bin/ssr-switch start $switch_time $switch_timeout 9>&-
++			ssrp_service_start /usr/bin/ssr-switch start $switch_time $switch_timeout 9>&-
+ 		fi
+ 	fi
+@@ -1459,5 +1483,5 @@
+ 		let total_count=server_count+redir_tcp+redir_udp+kcp_enable_flag+local_enable+pdnsd_enable_flag
+ 		if [ $total_count -gt 0 ]; then
+-			service_start /usr/bin/ssr-monitor $server_count $redir_tcp $redir_udp $kcp_enable_flag $local_enable $pdnsd_enable_flag 9>&-
++			ssrp_service_start /usr/bin/ssr-monitor $server_count $redir_tcp $redir_udp $kcp_enable_flag $local_enable $pdnsd_enable_flag 9>&-
+ 		fi
+ 	fi
+@@ -1503,14 +1527,17 @@
+ 
+ start_rules() {
+-	local server=$(get_host_ip $GLOBAL_SERVER)
++	local server
++	server=$(get_host_ip "$GLOBAL_SERVER") || return 1
+ 	local local_port=$(uci_get_by_name $GLOBAL_SERVER local_port)
+ 	local lan_ac_ips=$(uci_get_by_type access_control lan_ac_ips)
+ 	local lan_ac_mode=$(uci_get_by_type access_control lan_ac_mode)
+ 	if [ "$kcp_enable_flag" == "0" -a "$redir_udp" == "1" ]; then
+-		local udp_server=$(get_host_ip $UDP_RELAY_SERVER)
++		local udp_server
++	udp_server=$(get_host_ip "$UDP_RELAY_SERVER") || return 1
+ 		local udp_local_port=$tmp_udp_port
+ 	fi
+ 	if [ "$shunt" != "0" ]; then
+-		local shunt_ip=$(get_host_ip $SHUNT_SERVER)
++		local shunt_ip
++	shunt_ip=$(get_host_ip "$SHUNT_SERVER") || return 1
+ 	fi
+ 	if [ -n "$lan_ac_ips" ]; then
+@@ -1546,10 +1573,5 @@
+ 	if [ "$USE_TABLES" = "nftables" ]; then
+ 		ARG_A="-A"
+-		# Restore nft persistence rules
+-		if [ -f "$BACKUP_FILE" ]; then
+-			mkdir -p "$PERSIST_DIR"
+-			mv "$BACKUP_FILE" "$PERSIST_FILE"
+-			rm -rf "$BACKUP_DIR"
+-		fi
++		# ssr-rules owns private snapshot migration under its own lock.
+ 	elif [ "$USE_TABLES" = "iptables" ]; then
+ 		ARG_A=""
+@@ -1659,18 +1681,15 @@
+ 	if [ "$USE_TABLES" = "nftables" ]; then
+ 		# Save nft rules before stopping to persist transparent proxy state
+-		if [ -f "$PERSIST_FILE" ]; then
+-			mkdir -p "$BACKUP_DIR"
+-			mv "$PERSIST_FILE" "$BACKUP_FILE"
+-		fi
+-		/usr/bin/ssr-rules -K
++		# Keep private snapshots in place; -K serializes with exports.
++		/usr/bin/ssr-rules -K || return 1
+ 		local OLD_SERVER="$(uci_get_by_type global old_global_server nil)"
+ 		local NEW_SERVER="$(uci_get_by_type global global_server nil)"
+ 		if [ "$OLD_SERVER" != "nil" ] && [ "$NEW_SERVER" != "nil" ] && [ "$OLD_SERVER" != "$NEW_SERVER" ]; then
+-			/usr/bin/ssr-rules -X
++			/usr/bin/ssr-rules -X || return 1
+ 		fi
+ 		uci delete shadowsocksr.@global[0].old_global_server 2>/dev/null
+ 		uci commit shadowsocksr
+ 	fi
+-	/usr/bin/ssr-rules -f
++	/usr/bin/ssr-rules -f || return 1
+ 	local srulecount=0
+ 	if [ "$USE_TABLES" = "nftables" ]; then
+@@ -1713,5 +1732,4 @@
+ 	fi
+ 	$PS -w | grep -v "grep" | grep ssr-monitor | awk '{print $1}' | xargs kill -9 >/dev/null 2>&1
+-	$PS -w | grep -v "grep" | grep ssr-rules | awk '{print $1}' | xargs kill -9 >/dev/null 2>&1
+ 	$PS -w | grep -v "grep" | grep "sleep 0000" | awk '{print $1}' | xargs kill -9 >/dev/null 2>&1
+ 	( \
+@@ -1753,4 +1771,43 @@
+ }
+ 
++# Private preflight does not spawn cores, mutate firewall state, or publish DNS.
++# JSON syntax and dnsmasq validation catch generation errors before stopping.
++ssrp_preflight() (
++    SSRP_PREPARE_ONLY=1
++    ssrp_dns_begin || exit 1
++    trap 'ssrp_dns_abort' EXIT
++    TMP_PATH="$SSRP_DNS_STAGE/ssrplus"
++    TMP_BIN_PATH="$TMP_PATH/bin"
++    mkdir -p "$TMP_PATH" "$TMP_BIN_PATH" || exit 1
++    check_run_environment
++    if load_config; then
++        local node configuration
++        for node in "$GLOBAL_SERVER" "$UDP_RELAY_SERVER" "$SHUNT_SERVER" "$LOCAL_SERVER"; do
++            case "$node" in ''|nil|same) continue ;; esac
++            get_host_ip "$node" >/dev/null || exit 1
++        done
++        Start_Run || exit 1
++        SSRP_DNS_STAGE="$TMP_DNSMASQ_PATH" /usr/share/shadowsocksr/gfw2ipset.sh || exit 1
++        start_dns || exit 1
++    else
++        case "$LOCAL_SERVER" in
++            ''|nil|same) ;;
++            *) get_host_ip "$LOCAL_SERVER" >/dev/null || exit 1 ;;
++        esac
++        sed -e '/^$/d' -e '/#/d' -e 's|.*|address=/&/|' /etc/ssrplus/deny.list > "$TMP_DNSMASQ_PATH/denylist.conf" || exit 1
++        if [ "$(uci_get_by_type global adblock 0)" = 1 ]; then
++            cp /etc/ssrplus/ad.conf "$TMP_DNSMASQ_PATH/ad.conf" || exit 1
++        fi
++    fi
++    for configuration in "$TMP_PATH"/*.json; do
++        [ -f "$configuration" ] || continue
++        if [ -f "$TMP_PATH/.non-json-configs" ] && grep -qxF "$configuration" "$TMP_PATH/.non-json-configs"; then
++            continue
++        fi
++        jq -e . "$configuration" >/dev/null || exit 1
++    done
++    ssrp_dns_validate
++)
++
+ . "${IPKG_INSTROOT:-}/usr/share/shadowsocksr/ssrp-runtime.sh"
+ 

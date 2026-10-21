@@ -1,0 +1,63 @@
+name: Test SSR Plus compatibility
+
+on:
+  pull_request:
+    paths:
+      - '.gitattributes'
+      - 'build.sh'
+      - '.github/workflows/test_ssrplus.yml'
+      - '.github/workflows/build_wrt.yml'
+      - '.github/workflows/release_wrt.yml'
+      - '.github/workflows/release_wrt_all.yml'
+      - 'wrt_core/compat/ssrplus/**'
+      - 'wrt_core/ssrplus_verify.py'
+      - 'wrt_core/update.sh'
+      - 'wrt_core/modules/**'
+      - 'wrt_core/patches/ssrplus-*.patch'
+      - 'wrt_core/patches/.gitattributes'
+      - 'tests/**'
+  push:
+    paths:
+      - '.gitattributes'
+      - 'build.sh'
+      - '.github/workflows/test_ssrplus.yml'
+      - '.github/workflows/build_wrt.yml'
+      - '.github/workflows/release_wrt.yml'
+      - '.github/workflows/release_wrt_all.yml'
+      - 'wrt_core/compat/ssrplus/**'
+      - 'wrt_core/ssrplus_verify.py'
+      - 'wrt_core/update.sh'
+      - 'wrt_core/modules/**'
+      - 'wrt_core/patches/ssrplus-*.patch'
+      - 'wrt_core/patches/.gitattributes'
+      - 'tests/**'
+  workflow_dispatch:
+  workflow_call:
+
+permissions:
+  contents: read
+
+jobs:
+  regression:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7.0.0
+      - name: Install Linux validation dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y dnsmasq-base nftables python3-venv util-linux lua5.1 busybox iproute2 jq
+      - name: Install pinned Python validation dependencies
+        run: |
+          python3 -m venv "$RUNNER_TEMP/ssrplus-venv"
+          "$RUNNER_TEMP/ssrplus-venv/bin/python" -m pip install -r tests/requirements.txt
+          echo "$RUNNER_TEMP/ssrplus-venv/bin" >> "$GITHUB_PATH"
+          "$RUNNER_TEMP/ssrplus-venv/bin/python" - <<'PY'
+          from lupa.lua51 import LuaRuntime
+          assert LuaRuntime().eval('_VERSION') == 'Lua 5.1'
+          PY
+      - name: Run project regression tests
+        run: |
+          bash tests/run_all.sh
+      - name: Validate generated DNS and nft configuration in an isolated namespace
+        run: sudo unshare -n bash tests/test_ssrplus_linux.sh

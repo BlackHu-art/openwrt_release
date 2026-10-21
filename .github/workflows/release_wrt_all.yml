@@ -17,6 +17,7 @@ permissions:
   contents: write
 
 jobs:
+  # Every matrix entry calls release_wrt.yml, whose build requires ssrplus-gate.
   release:
     strategy:
       fail-fast: false

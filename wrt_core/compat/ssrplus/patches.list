@@ -1,0 +1,9 @@
+ssrplus-startup-lock.patch
+ssrplus-dns-transaction.patch
+ssrplus-updater-validation.patch
+ssrplus-persistence.patch
+ssrplus-availability.patch
+ssrplus-subscription.patch
+ssrplus-monitor-scheduler.patch
+ssrplus-persistence-lifecycle.patch
+ssrplus-package.patch

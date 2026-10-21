@@ -7,3 +7,4 @@ adguardhome-update-safety.patch text eol=lf whitespace=-blank-at-eol,-space-befo
 homeproxy-routing-cleanup.patch text eol=lf whitespace=-blank-at-eol,-space-before-tab
 openclash-checksum-filename.patch text eol=lf whitespace=-blank-at-eol,-space-before-tab
 openclash-wan-subnets.patch text eol=lf whitespace=-blank-at-eol,-space-before-tab
+ssrplus-*.patch text eol=lf whitespace=-blank-at-eol,-blank-at-eof,-space-before-tab
