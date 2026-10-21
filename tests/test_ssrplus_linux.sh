@@ -83,8 +83,20 @@ processes = []
 nft_bin = os.environ["SSRP_NFT_BIN"]
 
 def nft(*args):
-    return subprocess.run([nft_bin, *args], text=True, capture_output=True,
-                          check=True).stdout
+    try:
+        return subprocess.run([nft_bin, *args], text=True, capture_output=True,
+                              check=True).stdout
+    except subprocess.CalledProcessError as error:
+        source = ""
+        if "-f" in args:
+            filename = Path(args[args.index("-f") + 1])
+            try:
+                source = f"\nSource ({filename}):\n{filename.read_text()}"
+            except OSError as source_error:
+                source = f"\nSource ({filename}) unavailable: {source_error}"
+        raise RuntimeError(
+            f"nft {' '.join(args)} exited {error.returncode}\n"
+            f"stderr:\n{error.stderr}\nstdout:\n{error.stdout}{source}") from error
 
 def cli(*args, env=None, background=False):
     runtime_env = case.env.copy()
@@ -124,7 +136,9 @@ nft() {
     # A basic fw4-style NAT table must survive every SSR operation byte-for-byte.
     seed = case.base / "kernel-seed.nft"
     seed.write_text('''table inet fw4 {
-    chain srcnat { type nat hook postrouting priority srcnat; policy accept; }
+    chain srcnat {
+        type nat hook postrouting priority srcnat; policy accept;
+    }
 }
 ''' + module.INET + module.MANGLE, encoding="utf-8", newline="\n")
     nft("-f", str(seed))

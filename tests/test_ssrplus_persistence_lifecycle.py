@@ -19,13 +19,27 @@ FIXTURE = ROOT / "tests/fixtures/ssrplus-persistence/2abdc9aa/ssr-rules"
 PATCHES = [ROOT / "wrt_core/patches" / name for name in (
     "ssrplus-persistence.patch", "ssrplus-persistence-lifecycle.patch")]
 INET = """table inet ss_spec {
-    set whitelist { type ipv4_addr; flags interval; elements = { 192.0.2.1 } }
-    chain ss_spec_wan_ac { meta l4proto tcp jump ss_spec_wan_fw }
-    chain ss_spec_wan_fw { tcp dport 443 redirect to :1234 }
+    set whitelist {
+        type ipv4_addr
+        flags interval
+        elements = { 192.0.2.1 }
+    }
+    chain ss_spec_wan_fw {
+        tcp dport 443 redirect to :1234
+    }
+    chain ss_spec_wan_ac {
+        meta l4proto tcp jump ss_spec_wan_fw
+    }
+    chain prerouting {
+        type nat hook prerouting priority dstnat; policy accept;
+        meta l4proto tcp jump ss_spec_wan_ac
+    }
 }
 """
 MANGLE = """table ip ss_spec_mangle {
-    chain prerouting { type filter hook prerouting priority mangle; policy accept; }
+    chain prerouting {
+        type filter hook prerouting priority mangle; policy accept;
+    }
 }
 """
 
