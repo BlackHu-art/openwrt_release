@@ -28,7 +28,7 @@ semantics require the separate runtime harness.
 
 All eight subsets of the three legacy startup/DNS/persistence patches and the
 complete dependent repair set must converge to the same package, versioned
-`190-r4`. The build gate reverses complete patches only in
+`190-r5`. The build gate reverses complete patches only in
 an isolated copy, then compares the original Git blobs before writing any feed
 source. Unknown changes outside patch context, incomplete patches, a missing
 runtime source, and a changed installed runtime helper are rejected. Tests also
@@ -37,7 +37,7 @@ The installed `root/usr/share/shadowsocksr/ssrp-runtime.sh` must be byte-identic
 to `wrt_core/compat/ssrplus/runtime.sh`.
 
 The full nine-file baseline is recorded in
-`wrt_core/compat/ssrplus/source-files.tsv`; the ordered nine-patch repair set is
+`wrt_core/compat/ssrplus/source-files.tsv`; the ordered twelve-patch repair set is
 `wrt_core/compat/ssrplus/patches.list`. Additional unchanged fixtures cover
 `subscribe.lua`, `ssr-monitor`, `ssr-switch`, and `ssrplusupdate.sh`; the reviewed
 `ssr-rules` fixture is in the adjacent `ssrplus-persistence/` directory.

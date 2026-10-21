@@ -1,0 +1,77 @@
+Backport: fw876/helloworld b791299f2859c0bbd9ebea48af17dea8a30fdae9
+Source: https://github.com/fw876/helloworld/commit/b791299f2859c0bbd9ebea48af17dea8a30fdae9
+Rebased onto master 2abdc9aa after the ordered SSR lifecycle repair set.
+Keep preparation read-only, skip unsupported IPv6/invalid literal addresses, and
+refresh only the existing private SSR snapshot after live resolver insertion.
+
+diff --git a/root/etc/init.d/shadowsocksr b/root/etc/init.d/shadowsocksr
+--- a/root/etc/init.d/shadowsocksr
++++ b/root/etc/init.d/shadowsocksr
+@@ -256,11 +256,27 @@
+ 
+ add_dns_into_ipset() {
+ 	[ "${SSRP_PREPARE_ONLY:-0}" != 1 ] || return 0
++	if [ "$USE_TABLES" = "nftables" ]; then
++		# GFW needs the resolver before DNS can populate its destination set.
++		# This master baseline has only IPv4 sets/rules; never truncate IPv6.
++		[ "$1" = "gfw" ] || return 0
++		local resolver="${2##*/}"
++		resolver="${resolver%:*}"
++		case "$resolver" in *:*) return 0 ;; esac
++		ssrp_valid_ip "$resolver" || return 0
++		# DNS preflight and startup before rule activation must stay read-only.
++		nft list set inet ss_spec gfwlist 2>/dev/null | grep -q 'type ipv4_addr' || return 0
++		nft add element inet ss_spec gfwlist "{ $resolver }" 2>/dev/null
++		return $?
++	fi
++	[ "$USE_TABLES" = "iptables" ] && [ "$HAS_IPSET" -eq 1 ] || return 0
+ 	case "$1" in
+ 	gfw) ipset add gfwlist ${2%:*} 2>/dev/null ;;
+ 	oversea) ipset add oversea ${2%:*} 2>/dev/null ;;
+ 	*) ipset add ss_spec_wan_ac ${2%:*} nomatch 2>/dev/null ;;
+ 	esac
++	# Existing ipset members were historically non-fatal during DNS startup.
++	return 0
+ }
+ 
+ start_dns() {
+@@ -276,10 +292,8 @@
+ 	local run_mode="$(uci_get_by_type global run_mode)"
+ 
+ 	if [ "$ssrplus_dns" != "0" ]; then
+-		if [ "$HAS_IPSET" -eq 1 ]; then
+-			if [ -n "$dnsserver" ]; then
+-				add_dns_into_ipset $run_mode $dnsserver
+-			fi
++		if [ -n "$dnsserver" ]; then
++			add_dns_into_ipset "$run_mode" "$dnsserver" || return 1
+ 		fi
+ 		case "$ssrplus_dns" in
+ 		1)
+@@ -303,12 +317,10 @@
+ 			output=$(for i in $(echo $mosdns_dnsserver | sed "s/,/ /g"); do
+ 				dnsserver=${i%:*}
+ 				dnsserver=${i##*/}
+-				if [ "$HAS_IPSET" -eq 1 ]; then
+-					add_dns_into_ipset $run_mode $dnsserver
+-				fi
++				add_dns_into_ipset "$run_mode" "$dnsserver" || exit 1
+ 				echo "            - addr: $i"
+ 				echo "              enable_pipeline: true"
+-			done)
++			done) || return 1
+ 
+ 			awk -v line=14 -v text="$output" 'NR == line+1 {print text} 1' /etc/ssrplus/mosdns-config.yaml | sed "s/DNS_PORT/$dns_port/g" | sed "s/\(concurrent:\).*/\1 $(echo "$mosdns_dnsserver" | sed 's/,/ /g' | wc -w)/g"> $TMP_PATH/mosdns-config.yaml
+ 			if [ "$mosdns_ipv6" == "0" ]; then
+@@ -1611,6 +1623,11 @@
+ 		start_xhttp_addr
+ 		start_rules || return 1
+ 		start_dns || return 1
++		if [ "$USE_TABLES" = "nftables" ] && [ "$(uci_get_by_type global run_mode)" = "gfw" ]; then
++			# The initial snapshot predates resolver insertion. Refresh only SSR's
++			# private snapshot under the existing persistence lock before publish.
++			/usr/bin/ssr-rules -P || return 1
++		fi
+ 		# Restore ipsets after rules creation
+ 		if [ "$HAS_IPSET" -eq 1 ]; then
+ 			for setname in gfwlist china blacklist whitelist netflix; do

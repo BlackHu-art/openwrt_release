@@ -40,6 +40,7 @@ test_adguard() {
     local package="$test_root/adguard"
     mkdir -p "$package/root/usr/share/AdGuardHome" "$package/luasrc/controller"
     cp "$fixtures/adguard-updater.sh" "$package/root/usr/share/AdGuardHome/update_core.sh"
+    cp "$fixtures/adguard-links.txt" "$package/root/usr/share/AdGuardHome/links.txt"
     cp "$fixtures/AdGuardHome.lua" "$package/luasrc/controller/AdGuardHome.lua"
     git init -q "$package"
     git -C "$package" config core.autocrlf false
@@ -48,7 +49,7 @@ test_adguard() {
     fi
     local updater="$package/root/usr/share/AdGuardHome/update_core.sh"
     # Only evaluate functions: no UCI commands, downloads or service restarts.
-    eval "$(sed -n '/^version_is_newer()/,/^}/p; /^check_latest_version()/,/^}/p' "$updater")"
+    eval "$(sed -n '/^core_version()/,/^}/p; /^version_is_newer()/,/^}/p; /^check_latest_version()/,/^}/p' "$updater")"
     check_wgetcurl() { downloader=fake_download; }
     fake_download() { printf '{"tag_name":"%s"}\n' "$REMOTE_VERSION"; }
     fake_binary() { printf 'AdGuard Home version %s\n' "$LOCAL_VERSION"; }
@@ -69,6 +70,8 @@ test_adguard() {
         [[ $updated == "$expected" ]] || fail "update decision $current -> $remote ($mode): $updated"
     }
     version_case v1.0.0-b.1 v0.107.79 '' no
+    version_case v1.0.0-b.1 v1.0.0 '' yes
+    version_case v1.1.0-b.1+build v1.0.0 '' no
     version_case v0.107.80 v0.107.79 '' no
     version_case v0.107.79 v0.107.79 '' no
     version_case v0.107.9 v0.107.79 '' yes
@@ -76,6 +79,7 @@ test_adguard() {
     version_case '' v0.107.79 '' yes
     version_case v1.0.0 v0.107.79 force yes
     version_case v0.107.79 '' '' no 1
+    version_case v0.107.79 v1.0.0-b.1 '' no 1
     if [[ ${PLUGIN_FIX_MODE:-fixed} != original ]]; then
         verify_patch_contract "$package" fix_adguardhome_compat "$updater"
     fi

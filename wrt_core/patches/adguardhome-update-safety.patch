@@ -1,16 +1,28 @@
-Subject: AdGuard Home: avoid automatic downgrades and tolerate absent update logs
+Subject: AdGuard Home: validate stable downloads and prevent automatic downgrades
 
 Adapt the numeric ordering fix from kenzok78 b86a36ec2fc89adf3fa9dd015dd769b4d8f7d129
 and the missing-log guard from 6aad9ba81aed80adf492c06e92aa1c74f18a45f1
 to the ZqinKing 3610820 fork, preserving its nftables redirect implementation.
+Pin stable defaults to the checked release tag, preserve existing links conffiles,
+and validate every candidate's CLI version before stopping the installed core.
 
 --- a/root/usr/share/AdGuardHome/update_core.sh
 +++ b/root/usr/share/AdGuardHome/update_core.sh
-@@ -23,6 +23,18 @@
+@@ -23,19 +23,41 @@
  	echo error curl and wget && EXIT 1
  }
  
-+# Compare numeric release components without adding a coreutils-sort dependency.
++# Read the CLI version without parsing config-check diagnostics.
++core_version(){
++	local output
++	output=$("$1" --version 2>/dev/null) || return 1
++	printf '%s\n' "$output" | awk '
++		$1 == "AdGuard" && ($2 == "Home," || $2 == "Home") && $3 == "version" {
++			print $4; exit
++		}' | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?(\+[0-9A-Za-z.-]+)?$'
++}
++
++# The target is stable; equal numeric components supersede a prerelease only.
 +version_is_newer(){
 +	awk -v latest="${1#v}" -v current="${2#v}" 'BEGIN {
 +		split(latest, l, "."); split(current, c, ".")
@@ -18,18 +30,20 @@ to the ZqinKing 3610820 fork, preserving its nftables redirect implementation.
 +			if (l[i] + 0 > c[i] + 0) exit 0
 +			if (l[i] + 0 < c[i] + 0) exit 1
 +		}
-+		exit 1
++		exit (current ~ /^[0-9]+\.[0-9]+\.[0-9]+-/ ? 0 : 1)
 +	}'
 +}
 +
  check_latest_version(){
  	check_wgetcurl
- 	latest_ver="$($downloader - https://api.github.com/repos/AdguardTeam/AdGuardHome/releases/latest 2>/dev/null|grep -E 'tag_name' |grep -E 'v[0-9.]+' -o 2>/dev/null)"
-@@ -30,12 +42,12 @@
+-	latest_ver="$($downloader - https://api.github.com/repos/AdguardTeam/AdGuardHome/releases/latest 2>/dev/null|grep -E 'tag_name' |grep -E 'v[0-9.]+' -o 2>/dev/null)"
++	latest_ver="$($downloader - https://api.github.com/repos/AdguardTeam/AdGuardHome/releases/latest 2>/dev/null | sed -n 's/.*"tag_name"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$')"
+ 	if [ -z "${latest_ver}" ]; then
  		echo -e "\nFailed to check latest version, please try again later."  && EXIT 1
  	fi
- 	now_ver="$($binpath -c /dev/null --check-config 2>&1| grep -m 1 -E 'v[0-9.]+' -o)"
+-	now_ver="$($binpath -c /dev/null --check-config 2>&1| grep -m 1 -E 'v[0-9.]+' -o)"
 -	if [ "${latest_ver}"x != "${now_ver}"x ] || [ "$1" == "force" ]; then
++	now_ver="$(core_version "$binpath")"
 +	if [ "$1" == "force" ] || [ -z "$now_ver" ] || version_is_newer "$latest_ver" "$now_ver"; then
  		echo -e "Local version: ${now_ver}., cloud version: ${latest_ver}."
  		doupdate_core
@@ -40,6 +54,91 @@ to the ZqinKing 3610820 fork, preserving its nftables redirect implementation.
  		if [ ! -z "$upxflag" ]; then
  			filesize=$(ls -l $binpath | awk '{ print $5 }')
  			if [ $filesize -gt 8000000 ]; then
+@@ -171,33 +193,51 @@
+ 		;;
+ 	esac
+ 	echo -e "start download"
++	local success downloadbin actual_ver
+ 	grep -v "^#" /usr/share/AdGuardHome/links.txt >/tmp/run/AdHlinks.txt
+-	while read link
++	while IFS= read -r link || [ -n "$link" ]
+ 	do
++		[ -n "$link" ] || continue
+ 		eval link="$link"
+-		$downloader /tmp/AdGuardHomeupdate/${link##*/} "$link" 2>&1
+-		if [ "$?" != "0" ]; then
++		# Existing conffiles may retain old beta/edge download defaults.
++		case "$link" in
++			*/beta/*|*/edge/*|*/releases/download/*-*/*)
++				echo "skip prerelease download link"
++				continue
++				;;
++		esac
++		rm -rf /tmp/AdGuardHomeupdate/* >/dev/null 2>&1
++		if ! $downloader "/tmp/AdGuardHomeupdate/${link##*/}" "$link" 2>&1; then
+ 			echo "download failed try another download"
+-			rm -f /tmp/AdGuardHomeupdate/${link##*/}
++			continue
++		fi
++		if [ "${link##*.}" == "gz" ]; then
++			if ! tar -zxf "/tmp/AdGuardHomeupdate/${link##*/}" -C "/tmp/AdGuardHomeupdate/"; then
++				echo "invalid archive try another download"
++				continue
++			fi
++			downloadbin="/tmp/AdGuardHomeupdate/AdGuardHome/AdGuardHome"
+ 		else
+-			local success="1"
+-			break
++			downloadbin="/tmp/AdGuardHomeupdate/${link##*/}"
+ 		fi
++		if [ ! -f "$downloadbin" ] || ! chmod 755 "$downloadbin"; then
++			echo "missing core try another download"
++			continue
++		fi
++		actual_ver="$(core_version "$downloadbin")"
++		if [ "$actual_ver" != "$latest_ver" ]; then
++			echo "core version does not match stable target try another download"
++			continue
++		fi
++		success=1
++		break
+ 	done < "/tmp/run/AdHlinks.txt"
+ 	rm /tmp/run/AdHlinks.txt
+-	[ -z "$success" ] && echo "no download success" && EXIT 1
+-	if [ "${link##*.}" == "gz" ]; then
+-		tar -zxf "/tmp/AdGuardHomeupdate/${link##*/}" -C "/tmp/AdGuardHomeupdate/"
+-		if [ ! -e "/tmp/AdGuardHomeupdate/AdGuardHome" ]; then
+-			echo -e "Failed to download core."
+-			rm -rf "/tmp/AdGuardHomeupdate" >/dev/null 2>&1
+-			EXIT 1
+-		fi
+-		downloadbin="/tmp/AdGuardHomeupdate/AdGuardHome/AdGuardHome"
+-	else
+-		downloadbin="/tmp/AdGuardHomeupdate/${link##*/}"
++	if [ -z "$success" ]; then
++		echo "no valid stable download"
++		rm -rf "/tmp/AdGuardHomeupdate" >/dev/null 2>&1
++		EXIT 1
+ 	fi
+-	chmod 755 $downloadbin
+ 	echo -e "download success start copy"
+ 	if [ -n "$upxflag" ]; then
+ 		echo -e "start upx may take a long time"
+@@ -216,7 +256,7 @@
+ 	/etc/init.d/AdGuardHome start
+ 	rm -rf "/tmp/AdGuardHomeupdate" >/dev/null 2>&1
+ 	echo -e "Succeeded in updating core."
+-	echo -e "Local version: ${latest_ver}, cloud version: ${latest_ver}.\n"
++	echo -e "Local version: ${actual_ver}, cloud version: ${latest_ver}.\n"
+ 	EXIT 0
+ }
+ 
+--- a/root/usr/share/AdGuardHome/links.txt
++++ b/root/usr/share/AdGuardHome/links.txt
+@@ -1,3 +1,2 @@
+-https://static.adguard.com/adguardhome/beta/AdGuardHome_linux_${Arch}.tar.gz
+ https://github.com/AdguardTeam/AdGuardHome/releases/download/${latest_ver}/AdGuardHome_linux_${Arch}.tar.gz
+ https://static.adguard.com/adguardhome/release/AdGuardHome_linux_${Arch}.tar.gz
 --- a/luasrc/controller/AdGuardHome.lua
 +++ b/luasrc/controller/AdGuardHome.lua
 @@ -116,7 +116,11 @@

@@ -56,7 +56,7 @@ class ArtifactVerification(unittest.TestCase):
         self.mode = stat.S_IMODE(target.stat().st_mode)
         self.manifest = {
             "source_commit": "2abdc9aa9e19607774dc9789709212b70b8607c6",
-            "repair_version": "190-r4",
+            "repair_version": "190-r5",
             "patches": {"ssrplus-example.patch": "a" * 64},
             "files": {"/" + PROTECTED: {"sha256": hashlib.sha256(CONTENT).hexdigest(),
                                        "mode": f"{self.mode:04o}"}},
@@ -83,7 +83,7 @@ class ArtifactVerification(unittest.TestCase):
             self.assertIn("SSR artifact verification failed:", result.stderr)
         return result
 
-    def make_package(self, kind="ar", *, data=None, version="190-4", embedded=None, name="luci-app-ssr-plus"):
+    def make_package(self, kind="ar", *, data=None, version="190-5", embedded=None, name="luci-app-ssr-plus"):
         if data is None:
             data = [(PROTECTED, CONTENT, self.mode)]
         manifest = json.dumps(self.manifest if embedded is None else embedded).encode()
@@ -150,7 +150,7 @@ class ArtifactVerification(unittest.TestCase):
 
     def test_apk_v2_reads_payload_after_signature_and_control_gzip_streams(self):
         self.cli("package", "--manifest", self.expected, "--package",
-                 self.make_package("apk2", version="190-r4"))
+                 self.make_package("apk2", version="190-r5"))
 
     def test_package_missing_protected_file_fails(self):
         self.cli("package", "--manifest", self.expected, "--package", self.make_package(data=[]), success=False)
@@ -188,8 +188,10 @@ class ArtifactVerification(unittest.TestCase):
         self.cli("package", "--manifest", self.expected, "--package", package, success=False)
 
     def test_old_package_control_version_fails_even_with_repaired_bytes(self):
-        self.cli("package", "--manifest", self.expected, "--package",
-                 self.make_package(version="190-3"), success=False)
+        for version in ("190-3", "190-4", "190-r4"):
+            with self.subTest(version=version):
+                self.cli("package", "--manifest", self.expected, "--package",
+                         self.make_package(version=version), success=False)
 
     def test_wrong_package_name_fails(self):
         self.cli("package", "--manifest", self.expected, "--package",
@@ -206,12 +208,12 @@ class ArtifactVerification(unittest.TestCase):
         patch.write_bytes(b"source repair\n")
         output = self.base / "generated.json"
         self.cli("manifest", "--root", self.root, "--output", output,
-                 "--source-commit", self.manifest["source_commit"], "--repair-version", "190-r4",
+                 "--source-commit", self.manifest["source_commit"], "--repair-version", "190-r5",
                  "--patch", patch, "--file", "/" + PROTECTED)
         result = json.loads(output.read_text(encoding="utf-8"))
         self.assertEqual(result["files"], self.manifest["files"])
         self.assertEqual(result["patches"], {patch.name: hashlib.sha256(b"source repair\n").hexdigest()})
-        self.assertEqual(result["repair_version"], "190-r4")
+        self.assertEqual(result["repair_version"], "190-r5")
 
 
 class WorkflowGates(unittest.TestCase):

@@ -1,0 +1,18 @@
+Backport: fw876/helloworld 356dd51f880da55544e7601a0a3773acaf6fd76f
+Source: https://github.com/fw876/helloworld/commit/356dd51f880da55544e7601a0a3773acaf6fd76f
+Read the custom port restriction from the global configuration that owns it.
+
+diff --git a/root/etc/init.d/shadowsocksr b/root/etc/init.d/shadowsocksr
+--- a/root/etc/init.d/shadowsocksr
++++ b/root/etc/init.d/shadowsocksr
+@@ -1563,8 +1563,8 @@
+ 		all) echo "-z" ;;
+ 		esac
+ 	}
+-	if [ "$(uci_get_by_type global dports)" == "3" ]; then
+-		local custom_ports=$(uci_get_by_name $GLOBAL_SERVER custom_ports)  #  custom_ports 存储了用户自定义的端口
++	if [ "$(uci_get_by_type global dports 1)" == "3" ]; then
++		local custom_ports=$(uci_get_by_type global custom_ports)  #  custom_ports 存储了用户自定义的端口
+ 		if [ -n "$custom_ports" ]; then
+ 			local proxyport="-m multiport --dports $custom_ports"
+ 		fi

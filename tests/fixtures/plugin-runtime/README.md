@@ -1,8 +1,9 @@
 # Plugin runtime regression fixtures
 
-- `adguard-updater.sh` and `AdGuardHome.lua` are unchanged files from
+- `adguard-updater.sh`, `adguard-links.txt` and `AdGuardHome.lua` are unchanged files from
   [ZqinKing/luci-app-adguardhome 36108202f326f65ab6f5a85d15adcba6538f8e8b](https://github.com/ZqinKing/luci-app-adguardhome/tree/36108202f326f65ab6f5a85d15adcba6538f8e8b):
-  `root/usr/share/AdGuardHome/update_core.sh` and
+  `root/usr/share/AdGuardHome/update_core.sh`,
+  `root/usr/share/AdGuardHome/links.txt` and
   `luasrc/controller/AdGuardHome.lua`. The package's Makefile identifies
   Copyright (C) 2018-2019 Lienol and Apache-2.0; see `COPYING.AdGuardHome`.
 - `openclash_curl.sh` contains the unchanged `verify_sha256_checksum` function.
@@ -21,6 +22,14 @@ can reproduce the downgrade and checksum failures without applying patches.
 OpenClash is tested as an untracked subdirectory of the parent source repository,
 matching sparse feed transfer, while AdGuard Home has its own cloned repository.
 This catches `git apply` silently skipping package-relative paths in a parent repo.
+
+`test_openclash_checksum.sh` additionally runs the patched checksum function
+against real file hashes, exact basename collisions and manifest formatting.
+`test_adguard_channel.sh` runs the complete patched updater, including its main
+entry and download loop, with isolated paths and fake downloads, cores and
+service commands. It checks stable defaults and retained legacy links,
+candidate-version validation, mirror fallback and preservation of the installed
+core when all candidates fail. Neither test downloads or installs a real core.
 
 Separate live verification on 2026-10-20 fetched both complete OpenClash files
 and both AdGuard Home files again, applied the same helpers twice, and checked

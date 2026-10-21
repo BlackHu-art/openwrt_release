@@ -1,0 +1,15 @@
+Subject: SSR Plus: identify the reviewed DNS forwarding and custom-port follow-ups
+
+Retain the r4 packaging patch so complete earlier repair states can still be
+reversed and verified against the same upstream source before applying r5.
+
+diff --git a/Makefile b/Makefile
+--- a/Makefile
++++ b/Makefile
+@@ -5,5 +5,5 @@
+ PKG_NAME:=luci-app-ssr-plus
+ PKG_VERSION:=190
+-PKG_RELEASE:=4
++PKG_RELEASE:=5
+ # Local repair set: SSR-20261021; source provenance is embedded in the package.
+ 

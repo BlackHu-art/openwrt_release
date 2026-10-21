@@ -9,6 +9,10 @@
 /tests/*ssrplus* text eol=lf
 /tests/run_all.sh text eol=lf
 /tests/test_custom_feed_plugins.sh text eol=lf
+/tests/test_plugin_runtime.sh text eol=lf
+/tests/test_openclash_checksum.sh text eol=lf
+/tests/test_adguard_channel.sh text eol=lf
+/tests/fixtures/plugin-runtime/** text eol=lf
 /build.sh text eol=lf
 /wrt_core/update.sh text eol=lf
 /wrt_core/modules/build_steps.sh text eol=lf

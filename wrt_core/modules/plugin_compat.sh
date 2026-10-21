@@ -113,7 +113,7 @@ fix_ssrplus_compat() (
     MSYS2_ARG_CONV_EXCL="${MSYS2_ARG_CONV_EXCL:+$MSYS2_ARG_CONV_EXCL;}/etc/;/usr/" \
     python "$BASE_PATH/ssrplus_verify.py" manifest --root "$scratch/root" \
         --output "$scratch/root/usr/share/shadowsocksr/ssrplus-build.json" \
-        --source-commit "$source_commit" --repair-version 190-r4 --file-mode 0755 \
+        --source-commit "$source_commit" --repair-version 190-r5 --file-mode 0755 \
         "${manifest_args[@]}" --file /usr/share/shadowsocksr/ssrp-runtime.sh || return 1
     # Validation and artifact construction succeeded; publish the reviewed
     # files. A repeated invocation does not rewrite identical source bytes.

@@ -2,14 +2,14 @@
 
 SSR 修复由项目构建流程自动应用，不依赖手动修改路由器或临时 build 目录。
 当前审查基线是 `fw876/helloworld` 的
-`2abdc9aa9e19607774dc9789709212b70b8607c6`，本地修复版本为 `190-r4`
-（opkg 包版本为 `190-4`）。
+`2abdc9aa9e19607774dc9789709212b70b8607c6`，本地修复版本为 `190-r5`
+（opkg 包版本为 `190-5`）。
 
 ## 以后编译如何带入修复
 
 1. `custom_feed.sh` 导入 SSR 源码并记录实际上游提交。
 2. `update.sh` 在 `feeds install` 之前调用 `fix_ssrplus_compat`，校验九个
-   受保护源文件的 Git blob，再按 `patches.list` 应用完整九份补丁并安装运行脚本。
+   受保护源文件的 Git blob，再按 `patches.list` 应用完整十二份补丁并安装运行脚本。
    已完整应用的旧补丁可在隔离副本中还原后重新校验；未知或不完整修改会中止构建。
 3. 包内生成 `/usr/share/shadowsocksr/ssrplus-build.json`，记录上游提交、
    修复版本、补丁 SHA-256 和九个安装程序的 SHA-256/权限。
@@ -38,6 +38,13 @@ SSR 修复由项目构建流程自动应用，不依赖手动修改路由器或�
 - 订阅分组保留失败组及手工节点，使用一次受检查的同步重启。
 - DNS 监测按实际运行配置检查所需进程和独立监听端口。
 - nft 快照仅保存 SSR 自有表，校验后恢复；停止后禁止自动恢复，IP 列表内容变化会重建。
+- nft GFW 模式将 IPv4 DNS 上游加入已有的 SSR 集合，并在 DNS 启动后刷新私有快照；预检阶段不操作实时集合。
+- 自定义代理端口从 LuCI 实际写入的 global 配置读取。
+
+`r5` 保留原有 `r4` 补丁，并在最后单独递增软件包 release，完整旧修复状态仍可逆向校验后升级。
+这两项跟进参考上游 dev 的 [DNS 转发修复](https://github.com/fw876/helloworld/commit/b791299f2859c0bbd9ebea48af17dea8a30fdae9)
+和 [custom_ports 修复](https://github.com/fw876/helloworld/commit/356dd51f880da55544e7601a0a3773acaf6fd76f)，
+不切换到 dev 的新协议或核心组合。
 
 更新器要求目标 curl 至少为 8.4，以限制未知长度下载；旧 curl 会明确拒绝更新规则。
 上游受保护源文件发生变化时，需要重新审查并更新补丁与基线，不能绕过源码校验继续编译。

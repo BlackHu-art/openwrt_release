@@ -7,3 +7,6 @@ ssrplus-subscription.patch
 ssrplus-monitor-scheduler.patch
 ssrplus-persistence-lifecycle.patch
 ssrplus-package.patch
+ssrplus-dns-forwarding.patch
+ssrplus-custom-ports.patch
+ssrplus-release-r5.patch

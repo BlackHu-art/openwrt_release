@@ -54,7 +54,8 @@ declare -F fix_ssrplus_compat >/dev/null ||
 mapfile -t patches < "$patch_list"
 expected_patches=(ssrplus-startup-lock.patch ssrplus-dns-transaction.patch ssrplus-updater-validation.patch
     ssrplus-persistence.patch ssrplus-availability.patch ssrplus-subscription.patch
-    ssrplus-monitor-scheduler.patch ssrplus-persistence-lifecycle.patch ssrplus-package.patch)
+    ssrplus-monitor-scheduler.patch ssrplus-persistence-lifecycle.patch ssrplus-package.patch
+    ssrplus-dns-forwarding.patch ssrplus-custom-ports.patch ssrplus-release-r5.patch)
 [[ ${patches[*]} == "${expected_patches[*]}" ]] || fail 'complete SSR dependency order is missing or changed'
 independent=(ssrplus-startup-lock.patch ssrplus-dns-transaction.patch ssrplus-persistence.patch)
 for patch_file in "${patches[@]}"; do
@@ -95,7 +96,7 @@ import sys
 package, table, patch_list, patch_dir = map(Path, sys.argv[1:5])
 manifest = json.loads((package / "root/usr/share/shadowsocksr/ssrplus-build.json").read_text(encoding="utf-8"))
 assert manifest["source_commit"] == sys.argv[5], "wrong source commit in embedded manifest"
-assert manifest["repair_version"] == "190-r4", "wrong repair version"
+assert manifest["repair_version"] == "190-r5", "wrong repair version"
 patches = patch_list.read_text().splitlines()
 expected = {name: hashlib.sha256((patch_dir / name).read_bytes()).hexdigest() for name in patches}
 assert manifest["patches"] == expected, "patch manifest omitted or changed an extension"
@@ -141,7 +142,7 @@ assert_fully_patched() {
             fail "composed result did not normalize to official source: $path"
     done
     grep -qx 'PKG_VERSION:=190' "$package/Makefile" || fail 'package base version changed unexpectedly'
-    grep -qx 'PKG_RELEASE:=4' "$package/Makefile" || fail 'repair release marker is missing'
+    grep -qx 'PKG_RELEASE:=5' "$package/Makefile" || fail 'repair release marker is missing'
     grep -Fq 'Local repair set: SSR-20261021' "$package/Makefile" || fail 'local repair identity is missing'
     grep -Fq '+flock' "$package/Makefile" || fail 'persistent-lock dependency was not declared'
     cmp "$runtime_source" "$package/$runtime_path" || fail 'installed runtime helper differs from the reviewed project source'
@@ -189,6 +190,34 @@ for mask in "${legacy_masks[@]}"; do
     snapshot "$package" > "$test_root/after"
     cmp "$test_root/before" "$test_root/after" || fail "subset $mask was not idempotent"
 done
+# Upgrade a complete earlier repair, including its real r4 build manifest.
+# Keeping the original nine patches intact makes this a supported source state.
+parent="$test_root/complete-r4-existing"
+package=$(make_package "$parent")
+legacy_r4_patches=("${patches[@]:0:9}")
+manifest_args=()
+for patch_file in "${legacy_r4_patches[@]}"; do
+    direct_patch "$parent" "$BASE_PATH/patches/$patch_file"
+    manifest_args+=(--patch "$BASE_PATH/patches/$patch_file")
+done
+install -m 755 "$runtime_source" "$package/$runtime_path"
+for path in "${source_paths[@]}"; do
+    [[ $path != root/* ]] || manifest_args+=(--file "/${path#root/}")
+done
+MSYS2_ARG_CONV_EXCL="${MSYS2_ARG_CONV_EXCL:+$MSYS2_ARG_CONV_EXCL;}/etc/;/usr/" \
+    python "$BASE_PATH/ssrplus_verify.py" manifest --root "$package/root" \
+        --output "$package/$manifest_path" --source-commit "$upstream_commit" \
+        --repair-version 190-r4 --file-mode 0755 "${manifest_args[@]}" \
+        --file /usr/share/shadowsocksr/ssrp-runtime.sh
+grep -qx 'PKG_RELEASE:=4' "$package/Makefile" || fail 'r4 upgrade fixture is not r4'
+fix_ssrplus_compat "$package" > "$test_root/r4-upgrade.log"
+assert_fully_patched "$parent" "$package"
+snapshot "$package" > "$test_root/before"
+fix_ssrplus_compat "$package" > "$test_root/r4-repeat.log"
+snapshot "$package" > "$test_root/after"
+cmp "$test_root/before" "$test_root/after" || fail 'r4 upgrade was not idempotent'
+echo 'SSR complete r4 source and manifest upgrade to r5: PASS'
+
 # The complete dependent patch set may also be present before this helper runs.
 parent="$test_root/complete-existing"
 package=$(make_package "$parent")
