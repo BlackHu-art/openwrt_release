@@ -12,9 +12,9 @@
 
 `wrt_core/modules/custom_feed.sh` 从 `fw876/helloworld` 的 **master** 获取包。
 `wrt_core/update.sh` 的 `stage_pre_install_source_fixes` 在 feeds install 前调用
-`fix_ssrplus_compat`，按 `wrt_core/compat/ssrplus/patches.list` 应用二十三份补丁。
-原有二十一份保持不变，随后追加原生 SS 字面百分号密码修复及单独的版本标记补丁。
-完整旧 `190-r4`/`190-r5`/`190-r6`/`190-r7`/`190-r8`/`190-r9` 源码及其原始构建清单也会重新验证并升级。
+`fix_ssrplus_compat`，按 `wrt_core/compat/ssrplus/patches.list` 应用二十五份补丁。
+原有二十三份保持不变，随后追加订阅节点引用修复及单独的版本标记补丁。
+完整旧 `190-r4`/`190-r5`/`190-r6`/`190-r7`/`190-r8`/`190-r9`/`190-r10` 源码及其原始构建清单也会重新验证并升级。
 
 - 回移 [b791299](https://github.com/fw876/helloworld/commit/b791299f2859c0bbd9ebea48af17dea8a30fdae9)：
   nft GFW 模式下将 DNS 上游 IPv4 地址加入已有 `inet ss_spec gfwlist`，
@@ -33,9 +33,13 @@
   不再被猜测为内层 URI 编码；外层 URI 转义仍解码。仅后续订阅实际重新解析链接时生效，
   已有持久化值和 MD5 缓存不迁移。旧密码信息若已损失，需要重新订阅并确保实际重新解析，
   不自动迁移或重写配置。
-- 包版本为 `190-10`，内嵌修复标识为 `190-r10`。构建清单包含全部补丁和
+- 订阅实际重解析原生 Base64 SS 时，同组唯一匹配历史错误密码指纹的旧节点保持原 SID，
+  原位更新正确密码和指纹，主代理、UDP、SOCKS5 与 Netflix 引用保持不变。
+  手工节点、跨组节点和普通凭据变更不做模糊匹配；歧义在写入前拒绝整个订阅事务，
+  保留配置和 MD5 缓存。初始化和默认模板不改动，也不在升级时自动迁移配置。
+- 包版本为 `190-11`，内嵌修复标识为 `190-r11`。构建清单包含全部补丁和
   十二个安装目标哈希，包括实际核心生成器；现有包与 rootfs 门禁继续校验实际成品。
-  r4/r5 原始清单保持九个目标，r6/r7/r8 保持十一个，r9 保持二十一份补丁和十二个目标。
+  r4/r5 原始清单保持九个目标，r6/r7/r8 保持十一个，r9/r10 分别保持二十一/二十三份补丁和十二个目标。
 
 细节见 [SSR 兼容性说明](ssrplus-compatibility.md)。
 

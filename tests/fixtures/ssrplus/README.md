@@ -30,11 +30,12 @@ semantics require the separate runtime harness.
 
 All eight subsets of the three legacy startup/DNS/persistence patches and the
 complete dependent repair set must converge to the same package, versioned
-`190-r10`. Complete r4/r5 sources retain their original nine-target manifests;
+`190-r11`. Complete r4/r5 sources retain their original nine-target manifests;
 r6/r7/r8 sources retain fourteen/sixteen/nineteen patch hashes and eleven targets,
 including the 0644 template. Complete r9 sources retain all twenty-one original
 patch hashes and their twelve-target manifest, including the unchanged generator.
-All upgrade to the twelve-target r10 manifest and prepare twice without drift.
+Complete r10 sources retain twenty-three original patch hashes and twelve targets.
+All upgrade to the twelve-target r11 manifest and prepare twice without drift.
 The build gate reverses complete patches only in
 an isolated copy, then compares the original Git blobs before writing any feed
 source. Unknown changes outside patch context, incomplete patches, a missing
@@ -44,7 +45,7 @@ The installed `root/usr/share/shadowsocksr/ssrp-runtime.sh` must be byte-identic
 to `wrt_core/compat/ssrplus/runtime.sh`.
 
 The full twelve-file baseline is recorded in
-`wrt_core/compat/ssrplus/source-files.tsv`; the ordered twenty-three-patch repair set is
+`wrt_core/compat/ssrplus/source-files.tsv`; the ordered twenty-five-patch repair set is
 `wrt_core/compat/ssrplus/patches.list`. Additional unchanged fixtures cover
 `subscribe.lua`, `ssr-monitor`, `ssr-switch`, and `ssrplusupdate.sh`; the reviewed
 `ssr-rules` fixture is in the adjacent `ssrplus-persistence/` directory.
@@ -70,6 +71,17 @@ escaping is still decoded at its own boundary. The repair takes effect only when
 a later subscription actually reparses the link; existing persisted values and
 MD5 caches are not migrated. Recovering password content lost by an older parser
 requires subscribing again and ensuring the original link is actually reparsed.
+
+The r11 subscriber matches only the historical wrong password hash produced by
+the older inner decoding of native Base64 SS credentials. A unique match in the
+same subscription group updates the correct password and hash in the original
+SID, preserving main, UDP, SOCKS5, and Netflix references. Compatibility metadata
+stays private to the subscriber and is not stored in UCI. Manual nodes, other
+groups, and ordinary credential changes do not receive a fuzzy match. Ambiguous
+matches reject the entire transaction before any write and keep the original
+configuration and MD5 cache; commit/restart failures retain the existing field
+rollback and concurrent-edit protection. The behavior requires a later actual
+subscription reparse and adds no initialization or upgrade-time migration.
 
 The new firstboot harness executes the actual patched init and uci-defaults in
 an isolated filesystem. Missing/empty configurations must receive the reviewed

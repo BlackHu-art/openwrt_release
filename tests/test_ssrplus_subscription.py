@@ -72,6 +72,31 @@ def subscription(host="new.example", alias="New"):
     return base64.b64encode(link.encode()).decode()
 
 
+@lru_cache(maxsize=None)
+def subscription_source(exclude_patches=()):
+    """Build the real subscriber at a specified additive patch-chain stage."""
+    with tempfile.TemporaryDirectory(prefix="ssr-subscription-source-") as temporary:
+        package = Path(temporary)
+        target = package / "root/usr/share/shadowsocksr/subscribe.lua"
+        target.parent.mkdir(parents=True)
+        shutil.copyfile(ROOT / "tests/fixtures/ssrplus/2abdc9aa/subscribe.lua", target)
+        result = subprocess.run(["git", "-C", str(package), "init", "-q"],
+                                capture_output=True, text=True, timeout=30)
+        if result.returncode:
+            raise AssertionError(result.stderr)
+        for name in ("ssrplus-subscription.patch", "ssrplus-ss-parser.patch",
+                     "ssrplus-transport-config.patch", "ssrplus-ss-password.patch",
+                     "ssrplus-node-references.patch"):
+            patch = ROOT / "wrt_core/patches" / name
+            if name in exclude_patches or not patch.exists():
+                continue
+            result = subprocess.run(["git", "-C", str(package), "apply", str(patch)],
+                                    capture_output=True, text=True, timeout=30)
+            if result.returncode:
+                raise AssertionError(result.stderr)
+        return target.read_text(encoding="utf-8").split("\n", 1)[1]
+
+
 class ScriptExit(Exception):
     def __init__(self, code):
         self.code = int(code)
@@ -82,20 +107,7 @@ class SubscriptionRegressions(unittest.TestCase):
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory(prefix="ssr-subscription-")
         self.addCleanup(self.temp.cleanup)
-        package = Path(self.temp.name)
-        target = package / "root/usr/share/shadowsocksr/subscribe.lua"
-        target.parent.mkdir(parents=True)
-        shutil.copyfile(ROOT / "tests/fixtures/ssrplus/2abdc9aa/subscribe.lua", target)
-        for name in ("ssrplus-subscription.patch", "ssrplus-ss-parser.patch",
-                     "ssrplus-transport-config.patch", "ssrplus-ss-password.patch"):
-            patch = ROOT / "wrt_core/patches" / name
-            if not patch.exists():
-                continue
-            for arguments in (("init", "-q"), ("apply", str(patch))):
-                result = subprocess.run(["git", "-C", str(package), *arguments],
-                                        capture_output=True, text=True, timeout=30)
-                self.assertEqual(result.returncode, 0, result.stderr)
-        self.source = target.read_text(encoding="utf-8").split("\n", 1)[1]
+        self.source = subscription_source()
         self.sections = {
             "global": {".type": "global", "global_server": "old_a"},
             "subscribe": {".type": "server_subscribe", "subscribe_url": [URL_A],
@@ -353,6 +365,183 @@ print = function(value) py_log(value) end
         self.assertEqual(self.run_subscriber(), 0, self.logs)
         return next(node for node in self.server_nodes().values()
                     if node.get("grouphashkey") == group_hash(URL_A))
+
+    def seed_legacy_native_selection(self):
+        """Obtain the old SID/hash/password from the actual pre-r10 parser."""
+        self.sections = {sid: node for sid, node in self.sections.items()
+                         if sid in ("global", "subscribe")}
+        links = []
+        for password, alias, host in (("ordinary", "First", "first.example"),
+                                      ("%2F", "Percent", "ss.example")):
+            credential = base64.b64encode(("aes-128-gcm:" + password).encode()).decode()
+            links.append("ss://" + credential + "@" + host + ":443#" + alias)
+        self.downloads[URL_A] = base64.b64encode("\n".join(links).encode()).decode()
+        current = self.source
+        self.source = subscription_source(("ssrplus-ss-password.patch", "ssrplus-node-references.patch"))
+        self.assertEqual(self.run_subscriber(), 0, self.logs)
+        self.source = current
+        sid = next(sid for sid, node in self.sections.items() if node.get("alias") == "Percent")
+        self.assertEqual(self.sections[sid]["password"], "/")
+        self.sections["global"].update(global_server=sid, udp_relay_server=sid, netflix_server=sid,
+                                       netflix_enable="1")
+        self.sections["socks"] = {".type": "socks5_proxy", "server": sid, "old_server": sid,
+                                  "enabled": "1"}
+        self.sections[sid].update(switch_enable="0", user_note="preserve local annotation")
+        self.files.pop("/tmp/sub_md5_" + group_hash(URL_A))
+        self.events.clear()
+        self.logs.clear()
+        return sid
+
+    def test_legacy_native_hash_migration_preserves_sid_references_and_local_options(self):
+        sid = self.seed_legacy_native_selection()
+        old = copy.deepcopy(self.sections)
+        self.assertEqual(self.run_subscriber(), 0, self.logs)
+        self.assertEqual(set(self.persisted), set(old))
+        self.assertEqual(self.persisted["global"], old["global"])
+        self.assertEqual(self.persisted["socks"], old["socks"])
+        self.assertEqual(self.persisted[sid]["password"], "%2F")
+        self.assertNotEqual(self.persisted[sid]["hashkey"], old[sid]["hashkey"])
+        self.assertEqual(self.persisted[sid]["switch_enable"], "0")
+        self.assertEqual(self.persisted[sid]["user_note"], "preserve local annotation")
+        self.assertFalse(any(key.startswith("_") for key in self.persisted[sid]))
+        self.assertEqual([event[1:4] for event in self.events if event[0] == "service"],
+                         [("restart", sid, True)])
+
+    def test_legacy_native_migration_failed_commit_restores_all_nodes_references_and_marker(self):
+        self.seed_legacy_native_selection()
+        old = copy.deepcopy(self.sections)
+        marker = "/tmp/sub_md5_" + group_hash(URL_A)
+        self.files[marker] = "previous successful subscription"
+        self.commit_failure = True
+        self.assertNotEqual(self.run_subscriber(), 0)
+        self.assertEqual(self.persisted, old)
+        self.assertEqual(self.sections, old)
+        self.assertEqual(self.files[marker], "previous successful subscription")
+        self.assertFalse(any(event[0] == "service" for event in self.events))
+
+    def test_legacy_native_migration_restart_failure_restores_all_nodes_references_and_marker(self):
+        sid = self.seed_legacy_native_selection()
+        old = copy.deepcopy(self.sections)
+        self.restart_statuses = [1, 0]
+        self.assertNotEqual(self.run_subscriber(), 0)
+        self.assertEqual(self.persisted, old)
+        self.assertEqual(self.sections, old)
+        self.assertNotIn("/tmp/sub_md5_" + group_hash(URL_A), self.files)
+        self.assertEqual([event[1:4] for event in self.events if event[0] == "service"],
+                         [("restart", sid, True), ("restart", sid, True)])
+
+    def test_legacy_native_rollback_preserves_unwritten_concurrent_fields_and_references(self):
+        sid = self.seed_legacy_native_selection()
+        old_node = copy.deepcopy(self.sections[sid])
+        first = next(key for key, value in self.sections.items() if value.get("alias") == "First")
+        self.restart_statuses = [1, 0]
+
+        def concurrent_edit():
+            self.persisted[sid]["user_note"] = "edited after commit"
+            self.persisted["global"]["udp_relay_server"] = first
+            self.persisted["socks"]["server"] = first
+
+        self.service_callback = concurrent_edit
+        self.assertNotEqual(self.run_subscriber(), 0)
+        self.assertEqual(self.persisted[sid], dict(old_node, user_note="edited after commit"))
+        self.assertEqual(self.persisted["global"]["global_server"], sid)
+        self.assertEqual(self.persisted["global"]["udp_relay_server"], first)
+        self.assertEqual(self.persisted["socks"]["server"], first)
+        self.assertFalse(any("rollback conflict" in log for log in self.logs))
+
+    def test_ambiguous_legacy_native_account_hash_collision_rejects_before_uci_writes(self):
+        self.seed_legacy_native_selection()
+        old = copy.deepcopy(self.sections)
+        raw = base64.b64decode(self.downloads[URL_A]).decode()
+        credentials = base64.b64encode(b"aes-128-gcm:/").decode()
+        self.downloads[URL_A] = base64.b64encode((raw + "\nss://" + credentials +
+                                                "@ss.example:443#Percent").encode()).decode()
+        self.assertNotEqual(self.run_subscriber(), 0)
+        self.assertEqual(self.persisted, old)
+        self.assertEqual(self.sections, old)
+        self.assertNotIn("/tmp/sub_md5_" + group_hash(URL_A), self.files)
+        self.assertFalse(any(event[0] in ("set", "delete", "commit", "service") for event in self.events))
+
+    def test_multiple_legacy_native_sids_competing_for_one_candidate_reject_before_writes(self):
+        sid = self.seed_legacy_native_selection()
+        self.sections["duplicate_old"] = copy.deepcopy(self.sections[sid])
+        old = copy.deepcopy(self.sections)
+        self.assertNotEqual(self.run_subscriber(), 0)
+        self.assertEqual(self.persisted, old)
+        self.assertFalse(any(event[0] in ("set", "delete", "commit", "service") for event in self.events))
+        self.assertNotIn("/tmp/sub_md5_" + group_hash(URL_A), self.files)
+
+    def test_duplicate_already_current_native_hash_preserves_both_sids_on_reparse(self):
+        sid = self.seed_legacy_native_selection()
+        self.assertEqual(self.run_subscriber(), 0, self.logs)
+        self.sections["duplicate_current"] = copy.deepcopy(self.sections[sid])
+        self.sections["global"]["udp_relay_server"] = "duplicate_current"
+        old = copy.deepcopy(self.sections)
+        self.files.pop("/tmp/sub_md5_" + group_hash(URL_A))
+        self.events.clear()
+        self.assertEqual(self.run_subscriber(), 0, self.logs)
+        self.assertEqual(self.persisted, old)
+        self.assertEqual(self.persisted["global"]["udp_relay_server"], "duplicate_current")
+        self.assertEqual([event[1:4] for event in self.events if event[0] == "service"],
+                         [("restart", sid, True)])
+
+    def test_exact_and_legacy_old_sids_competing_for_one_candidate_reject_in_either_order(self):
+        sid = self.seed_legacy_native_selection()
+        legacy = copy.deepcopy(self.sections)
+        self.assertEqual(self.run_subscriber(), 0, self.logs)
+        current = copy.deepcopy(self.sections[sid])
+        for exact_first in (False, True):
+            with self.subTest(exact_first=exact_first):
+                old = copy.deepcopy(legacy)
+                if exact_first:
+                    old = dict(corrected_existing=copy.deepcopy(current), **old)
+                else:
+                    old["corrected_existing"] = copy.deepcopy(current)
+                self.sections = copy.deepcopy(old)
+                self.files.pop("/tmp/sub_md5_" + group_hash(URL_A), None)
+                self.events.clear()
+                self.assertNotEqual(self.run_subscriber(), 0)
+                self.assertEqual(self.persisted, old)
+                self.assertNotIn("/tmp/sub_md5_" + group_hash(URL_A), self.files)
+                self.assertFalse(any(event[0] in ("set", "delete", "commit", "service")
+                                     for event in self.events))
+
+    def test_legacy_hash_cannot_overwrite_manually_changed_identity_fields(self):
+        for field, value in (("type", "v2ray"), ("server", "edited.example"),
+                             ("server_port", "8443"), ("encrypt_method_ss", "aes-256-gcm"),
+                             ("alias", "User renamed node"), ("password", "user changed credential")):
+            with self.subTest(field=field):
+                sid = self.seed_legacy_native_selection()
+                self.sections[sid][field] = value
+                old = copy.deepcopy(self.sections)
+                self.assertNotEqual(self.run_subscriber(), 0)
+                self.assertEqual(self.persisted, old)
+                self.assertNotIn("/tmp/sub_md5_" + group_hash(URL_A), self.files)
+                self.assertFalse(any(event[0] in ("set", "delete", "commit", "service")
+                                     for event in self.events))
+
+    def test_legacy_native_hash_never_captures_manual_or_other_subscription_group(self):
+        sid = self.seed_legacy_native_selection()
+        manual = copy.deepcopy(self.sections[sid])
+        manual.pop("grouphashkey")
+        other_group = dict(self.sections[sid], grouphashkey=group_hash(URL_B))
+        self.sections.update(manual_duplicate=copy.deepcopy(manual), other_group_duplicate=copy.deepcopy(other_group))
+        self.assertEqual(self.run_subscriber(), 0, self.logs)
+        self.assertEqual(self.persisted["manual_duplicate"], manual)
+        self.assertEqual(self.persisted["other_group_duplicate"], other_group)
+        self.assertEqual(self.persisted[sid]["password"], "%2F")
+
+    def test_migrated_native_node_concurrent_written_field_conflict_is_not_clobbered(self):
+        sid = self.seed_legacy_native_selection()
+        self.restart_statuses = [1]
+        self.service_callback = lambda: self.persisted[sid].update(password="concurrently changed secret")
+        self.assertNotEqual(self.run_subscriber(), 0)
+        self.assertEqual(self.persisted[sid]["password"], "concurrently changed secret")
+        self.assertEqual(self.persisted["global"]["global_server"], sid)
+        self.assertEqual(len([event for event in self.events if event[0] == "commit"]), 1)
+        self.assertEqual(len([event for event in self.events if event[0] == "service"]), 1)
+        self.assertTrue(any("rollback conflict in node field" in log for log in self.logs))
+        self.assertNotIn("/tmp/sub_md5_" + group_hash(URL_A), self.files)
 
     def test_xray_ss_credentials_accept_sip002_whole_base64_and_plain_userinfo(self):
         password = "~~~p@ss:word+/%?#%2F+!"

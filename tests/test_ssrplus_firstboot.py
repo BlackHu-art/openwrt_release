@@ -344,6 +344,13 @@ test "$(wc -l < "$TEST_ROOT/copies")" = 1
     def test_repeated_defaults_and_initialize_preserve_retained_transports_and_rules_without_template(self):
         self.config.write_text("""config global
  option global_server 'user_node'
+ option udp_relay_server 'native_ss_node'
+ option netflix_server 'httpupgrade_node'
+ option netflix_enable '1'
+config socks5_proxy
+ option enabled '1'
+ option server 'native_libev_node'
+ option local_port '1080'
 config server_subscribe
  option ss_type 'v2ray'
  option xray_hy2_type 'v2ray'

@@ -1,0 +1,15 @@
+Subject: SSR Plus: identify subscription node reference repair
+
+Keep all twenty-three published patches intact so complete r4 through r10
+package sources normalize to the independently reviewed upstream baseline.
+
+diff --git a/Makefile b/Makefile
+--- a/Makefile
++++ b/Makefile
+@@ -5,5 +5,5 @@
+ PKG_NAME:=luci-app-ssr-plus
+ PKG_VERSION:=190
+-PKG_RELEASE:=10
++PKG_RELEASE:=11
+ # Local repair set: SSR-20261021; source provenance is embedded in the package.
+ 
