@@ -103,7 +103,10 @@ fix_ssrplus_compat() (
     done
     install -m 755 "$runtime_source" "$scratch/$runtime_path" || return 1
     for path in "${files[@]}"; do
-        [[ "$path" != root/* ]] || chmod 755 "$scratch/$path" || return 1
+        case "$path" in
+            root/usr/share/shadowsocksr/shadowsocksr.config) chmod 644 "$scratch/$path" || return 1 ;;
+            root/*) chmod 755 "$scratch/$path" || return 1 ;;
+        esac
     done
     source_commit=2abdc9aa9e19607774dc9789709212b70b8607c6
     if [[ -f "$package_dir/.ssrplus-upstream-commit" ]]; then
@@ -113,14 +116,18 @@ fix_ssrplus_compat() (
     MSYS2_ARG_CONV_EXCL="${MSYS2_ARG_CONV_EXCL:+$MSYS2_ARG_CONV_EXCL;}/etc/;/usr/" \
     python "$BASE_PATH/ssrplus_verify.py" manifest --root "$scratch/root" \
         --output "$scratch/root/usr/share/shadowsocksr/ssrplus-build.json" \
-        --source-commit "$source_commit" --repair-version 190-r5 --file-mode 0755 \
+        --source-commit "$source_commit" --repair-version 190-r6 --file-mode 0755 \
+        --file-mode-override /usr/share/shadowsocksr/shadowsocksr.config=0644 \
         "${manifest_args[@]}" --file /usr/share/shadowsocksr/ssrp-runtime.sh || return 1
     # Validation and artifact construction succeeded; publish the reviewed
     # files. A repeated invocation does not rewrite identical source bytes.
     files+=("$runtime_path" root/usr/share/shadowsocksr/ssrplus-build.json)
     for path in "${files[@]}"; do
         if cmp -s "$scratch/$path" "$package_dir/$path"; then
-            [[ "$path" != root/* || "$path" == */ssrplus-build.json ]] || chmod 755 "$package_dir/$path" || return 1
+            case "$path" in
+                root/usr/share/shadowsocksr/shadowsocksr.config) chmod 644 "$package_dir/$path" || return 1 ;;
+                root/*) [[ "$path" == */ssrplus-build.json ]] || chmod 755 "$package_dir/$path" || return 1 ;;
+            esac
             continue
         fi
         temporary=$(mktemp "$package_dir/$path.ssrfix.XXXXXX") || return 1

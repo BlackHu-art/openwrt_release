@@ -5,6 +5,7 @@ import gzip
 import hashlib
 import io
 import json
+import os
 from pathlib import Path
 import stat
 import subprocess
@@ -20,6 +21,10 @@ CLI = ROOT / "wrt_core/ssrplus_verify.py"
 MANIFEST_TARGET = "usr/share/shadowsocksr/ssrplus-build.json"
 PROTECTED = "etc/init.d/shadowsocksr"
 CONTENT = b"#!/bin/sh\necho repaired\n"
+INITIALIZER = "etc/uci-defaults/luci-ssr-plus"
+INITIALIZER_CONTENT = b"#!/bin/sh\n/etc/init.d/shadowsocksr initialize || exit 1\n"
+TEMPLATE = "usr/share/shadowsocksr/shadowsocksr.config"
+TEMPLATE_CONTENT = b"config global\n\toption global_server 'nil'\n"
 
 
 def tar_bytes(files):
@@ -56,7 +61,7 @@ class ArtifactVerification(unittest.TestCase):
         self.mode = stat.S_IMODE(target.stat().st_mode)
         self.manifest = {
             "source_commit": "2abdc9aa9e19607774dc9789709212b70b8607c6",
-            "repair_version": "190-r5",
+            "repair_version": "190-r6",
             "patches": {"ssrplus-example.patch": "a" * 64},
             "files": {"/" + PROTECTED: {"sha256": hashlib.sha256(CONTENT).hexdigest(),
                                        "mode": f"{self.mode:04o}"}},
@@ -83,7 +88,7 @@ class ArtifactVerification(unittest.TestCase):
             self.assertIn("SSR artifact verification failed:", result.stderr)
         return result
 
-    def make_package(self, kind="ar", *, data=None, version="190-5", embedded=None, name="luci-app-ssr-plus"):
+    def make_package(self, kind="ar", *, data=None, version="190-6", embedded=None, name="luci-app-ssr-plus"):
         if data is None:
             data = [(PROTECTED, CONTENT, self.mode)]
         manifest = json.dumps(self.manifest if embedded is None else embedded).encode()
@@ -150,7 +155,7 @@ class ArtifactVerification(unittest.TestCase):
 
     def test_apk_v2_reads_payload_after_signature_and_control_gzip_streams(self):
         self.cli("package", "--manifest", self.expected, "--package",
-                 self.make_package("apk2", version="190-r5"))
+                 self.make_package("apk2", version="190-r6"))
 
     def test_package_missing_protected_file_fails(self):
         self.cli("package", "--manifest", self.expected, "--package", self.make_package(data=[]), success=False)
@@ -188,7 +193,7 @@ class ArtifactVerification(unittest.TestCase):
         self.cli("package", "--manifest", self.expected, "--package", package, success=False)
 
     def test_old_package_control_version_fails_even_with_repaired_bytes(self):
-        for version in ("190-3", "190-4", "190-r4"):
+        for version in ("190-3", "190-4", "190-r4", "190-5", "190-r5"):
             with self.subTest(version=version):
                 self.cli("package", "--manifest", self.expected, "--package",
                          self.make_package(version=version), success=False)
@@ -208,12 +213,154 @@ class ArtifactVerification(unittest.TestCase):
         patch.write_bytes(b"source repair\n")
         output = self.base / "generated.json"
         self.cli("manifest", "--root", self.root, "--output", output,
-                 "--source-commit", self.manifest["source_commit"], "--repair-version", "190-r5",
+                 "--source-commit", self.manifest["source_commit"], "--repair-version", "190-r6",
                  "--patch", patch, "--file", "/" + PROTECTED)
         result = json.loads(output.read_text(encoding="utf-8"))
         self.assertEqual(result["files"], self.manifest["files"])
         self.assertEqual(result["patches"], {patch.name: hashlib.sha256(b"source repair\n").hexdigest()})
-        self.assertEqual(result["repair_version"], "190-r5")
+        self.assertEqual(result["repair_version"], "190-r6")
+
+    def initialization_files(self):
+        files = [(PROTECTED, CONTENT, 0o755),
+                 (INITIALIZER, INITIALIZER_CONTENT, 0o755),
+                 (TEMPLATE, TEMPLATE_CONTENT, 0o644)]
+        for name, content, mode in files:
+            target = self.root / name
+            target.parent.mkdir(parents=True, exist_ok=True)
+            target.write_bytes(content)
+            target.chmod(mode)
+        return files
+
+    def manifest_arguments(self, output, *targets):
+        patch = self.base / "ssrplus-firstboot.patch"
+        patch.write_bytes(b"firstboot initialization repair\n")
+        arguments = ["manifest", "--root", self.root, "--output", output,
+                     "--source-commit", self.manifest["source_commit"],
+                     "--repair-version", "190-r6", "--patch", patch]
+        for target in targets:
+            arguments.extend(("--file", "/" + target))
+        return arguments
+
+    def mixed_mode_manifest(self):
+        files = self.initialization_files()
+        self.cli(*self.manifest_arguments(self.expected, *(name for name, _, _ in files)),
+                 "--file-mode", "0755", "--file-mode-override", "/" + TEMPLATE + "=0644")
+        self.manifest = json.loads(self.expected.read_text(encoding="utf-8"))
+        self.write_embedded()
+        return files
+
+    def test_manifest_per_file_override_keeps_other_installed_files_executable(self):
+        self.mixed_mode_manifest()
+        self.assertEqual({target: value["mode"] for target, value in self.manifest["files"].items()},
+                         {"/" + PROTECTED: "0755", "/" + INITIALIZER: "0755", "/" + TEMPLATE: "0644"})
+        self.assertEqual(self.manifest["files"]["/" + TEMPLATE]["sha256"],
+                         hashlib.sha256(TEMPLATE_CONTENT).hexdigest())
+
+    def test_manifest_repeatable_overrides_can_select_executable_mode(self):
+        self.initialization_files()
+        self.cli(*self.manifest_arguments(self.expected, PROTECTED, INITIALIZER, TEMPLATE),
+                 "--file-mode", "0644", "--file-mode-override", "/" + PROTECTED + "=0755",
+                 "--file-mode-override", "/" + INITIALIZER + "=0755")
+        result = json.loads(self.expected.read_text(encoding="utf-8"))
+        self.assertEqual({target: value["mode"] for target, value in result["files"].items()},
+                         {"/" + PROTECTED: "0755", "/" + INITIALIZER: "0755", "/" + TEMPLATE: "0644"})
+
+    def test_manifest_override_without_global_mode_preserves_other_stat_modes(self):
+        self.initialization_files()
+        self.cli(*self.manifest_arguments(self.expected, PROTECTED, TEMPLATE),
+                 "--file-mode-override", "/" + TEMPLATE + "=0644")
+        result = json.loads(self.expected.read_text(encoding="utf-8"))
+        self.assertEqual(result["files"]["/" + PROTECTED]["mode"],
+                         f"{stat.S_IMODE((self.root / PROTECTED).stat().st_mode):04o}")
+        self.assertEqual(result["files"]["/" + TEMPLATE]["mode"], "0644")
+
+    def test_manifest_global_mode_still_applies_without_overrides(self):
+        self.cli(*self.manifest_arguments(self.expected, PROTECTED), "--file-mode", "0644")
+        result = json.loads(self.expected.read_text(encoding="utf-8"))
+        self.assertEqual(result["files"]["/" + PROTECTED]["mode"], "0644")
+
+    def test_invalid_mode_overrides_never_create_or_clobber_manifest(self):
+        self.initialization_files()
+        valid = "/" + TEMPLATE + "=0644"
+        cases = {
+            "no separator": ["/" + TEMPLATE],
+            "extra separator": [valid + "=0755"],
+            "empty path": ["=0644"],
+            "empty mode": ["/" + TEMPLATE + "="],
+            "relative path": [TEMPLATE + "=0644"],
+            "parent traversal": ["/usr/share/../shadowsocksr/shadowsocksr.config=0644"],
+            "dot path": ["/usr/./share/shadowsocksr/shadowsocksr.config=0644"],
+            "duplicate slash": ["/usr//share/shadowsocksr/shadowsocksr.config=0644"],
+            "backslash path": ["/usr\\share/shadowsocksr/shadowsocksr.config=0644"],
+            "unknown protected path": ["/etc/config/shadowsocksr=0644"],
+            "duplicate override": [valid, valid],
+            "conflicting override": [valid, "/" + TEMPLATE + "=0755"],
+            "unsupported mode": ["/" + TEMPLATE + "=0777"],
+            "short mode": ["/" + TEMPLATE + "=644"],
+        }
+        for name, overrides in cases.items():
+            for existing in (False, True):
+                with self.subTest(case=name, existing=existing):
+                    output = self.base / "invalid-output.json"
+                    if output.exists():
+                        output.unlink()
+                    if existing:
+                        output.write_bytes(b"preserve existing manifest\n")
+                    arguments = self.manifest_arguments(output, PROTECTED, TEMPLATE)
+                    for override in overrides:
+                        arguments.extend(("--file-mode-override", override))
+                    result = self.cli(*arguments, success=False)
+                    self.assertIn("override", result.stderr)
+                    if existing:
+                        self.assertEqual(output.read_bytes(), b"preserve existing manifest\n")
+                    else:
+                        self.assertFalse(output.exists())
+
+    def test_mixed_mode_initialization_assets_verify_in_all_package_containers(self):
+        files = self.mixed_mode_manifest()
+        for kind, version in (("ar", "190-6"), ("tar", "190-6"), ("apk2", "190-r6")):
+            with self.subTest(kind=kind):
+                package = self.make_package(kind, data=files, version=version)
+                self.cli("package", "--manifest", self.expected, "--package", package)
+
+    def test_packages_reject_missing_tampered_or_wrong_mode_initialization_assets(self):
+        files = self.mixed_mode_manifest()
+        for target in (INITIALIZER, TEMPLATE):
+            for defect in ("missing", "tampered", "mode"):
+                with self.subTest(target=target, defect=defect):
+                    data = []
+                    for name, content, mode in files:
+                        if name == target:
+                            if defect == "missing":
+                                continue
+                            if defect == "tampered":
+                                content += b"tampered\n"
+                            else:
+                                mode = 0o644 if mode == 0o755 else 0o755
+                        data.append((name, content, mode))
+                    package = self.make_package(data=data)
+                    result = self.cli("package", "--manifest", self.expected, "--package", package, success=False)
+                    self.assertIn("/" + target, result.stderr)
+
+    @unittest.skipIf(os.name == "nt", "Windows stat does not preserve POSIX installed mode distinctions")
+    def test_mixed_mode_rootfs_rejects_missing_tampered_or_wrong_mode_initialization_assets(self):
+        self.mixed_mode_manifest()
+        self.cli("rootfs", "--manifest", self.expected, "--root", self.root)
+        for target, content, mode in ((INITIALIZER, INITIALIZER_CONTENT, 0o755),
+                                      (TEMPLATE, TEMPLATE_CONTENT, 0o644)):
+            for defect in ("missing", "tampered", "mode"):
+                with self.subTest(target=target, defect=defect):
+                    path = self.root / target
+                    if defect == "missing":
+                        path.unlink()
+                    elif defect == "tampered":
+                        path.write_bytes(content + b"tampered\n")
+                    else:
+                        path.chmod(0o644 if mode == 0o755 else 0o755)
+                    result = self.cli("rootfs", "--manifest", self.expected, "--root", self.root, success=False)
+                    self.assertIn("/" + target, result.stderr)
+                    path.write_bytes(content)
+                    path.chmod(mode)
 
 
 class WorkflowGates(unittest.TestCase):

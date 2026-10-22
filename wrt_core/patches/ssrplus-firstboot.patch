@@ -1,0 +1,72 @@
+diff --git a/root/etc/init.d/shadowsocksr b/root/etc/init.d/shadowsocksr
+index 0f7785e..baafcc8 100644
+--- a/root/etc/init.d/shadowsocksr
++++ b/root/etc/init.d/shadowsocksr
+@@ -72,8 +72,9 @@ DNSMASQ_NFTSET=0
+ 
+ switch_server=$1
+ CRON_FILE=/etc/crontabs/root
+-EXTRA_COMMANDS='reset'
+-EXTRA_HELP="        reset   Reset to default settings"
++EXTRA_COMMANDS='reset initialize'
++EXTRA_HELP="        reset       Reset to default settings
++        initialize  Install missing factory configuration"
+ #extra_command "reset" "Reset to default settings"
+ PS="/bin/busybox ps"
+ 
+@@ -1779,6 +1780,25 @@ ssrp_stop() {
+ 	return 0
+ }
+ 
++ssrp_initialize_config() (
++	local config=/etc/config/shadowsocksr
++	local template=/usr/share/shadowsocksr/shadowsocksr.config
++	local stage
++	# A nonempty user configuration belongs to the user, even if malformed.
++	[ ! -s "$config" ] || return 0
++	[ -s "$template" ] || return 1
++	mkdir -p "${config%/*}" || return 1
++	# Stage on the destination filesystem; readers see only a complete file.
++	stage=$(mktemp -d "${config%/*}/ssrplus-init-XXXXXX") || return 1
++	trap 'rm -rf "$stage"' EXIT
++	trap 'exit 1' HUP INT TERM
++	cp "$template" "$stage/shadowsocksr" || return 1
++	chmod 0644 "$stage/shadowsocksr" || return 1
++	# Absolute package lookup ignores runtime UCI overrides and saved deltas.
++	[ "$(uci -q get "$stage/shadowsocksr.@global[0]")" = global ] || return 1
++	mv -f "$stage/shadowsocksr" "$config" || return 1
++)
++
+ ssrp_reset() {
+ 	ssrp_stop "$@" || return 1
+ 	rm -rf /etc/config/shadowsocksr $LOG_FILE
+@@ -1833,3 +1853,4 @@ stop() { ssrp_run_locked ssrp_stop "$@"; }
+ restart() { ssrp_run_locked ssrp_restart_locked "$@"; }
+ reload() { restart "$@"; }
+ reset() { ssrp_run_locked ssrp_reset "$@"; }
++initialize() { ssrp_run_locked ssrp_initialize_config "$@"; }
+diff --git a/root/etc/uci-defaults/luci-ssr-plus b/root/etc/uci-defaults/luci-ssr-plus
+index 5f54eb9..2531d32 100644
+--- a/root/etc/uci-defaults/luci-ssr-plus
++++ b/root/etc/uci-defaults/luci-ssr-plus
+@@ -31,6 +31,11 @@ touch /etc/ssrplus/oversea_list.conf
+ touch /etc/ssrplus/ad.conf
+ touch /etc/config/shadowsocksr
+ 
++/etc/init.d/shadowsocksr initialize || {
++    echo 'SSR Plus: configuration initialization failed' >&2
++    exit 1
++}
++
+ if [ -s "/etc/config/shadowsocksr" ]; then
+     if uci -q get shadowsocksr.@server_subscribe[0].auto_update_time > /dev/null; then
+         uci -q delete shadowsocksr.@server_subscribe[0].auto_update_time
+@@ -63,8 +68,6 @@ if [ -s "/etc/config/shadowsocksr" ]; then
+     uci -q commit shadowsocksr
+ fi
+ 
+-[ -s "/etc/config/shadowsocksr" ] || /etc/init.d/shadowsocksr reset
+-
+ sed -i "s/option type 'vmess'/option type 'v2ray'\n\toption v2ray_protocol 'vmess'/g" /etc/config/shadowsocksr
+ sed -i "s/option type 'vless'/option type 'v2ray'\n\toption v2ray_protocol 'vless'/g" /etc/config/shadowsocksr
+ sed -i "s/option encrypt_method_v2ray_ss/option encrypt_method_ss/g" /etc/config/shadowsocksr

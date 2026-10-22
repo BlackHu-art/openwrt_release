@@ -161,7 +161,7 @@ def ar_entries(data):
 def package_identity(name, version, expected_version):
     if name != PACKAGE_NAME:
         raise VerificationError("wrong compiled package name: " + str(name))
-    # opkg uses 190-5 while apk uses 190-r5 for the same recipe release.
+    # opkg uses 190-6 while apk uses 190-r6 for the same recipe release.
     normalize = lambda value: re.sub(r"-r([0-9]+)$", r"-\1", str(value))
     if normalize(version) != normalize(expected_version):
         raise VerificationError(f"compiled package version mismatch: expected {expected_version}, got {version}")
@@ -251,6 +251,22 @@ def verify_package(manifest, package, apk_tool=None):
 
 
 def create_manifest(arguments):
+    overrides = {}
+    for override in getattr(arguments, "file_mode_override", None) or []:
+        if override.count("=") != 1:
+            raise VerificationError("file mode override must be PATH=MODE: " + override)
+        target, mode = override.split("=")
+        try:
+            target_parts(target)
+        except VerificationError as error:
+            raise VerificationError("invalid file mode override: " + str(error)) from error
+        if target not in arguments.file:
+            raise VerificationError("file mode override must name a protected path: " + target)
+        if target in overrides:
+            raise VerificationError("duplicate file mode override: " + target)
+        if mode not in ("0755", "0644"):
+            raise VerificationError("file mode override must use 0755 or 0644: " + override)
+        overrides[target] = mode
     patches = {}
     for path in arguments.patch:
         path = Path(path)
@@ -263,7 +279,7 @@ def create_manifest(arguments):
             raise VerificationError("duplicate protected path: " + target)
         path = root_file(arguments.root, target)
         files[target] = {"sha256": sha256(path.read_bytes()),
-                         "mode": arguments.file_mode or f"{stat.S_IMODE(path.stat().st_mode):04o}"}
+                         "mode": overrides.get(target) or arguments.file_mode or f"{stat.S_IMODE(path.stat().st_mode):04o}"}
     result = validate_manifest({"source_commit": arguments.source_commit, "repair_version": arguments.repair_version,
                                 "patches": patches, "files": files})
     Path(arguments.output).write_text(json.dumps(result, indent=2, sort_keys=True) + "\n", encoding="utf-8")
@@ -281,6 +297,8 @@ def main(argv=None):
     manifest.add_argument("--file", action="append", required=True)
     manifest.add_argument("--file-mode", choices=("0755", "0644"),
                           help="explicit installed mode policy, also usable on non-POSIX source hosts")
+    manifest.add_argument("--file-mode-override", action="append", metavar="PATH=MODE",
+                          help="override installed mode for a protected --file path (0755 or 0644); repeatable")
     for command in ("rootfs", "package"):
         child = commands.add_parser(command)
         child.add_argument("--manifest", required=True, help="trusted manifest from repaired source, never from the artifact")

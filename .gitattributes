@@ -3,7 +3,8 @@
 /wrt_core/modules/ssrplus_build.sh text eol=lf
 /wrt_core/ssrplus_verify.py text eol=lf
 # Upstream fixtures retain their exact, independently checked whitespace.
-/tests/fixtures/ssrplus/2abdc9aa/** whitespace=-blank-at-eol,-space-before-tab
+/tests/fixtures/ssrplus/2abdc9aa/** text eol=lf whitespace=-blank-at-eol,-space-before-tab
+/tests/fixtures/ssrplus/2abdc9aa/shadowsocksr.config whitespace=-blank-at-eol,-blank-at-eof,-space-before-tab
 /tests/fixtures/ssrplus-persistence/** text eol=lf
 /tests/fixtures/ssrplus-persistence/2abdc9aa/** whitespace=-blank-at-eol,-space-before-tab
 /tests/*ssrplus* text eol=lf

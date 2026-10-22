@@ -19,6 +19,7 @@ python tests/test_ssrplus_runtime_regressions.py
 python tests/test_ssrplus_updater_regressions.py
 python tests/test_ssrplus_runtime.py
 python tests/test_ssrplus_followup_fixes.py
+python tests/test_ssrplus_firstboot.py
 python tests/test_ssrplus_persistence.py
 python tests/test_ssrplus_persistence_lifecycle.py
 python tests/test_ssrplus_subscription.py

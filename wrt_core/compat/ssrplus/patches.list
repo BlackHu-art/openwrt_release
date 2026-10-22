@@ -10,3 +10,5 @@ ssrplus-package.patch
 ssrplus-dns-forwarding.patch
 ssrplus-custom-ports.patch
 ssrplus-release-r5.patch
+ssrplus-firstboot.patch
+ssrplus-release-r6.patch

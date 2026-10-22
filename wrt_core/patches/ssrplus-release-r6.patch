@@ -1,0 +1,15 @@
+Subject: SSR Plus: identify the first initialization repair
+
+Keep all earlier release patches intact so complete r4 and r5 package sources
+can be normalized to the independently reviewed upstream baseline.
+
+diff --git a/Makefile b/Makefile
+--- a/Makefile
++++ b/Makefile
+@@ -5,5 +5,5 @@
+ PKG_NAME:=luci-app-ssr-plus
+ PKG_VERSION:=190
+-PKG_RELEASE:=5
++PKG_RELEASE:=6
+ # Local repair set: SSR-20261021; source provenance is embedded in the package.
+ 

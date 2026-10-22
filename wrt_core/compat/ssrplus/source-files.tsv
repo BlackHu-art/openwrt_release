@@ -7,3 +7,5 @@ f88a83d10027d2854e3464d5d70cc959e0259b2d	root/usr/share/shadowsocksr/subscribe.l
 9424cfac716f7b265b7e89cb75ce88106d0a7cfd	root/usr/share/shadowsocksr/ssrplusupdate.sh	ssrplus/2abdc9aa/ssrplusupdate.sh
 5a2a3709032f791fb8d6bd2822576fe7d0e76dbd	root/usr/bin/ssr-switch	ssrplus/2abdc9aa/ssr-switch
 41a65caeda830cd9d032b8d8595c0d045b041805	Makefile	ssrplus/2abdc9aa/Makefile
+5f54eb9974052df4f437afd0c45dc5d2f3337c4a	root/etc/uci-defaults/luci-ssr-plus	ssrplus/2abdc9aa/luci-ssr-plus.defaults
+ded6977f352d1c10da96b4bc2fdb9b4cac2c36d1	root/usr/share/shadowsocksr/shadowsocksr.config	ssrplus/2abdc9aa/shadowsocksr.config

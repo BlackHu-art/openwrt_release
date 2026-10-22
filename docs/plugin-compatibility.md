@@ -12,9 +12,9 @@
 
 `wrt_core/modules/custom_feed.sh` 从 `fw876/helloworld` 的 **master** 获取包。
 `wrt_core/update.sh` 的 `stage_pre_install_source_fixes` 在 feeds install 前调用
-`fix_ssrplus_compat`，按 `wrt_core/compat/ssrplus/patches.list` 应用十二份补丁。
-原有九份保持不变，随后追加两项功能修复及一份单独的版本标记补丁。
-完整旧 `190-r4` 源码及构建清单也会重新验证并升级。
+`fix_ssrplus_compat`，按 `wrt_core/compat/ssrplus/patches.list` 应用十四份补丁。
+原有十二份保持不变，随后追加首次初始化修复及单独的版本标记补丁。
+完整旧 `190-r4`/`190-r5` 源码及其原始构建清单也会重新验证并升级。
 
 - 回移 [b791299](https://github.com/fw876/helloworld/commit/b791299f2859c0bbd9ebea48af17dea8a30fdae9)：
   nft GFW 模式下将 DNS 上游 IPv4 地址加入已有 `inet ss_spec gfwlist`，
@@ -22,7 +22,8 @@
   当前 master 没有 IPv6 GFW 规则，IPv6 地址安全跳过。
 - 回移 [356dd51](https://github.com/fw876/helloworld/commit/356dd51f880da55544e7601a0a3773acaf6fd76f)：
   自定义代理端口从 global 配置读取。
-- 包版本为 `190-5`，内嵌修复标识为 `190-r5`。构建清单包含全部补丁和
+- 首次配置生成与运行时 reset 分离，空配置不再依赖停服务及规则清理；已有非空配置跳过默认值安装，保留上游兼容迁移。
+- 包版本为 `190-6`，内嵌修复标识为 `190-r6`。构建清单包含全部补丁和
   受保护程序哈希；现有包与 rootfs 门禁继续校验实际成品。
 
 细节见 [SSR 兼容性说明](ssrplus-compatibility.md)。

@@ -36,6 +36,8 @@ f88a83d10027d2854e3464d5d70cc959e0259b2d root/usr/share/shadowsocksr/subscribe.l
 9424cfac716f7b265b7e89cb75ce88106d0a7cfd root/usr/share/shadowsocksr/ssrplusupdate.sh
 5a2a3709032f791fb8d6bd2822576fe7d0e76dbd root/usr/bin/ssr-switch
 41a65caeda830cd9d032b8d8595c0d045b041805 Makefile
+5f54eb9974052df4f437afd0c45dc5d2f3337c4a root/etc/uci-defaults/luci-ssr-plus
+ded6977f352d1c10da96b4bc2fdb9b4cac2c36d1 root/usr/share/shadowsocksr/shadowsocksr.config
 BLOBS
 source_paths=()
 while read -r blob path fixture; do
@@ -47,7 +49,7 @@ while read -r blob path fixture; do
         fail "fixture differs from reviewed upstream: $path"
     source_paths+=("$path")
 done < "$source_table"
-[[ ${#source_paths[@]} -eq 9 ]] || fail 'source table must protect all nine reviewed files'
+[[ ${#source_paths[@]} -eq 11 ]] || fail 'source table must protect all eleven reviewed files including initialization assets'
 declare -F fix_ssrplus_compat >/dev/null ||
     fail "fix_ssrplus_compat is not defined by modules/plugin_compat.sh"
 
@@ -55,7 +57,8 @@ mapfile -t patches < "$patch_list"
 expected_patches=(ssrplus-startup-lock.patch ssrplus-dns-transaction.patch ssrplus-updater-validation.patch
     ssrplus-persistence.patch ssrplus-availability.patch ssrplus-subscription.patch
     ssrplus-monitor-scheduler.patch ssrplus-persistence-lifecycle.patch ssrplus-package.patch
-    ssrplus-dns-forwarding.patch ssrplus-custom-ports.patch ssrplus-release-r5.patch)
+    ssrplus-dns-forwarding.patch ssrplus-custom-ports.patch ssrplus-release-r5.patch
+    ssrplus-firstboot.patch ssrplus-release-r6.patch)
 [[ ${patches[*]} == "${expected_patches[*]}" ]] || fail 'complete SSR dependency order is missing or changed'
 independent=(ssrplus-startup-lock.patch ssrplus-dns-transaction.patch ssrplus-persistence.patch)
 for patch_file in "${patches[@]}"; do
@@ -73,7 +76,10 @@ make_package() {
         mkdir -p "$package/$(dirname "$path")"
         cp "${fixture_paths[$path]}" "$package/$path"
         # Raw fixture checkout modes are not installed-program modes.
-        [[ $path != root/* ]] || chmod 755 "$package/$path"
+        case "$path" in
+            root/*/shadowsocksr.config) chmod 644 "$package/$path" ;;
+            root/*) chmod 755 "$package/$path" ;;
+        esac
     done
     # Production sparse transfer retains a parent repository but no package .git.
     git init -q "$parent"
@@ -96,7 +102,7 @@ import sys
 package, table, patch_list, patch_dir = map(Path, sys.argv[1:5])
 manifest = json.loads((package / "root/usr/share/shadowsocksr/ssrplus-build.json").read_text(encoding="utf-8"))
 assert manifest["source_commit"] == sys.argv[5], "wrong source commit in embedded manifest"
-assert manifest["repair_version"] == "190-r5", "wrong repair version"
+assert manifest["repair_version"] == "190-r6", "wrong repair version"
 patches = patch_list.read_text().splitlines()
 expected = {name: hashlib.sha256((patch_dir / name).read_bytes()).hexdigest() for name in patches}
 assert manifest["patches"] == expected, "patch manifest omitted or changed an extension"
@@ -108,7 +114,8 @@ for target in paths:
     actual = package / "root" / target.lstrip("/")
     expected = manifest["files"][target]
     assert expected["sha256"] == hashlib.sha256(actual.read_bytes()).hexdigest(), target
-    assert expected["mode"] == "0755", "manifest lost target executable mode: " + target
+    mode = "0644" if target == "/usr/share/shadowsocksr/shadowsocksr.config" else "0755"
+    assert expected["mode"] == mode, "manifest lost installed mode: " + target
 PY
     # Native Windows stat cannot prove POSIX executable modes. Shell stat above
     # verifies install/chmod; the Linux artifact gate verifies actual rootfs modes.
@@ -142,13 +149,13 @@ assert_fully_patched() {
             fail "composed result did not normalize to official source: $path"
     done
     grep -qx 'PKG_VERSION:=190' "$package/Makefile" || fail 'package base version changed unexpectedly'
-    grep -qx 'PKG_RELEASE:=5' "$package/Makefile" || fail 'repair release marker is missing'
+    grep -qx 'PKG_RELEASE:=6' "$package/Makefile" || fail 'repair release marker is missing'
     grep -Fq 'Local repair set: SSR-20261021' "$package/Makefile" || fail 'local repair identity is missing'
     grep -Fq '+flock' "$package/Makefile" || fail 'persistent-lock dependency was not declared'
     cmp "$runtime_source" "$package/$runtime_path" || fail 'installed runtime helper differs from the reviewed project source'
     [[ $(stat -c '%a' "$package/$runtime_path") == 755 ]] || fail 'runtime helper is not executable'
     for path in "${source_paths[@]}" "$runtime_path"; do
-        case "$path" in Makefile|*.lua) ;; *) bash -n "$package/$path" ;; esac
+        case "$path" in Makefile|*.lua|*.config) ;; *) bash -n "$package/$path" ;; esac
     done
     assert_manifest "$package"
 }
@@ -190,33 +197,47 @@ for mask in "${legacy_masks[@]}"; do
     snapshot "$package" > "$test_root/after"
     cmp "$test_root/before" "$test_root/after" || fail "subset $mask was not idempotent"
 done
-# Upgrade a complete earlier repair, including its real r4 build manifest.
-# Keeping the original nine patches intact makes this a supported source state.
-parent="$test_root/complete-r4-existing"
-package=$(make_package "$parent")
-legacy_r4_patches=("${patches[@]:0:9}")
-manifest_args=()
-for patch_file in "${legacy_r4_patches[@]}"; do
-    direct_patch "$parent" "$BASE_PATH/patches/$patch_file"
-    manifest_args+=(--patch "$BASE_PATH/patches/$patch_file")
+# Earlier packages contained the initialization files, but their genuine build
+# manifests protected only the original eight source programs plus the runtime.
+for legacy_release in 4 5; do
+    parent="$test_root/complete-r$legacy_release-existing"
+    package=$(make_package "$parent")
+    legacy_count=9
+    [[ $legacy_release != 5 ]] || legacy_count=12
+    legacy_patches=("${patches[@]:0:$legacy_count}")
+    manifest_args=()
+    for patch_file in "${legacy_patches[@]}"; do
+        direct_patch "$parent" "$BASE_PATH/patches/$patch_file"
+        manifest_args+=(--patch "$BASE_PATH/patches/$patch_file")
+    done
+    install -m 755 "$runtime_source" "$package/$runtime_path"
+    for path in "${source_paths[@]:0:9}"; do
+        [[ $path != root/* ]] || manifest_args+=(--file "/${path#root/}")
+    done
+    MSYS2_ARG_CONV_EXCL="${MSYS2_ARG_CONV_EXCL:+$MSYS2_ARG_CONV_EXCL;}/etc/;/usr/" \
+        python "$BASE_PATH/ssrplus_verify.py" manifest --root "$package/root" \
+            --output "$package/$manifest_path" --source-commit "$upstream_commit" \
+            --repair-version "190-r$legacy_release" --file-mode 0755 "${manifest_args[@]}" \
+            --file /usr/share/shadowsocksr/ssrp-runtime.sh
+    python - "$package/$manifest_path" "$legacy_count" <<'PY'
+import json
+from pathlib import Path
+import sys
+manifest = json.loads(Path(sys.argv[1]).read_text())
+assert len(manifest["files"]) == 9, "legacy manifest was widened with r6 assets"
+assert len(manifest["patches"]) == int(sys.argv[2])
+assert "/etc/uci-defaults/luci-ssr-plus" not in manifest["files"]
+assert "/usr/share/shadowsocksr/shadowsocksr.config" not in manifest["files"]
+PY
+    grep -qx "PKG_RELEASE:=$legacy_release" "$package/Makefile" || fail 'wrong legacy upgrade fixture'
+    fix_ssrplus_compat "$package" > "$test_root/r$legacy_release-upgrade.log"
+    assert_fully_patched "$parent" "$package"
+    snapshot "$package" > "$test_root/before"
+    fix_ssrplus_compat "$package" > "$test_root/r$legacy_release-repeat.log"
+    snapshot "$package" > "$test_root/after"
+    cmp "$test_root/before" "$test_root/after" || fail "r$legacy_release upgrade was not idempotent"
+    echo "SSR complete r$legacy_release source and original manifest upgrade to r6: PASS"
 done
-install -m 755 "$runtime_source" "$package/$runtime_path"
-for path in "${source_paths[@]}"; do
-    [[ $path != root/* ]] || manifest_args+=(--file "/${path#root/}")
-done
-MSYS2_ARG_CONV_EXCL="${MSYS2_ARG_CONV_EXCL:+$MSYS2_ARG_CONV_EXCL;}/etc/;/usr/" \
-    python "$BASE_PATH/ssrplus_verify.py" manifest --root "$package/root" \
-        --output "$package/$manifest_path" --source-commit "$upstream_commit" \
-        --repair-version 190-r4 --file-mode 0755 "${manifest_args[@]}" \
-        --file /usr/share/shadowsocksr/ssrp-runtime.sh
-grep -qx 'PKG_RELEASE:=4' "$package/Makefile" || fail 'r4 upgrade fixture is not r4'
-fix_ssrplus_compat "$package" > "$test_root/r4-upgrade.log"
-assert_fully_patched "$parent" "$package"
-snapshot "$package" > "$test_root/before"
-fix_ssrplus_compat "$package" > "$test_root/r4-repeat.log"
-snapshot "$package" > "$test_root/after"
-cmp "$test_root/before" "$test_root/after" || fail 'r4 upgrade was not idempotent'
-echo 'SSR complete r4 source and manifest upgrade to r5: PASS'
 
 # The complete dependent patch set may also be present before this helper runs.
 parent="$test_root/complete-existing"
@@ -231,6 +252,10 @@ cmp "$test_root/before" "$test_root/after" || fail 'complete dependent patch set
 chmod 644 "$package/$runtime_path"
 fix_ssrplus_compat "$package" > "$test_root/repair-mode.log"
 [[ $(stat -c '%a' "$package/$runtime_path") == 755 ]] || fail 'unchanged runtime bytes kept a non-executable mode'
+template_path=root/usr/share/shadowsocksr/shadowsocksr.config
+chmod 755 "$package/$template_path"
+fix_ssrplus_compat "$package" > "$test_root/repair-template-mode.log"
+[[ $(stat -c '%a' "$package/$template_path") == 644 ]] || fail 'unchanged template bytes kept an executable mode'
 printf 'SSR legacy subsets (%s), complete dependent patch set, version/modes and idempotence: PASS\n' "${legacy_masks[*]}"
 
 # The second patch can reject any of its source files. Preflight must happen

@@ -2,17 +2,18 @@
 
 SSR 修复由项目构建流程自动应用，不依赖手动修改路由器或临时 build 目录。
 当前审查基线是 `fw876/helloworld` 的
-`2abdc9aa9e19607774dc9789709212b70b8607c6`，本地修复版本为 `190-r5`
-（opkg 包版本为 `190-5`）。
+`2abdc9aa9e19607774dc9789709212b70b8607c6`，本地修复版本为 `190-r6`
+（opkg 包版本为 `190-6`）。
 
 ## 以后编译如何带入修复
 
 1. `custom_feed.sh` 导入 SSR 源码并记录实际上游提交。
-2. `update.sh` 在 `feeds install` 之前调用 `fix_ssrplus_compat`，校验九个
-   受保护源文件的 Git blob，再按 `patches.list` 应用完整十二份补丁并安装运行脚本。
+2. `update.sh` 在 `feeds install` 之前调用 `fix_ssrplus_compat`，校验十一个
+   受保护源文件的 Git blob，再按 `patches.list` 应用完整十四份补丁并安装运行脚本。
    已完整应用的旧补丁可在隔离副本中还原后重新校验；未知或不完整修改会中止构建。
 3. 包内生成 `/usr/share/shadowsocksr/ssrplus-build.json`，记录上游提交、
-   修复版本、补丁 SHA-256 和九个安装程序的 SHA-256/权限。
+   修复版本、补丁 SHA-256 和十一个安装文件的 SHA-256/权限；默认模板为
+   `0644`，初始化脚本及运行程序为 `0755`。
 4. `make defconfig` 后检查实际配置：选择 SSR 时必须使用 firewall4、
    nftables 后端、dnsmasq-full 的 nftset 支持以及 flock。
 5. 编译后、收集固件之前，校验实际 IPK/APK 的版本、文件内容、权限和内嵌清单；
@@ -45,6 +46,30 @@ SSR 修复由项目构建流程自动应用，不依赖手动修改路由器或�
 这两项跟进参考上游 dev 的 [DNS 转发修复](https://github.com/fw876/helloworld/commit/b791299f2859c0bbd9ebea48af17dea8a30fdae9)
 和 [custom_ports 修复](https://github.com/fw876/helloworld/commit/356dd51f880da55544e7601a0a3773acaf6fd76f)，
 不切换到 dev 的新协议或核心组合。
+
+## r6：首次初始化
+
+插件自带的初始化脚本在空配置时调用 `reset`。此前本地运行时修复要求停止/清理规则成功后才能
+重置；首次启动缺少 `/var/etc` 时，清理 include 文件失败，因而阻断默认配置复制。
+这是此前本地修复引入的回归；空配置首次启动路径未被当时的运行回归覆盖。
+
+`r6` 添加受现有生命周期锁保护的 `initialize` 入口，并由真实 uci-defaults
+在迁移前调用。配置缺失或为空时，检查默认模板、在同目录暂存、设置 `0644`
+权限，以绝对路径交给 UCI 校验暂存文件，避开运行时配置覆盖和未提交变更，再原子发布。
+入口仍在原 init 脚本内，不新增开机服务；不停止服务、清理规则、重启 DNS 或执行代理核心。
+失败输出诊断并返回非零，让原 uci-defaults 留待重试。
+
+任何已有非空配置都跳过默认值安装，包括缺少 global 段的异常配置；不会为
+修复页面而自动重置用户数据。原有上游兼容迁移仍保留。显式 `reset` 的停止
+失败保护不变。
+
+原有十二份补丁和运行辅助脚本保持不变，完整 `r4`/`r5` 状态仍可校验升级。
+初始化脚本和只读默认模板现已纳入源码、软件包及 rootfs 成品校验；可变的
+`/etc/config/shadowsocksr` 不纳入安装文件哈希。
+
+2026-10-22 核对的上游 [master](https://github.com/fw876/helloworld/blob/2abdc9aa9e19607774dc9789709212b70b8607c6/luci-app-ssr-plus/root/etc/uci-defaults/luci-ssr-plus#L66)
+及 [dev](https://github.com/fw876/helloworld/blob/45893d778767f3bdb2fcb6e873cf8f9a667d94d4/luci-app-ssr-plus/root/etc/uci-defaults/luci-ssr-plus#L127)
+仍采用空配置调用 reset 的路径，没有可直接回移的对应修复。本次保留 master 来源。
 
 更新器要求目标 curl 至少为 8.4，以限制未知长度下载；旧 curl 会明确拒绝更新规则。
 上游受保护源文件发生变化时，需要重新审查并更新补丁与基线，不能绕过源码校验继续编译。
