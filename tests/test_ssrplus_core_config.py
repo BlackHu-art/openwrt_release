@@ -221,6 +221,41 @@ class SubscriptionCoreConfigRegressions(unittest.TestCase):
                 self.assertEqual(config["password"], "~~~")
                 self.assertEqual(config["protocol"], "redir")
 
+    def test_native_ss_base64_password_percent_literals_reach_core_in_all_link_forms(self):
+        # Base64 contains the exact credentials, not a URI-encoded password.
+        # Only the surrounding Base64 text may have an outer URI-escape layer.
+        password = "%2F%252F"
+        for preference in ("ss-rust", "ss-libev"):
+            for whole_link in (False, True):
+                credentials = "aes-128-gcm:" + password
+                payload = credentials + ("@ss.example:443" if whole_link else "")
+                standard = base64.b64encode(payload.encode()).decode()
+                forms = {"standard": standard,
+                         "urlsafe": base64.urlsafe_b64encode(payload.encode()).decode().rstrip("="),
+                         "outer-uri-escaped": quote(standard, safe="")}
+                for form, encoded in forms.items():
+                    with self.subTest(preference=preference, whole_link=whole_link, form=form):
+                        authority = encoded + ("" if whole_link else "@ss.example:443")
+                        node, config = self.subscribe("ss://" + authority + "#Percent", preference)
+                        self.assertEqual(node["type"], preference)
+                        self.assertEqual(config["password"], "%2F%252F")
+                        self.assertEqual(node["password"], "%2F%252F")
+                        self.assertEqual(config["method"], "aes-128-gcm")
+                        self.assertEqual(config["server"], "ss.example")
+                        self.assertEqual(config["server_port"], 443)
+                        self.assertEqual(config["protocol"], "redir")
+
+    def test_native_ss_base64_password_percent_patterns_and_real_slash_are_literal(self):
+        passwords = ("%2F", "%252F", "%2f", "mixed+%2F%252F+", "bad%2G%2%", "real/slash+~~~")
+        for preference in ("ss-rust", "ss-libev"):
+            for password in passwords:
+                with self.subTest(preference=preference, password=password):
+                    encoded = base64.b64encode(("aes-128-gcm:" + password).encode()).decode()
+                    node, config = self.subscribe("ss://" + encoded + "@ss.example:443#Literal", preference)
+                    self.assertEqual(node["type"], preference)
+                    self.assertEqual(config["password"], password)
+                    self.assertEqual(node["password"], password)
+
     def test_tls_transport_host_stays_distinct_from_sni(self):
         for protocol in ("ss", "vless", "trojan"):
             for transport, settings in (("ws", "wsSettings"), ("httpupgrade", "httpupgradeSettings")):

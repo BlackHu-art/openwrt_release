@@ -30,10 +30,12 @@ semantics require the separate runtime harness.
 
 All eight subsets of the three legacy startup/DNS/persistence patches and the
 complete dependent repair set must converge to the same package, versioned
-`190-r9`. Complete r4/r5 sources retain their original nine-target manifests;
+`190-r10`. Complete r4/r5 sources retain their original nine-target manifests;
 r6/r7/r8 sources retain fourteen/sixteen/nineteen patch hashes and eleven targets,
-including the 0644 template. All upgrade to the twelve-target r9 manifest and prepare twice
-without drift. The build gate reverses complete patches only in
+including the 0644 template. Complete r9 sources retain all twenty-one original
+patch hashes and their twelve-target manifest, including the unchanged generator.
+All upgrade to the twelve-target r10 manifest and prepare twice without drift.
+The build gate reverses complete patches only in
 an isolated copy, then compares the original Git blobs before writing any feed
 source. Unknown changes outside patch context, incomplete patches, a missing
 runtime source, and a changed installed runtime helper are rejected. Tests also
@@ -42,7 +44,7 @@ The installed `root/usr/share/shadowsocksr/ssrp-runtime.sh` must be byte-identic
 to `wrt_core/compat/ssrplus/runtime.sh`.
 
 The full twelve-file baseline is recorded in
-`wrt_core/compat/ssrplus/source-files.tsv`; the ordered twenty-one-patch repair set is
+`wrt_core/compat/ssrplus/source-files.tsv`; the ordered twenty-three-patch repair set is
 `wrt_core/compat/ssrplus/patches.list`. Additional unchanged fixtures cover
 `subscribe.lua`, `ssr-monitor`, `ssr-switch`, and `ssrplusupdate.sh`; the reviewed
 `ssr-rules` fixture is in the adjacent `ssrplus-persistence/` directory.
@@ -62,6 +64,12 @@ Cases cover native SS Base64 credentials and explicit core selection; Trojan
 gRPC, TCP, KCP and QUIC parameters; HTTP camouflage host/path defaults; finalmask
 JSON; independent TLS/Reality transport Host and SNI fallback; the unchanged
 VMess path; and failed subscription groups retaining old/manual nodes.
+Decoded Base64 credentials carry the exact password bytes: literal percent
+sequences stay literal, without guessing at another encoding layer. Outer URI
+escaping is still decoded at its own boundary. The repair takes effect only when
+a later subscription actually reparses the link; existing persisted values and
+MD5 caches are not migrated. Recovering password content lost by an older parser
+requires subscribing again and ensuring the original link is actually reparsed.
 
 The new firstboot harness executes the actual patched init and uci-defaults in
 an isolated filesystem. Missing/empty configurations must receive the reviewed

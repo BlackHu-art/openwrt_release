@@ -62,7 +62,8 @@ expected_patches=(ssrplus-startup-lock.patch ssrplus-dns-transaction.patch ssrpl
     ssrplus-firstboot.patch ssrplus-release-r6.patch
     ssrplus-initialization-order.patch ssrplus-release-r7.patch
     ssrplus-subscription-auto.patch ssrplus-ss-parser.patch ssrplus-release-r8.patch
-    ssrplus-transport-config.patch ssrplus-release-r9.patch)
+    ssrplus-transport-config.patch ssrplus-release-r9.patch
+    ssrplus-ss-password.patch ssrplus-release-r10.patch)
 [[ ${patches[*]} == "${expected_patches[*]}" ]] || fail 'complete SSR dependency order is missing or changed'
 independent=(ssrplus-startup-lock.patch ssrplus-dns-transaction.patch ssrplus-persistence.patch)
 for patch_file in "${patches[@]}"; do
@@ -106,7 +107,7 @@ import sys
 package, table, patch_list, patch_dir = map(Path, sys.argv[1:5])
 manifest = json.loads((package / "root/usr/share/shadowsocksr/ssrplus-build.json").read_text(encoding="utf-8"))
 assert manifest["source_commit"] == sys.argv[5], "wrong source commit in embedded manifest"
-assert manifest["repair_version"] == "190-r9", "wrong repair version"
+assert manifest["repair_version"] == "190-r10", "wrong repair version"
 patches = patch_list.read_text().splitlines()
 expected = {name: hashlib.sha256((patch_dir / name).read_bytes()).hexdigest() for name in patches}
 assert manifest["patches"] == expected, "patch manifest omitted or changed an extension"
@@ -153,7 +154,7 @@ assert_fully_patched() {
             fail "composed result did not normalize to official source: $path"
     done
     grep -qx 'PKG_VERSION:=190' "$package/Makefile" || fail 'package base version changed unexpectedly'
-    grep -qx 'PKG_RELEASE:=9' "$package/Makefile" || fail 'repair release marker is missing'
+    grep -qx 'PKG_RELEASE:=10' "$package/Makefile" || fail 'repair release marker is missing'
     grep -Fq 'Local repair set: SSR-20261021' "$package/Makefile" || fail 'local repair identity is missing'
     grep -Fq '+flock' "$package/Makefile" || fail 'persistent-lock dependency was not declared'
     cmp "$runtime_source" "$package/$runtime_path" || fail 'installed runtime helper differs from the reviewed project source'
@@ -203,8 +204,9 @@ for mask in "${legacy_masks[@]}"; do
 done
 # r4/r5 manifests protected the original eight programs plus the runtime; r6
 # added the hook/template targets and their mixed modes with fourteen patches.
-# Complete r7/r8 retain eleven targets with sixteen/nineteen published patches.
-for legacy_release in 4 5 6 7 8; do
+# Complete r7/r8 retain eleven targets with sixteen/nineteen published patches;
+# complete r9 protects the generator as its twelfth target with twenty-one patches.
+for legacy_release in 4 5 6 7 8 9; do
     parent="$test_root/complete-r$legacy_release-existing"
     package=$(make_package "$parent")
     legacy_count=9
@@ -212,10 +214,12 @@ for legacy_release in 4 5 6 7 8; do
     [[ $legacy_release != 6 ]] || legacy_count=14
     [[ $legacy_release != 7 ]] || legacy_count=16
     [[ $legacy_release != 8 ]] || legacy_count=19
+    [[ $legacy_release != 9 ]] || legacy_count=21
     legacy_sources=9
     [[ $legacy_release != 6 ]] || legacy_sources=11
     [[ $legacy_release != 7 ]] || legacy_sources=11
     [[ $legacy_release != 8 ]] || legacy_sources=11
+    [[ $legacy_release != 9 ]] || legacy_sources=12
     legacy_patches=("${patches[@]:0:$legacy_count}")
     manifest_args=()
     for patch_file in "${legacy_patches[@]}"; do
@@ -249,6 +253,10 @@ if int(sys.argv[2]) < 14:
 else:
     assert manifest["files"]["/etc/uci-defaults/luci-ssr-plus"]["mode"] == "0755"
     assert manifest["files"]["/usr/share/shadowsocksr/shadowsocksr.config"]["mode"] == "0644"
+if int(sys.argv[4]) < 9:
+    assert "/usr/share/shadowsocksr/gen_config.lua" not in manifest["files"]
+else:
+    assert manifest["files"]["/usr/share/shadowsocksr/gen_config.lua"]["mode"] == "0755"
 PY
     grep -qx "PKG_RELEASE:=$legacy_release" "$package/Makefile" || fail 'wrong legacy upgrade fixture'
     fix_ssrplus_compat "$package" > "$test_root/r$legacy_release-upgrade.log"
@@ -257,7 +265,7 @@ PY
     fix_ssrplus_compat "$package" > "$test_root/r$legacy_release-repeat.log"
     snapshot "$package" > "$test_root/after"
     cmp "$test_root/before" "$test_root/after" || fail "r$legacy_release upgrade was not idempotent"
-    echo "SSR complete r$legacy_release source and original manifest upgrade to r9: PASS"
+    echo "SSR complete r$legacy_release source and original manifest upgrade to r10: PASS"
 done
 
 # The complete dependent patch set may also be present before this helper runs.

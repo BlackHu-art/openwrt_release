@@ -19,3 +19,5 @@ ssrplus-ss-parser.patch
 ssrplus-release-r8.patch
 ssrplus-transport-config.patch
 ssrplus-release-r9.patch
+ssrplus-ss-password.patch
+ssrplus-release-r10.patch

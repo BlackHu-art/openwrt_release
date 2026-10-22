@@ -86,7 +86,8 @@ class SubscriptionRegressions(unittest.TestCase):
         target = package / "root/usr/share/shadowsocksr/subscribe.lua"
         target.parent.mkdir(parents=True)
         shutil.copyfile(ROOT / "tests/fixtures/ssrplus/2abdc9aa/subscribe.lua", target)
-        for name in ("ssrplus-subscription.patch", "ssrplus-ss-parser.patch", "ssrplus-transport-config.patch"):
+        for name in ("ssrplus-subscription.patch", "ssrplus-ss-parser.patch",
+                     "ssrplus-transport-config.patch", "ssrplus-ss-password.patch"):
             patch = ROOT / "wrt_core/patches" / name
             if not patch.exists():
                 continue
