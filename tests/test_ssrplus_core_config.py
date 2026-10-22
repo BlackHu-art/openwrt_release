@@ -39,7 +39,7 @@ def lua_to_python(value):
 
 
 def generate_core_config(node, installed_cores=CORE_BINARIES, *, runtime_args=None,
-                         section_name="candidate", uci_sections=None):
+                         section_name="candidate", uci_sections=None, xray_version="26.9.1"):
     """Run unmodified gen_config.lua with a committed subscriber node."""
     source_bytes = GENERATOR.read_bytes()
     if hashlib.sha256(source_bytes).hexdigest() != GENERATOR_SHA256:
@@ -74,7 +74,7 @@ def generate_core_config(node, installed_cores=CORE_BINARIES, *, runtime_args=No
         if command == 'type -t -p "xray" 2>/dev/null':
             return "/usr/bin/xray\n" if "xray" in installed_cores else ""
         if command == "xray version 2>&1" and "xray" in installed_cores:
-            return "Xray 26.9.1\n"
+            return "Xray " + xray_version + "\n"
         raise AssertionError("unexpected generator command: " + command)
 
     def decode(value):

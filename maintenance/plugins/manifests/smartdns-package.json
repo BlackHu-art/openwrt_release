@@ -1,0 +1,63 @@
+{
+  "source_id": "smartdns-package",
+  "commit": "cdf0de1d3e64984ea2c56ec873f233495ddb1de0",
+  "tree": "4c499dfd232864ec32d43e3921637f7a50ce9eaf",
+  "files": [
+    {
+      "path": ".github/scripts/download-and-package.sh",
+      "git_mode": "100755",
+      "git_blob": "2b20392ad4a20fa08cdc6c978ba07a412e9f4cab",
+      "bytes": 2606,
+      "sha256": "568d2d3d43c1f8449d0efaf26f02ce61bb4de77b97a985427e45218df42a27fd"
+    },
+    {
+      "path": ".github/scripts/extract-makefile-vars.sh",
+      "git_mode": "100755",
+      "git_blob": "b758282d482dd77c28e34bcabace8754cb554e37",
+      "bytes": 1380,
+      "sha256": "2bae00974410d19887813e0f296ff6b169d7744fcf030a9331d15fd60173a751"
+    },
+    {
+      "path": ".github/scripts/setup-sdk.sh",
+      "git_mode": "100755",
+      "git_blob": "71cd4d2ee32c30d559199aefbec9b57a5c2ddd93",
+      "bytes": 2208,
+      "sha256": "26e78a2d4480e405464feda91af75ac8c89fb5afd70d61630df229ebe31860ed"
+    },
+    {
+      "path": ".github/scripts/sync-upstream.sh",
+      "git_mode": "100755",
+      "git_blob": "cf1ac43ee041d304ff816a3b1df3f75790eaf1e5",
+      "bytes": 1870,
+      "sha256": "bc595123ab59673f9fe16f02f9ce9e8a64b9c1a73978552e531e89145dfd7ac5"
+    },
+    {
+      "path": ".github/scripts/update-makefile-hashes.sh",
+      "git_mode": "100755",
+      "git_blob": "7fbcd9551d47d22065a621fe4d604e39d48a81bb",
+      "bytes": 1564,
+      "sha256": "906c4e4e5c7a2322305e7bef500631ddb637f121f1ab3abbc7c8f3dc27784253"
+    },
+    {
+      "path": ".github/workflows/update-smartdns.yml",
+      "git_mode": "100644",
+      "git_blob": "b12c6c728684d4a367ab6bfe366a8963519ca6c0",
+      "bytes": 3403,
+      "sha256": "3cbec04b595b2144f7f6d2f40cd2800f1d2e2a1c3d6387c8e5985c5bf130bbdd"
+    },
+    {
+      "path": "Makefile",
+      "git_mode": "100644",
+      "git_blob": "8e729a6198e3493d4a7dc6bede0a359036e9851a",
+      "bytes": 4800,
+      "sha256": "e0e6589e5031683536bda4665dcbf928cde0fe45c228f74b7ebaab02be342907"
+    },
+    {
+      "path": "ReadMe.md",
+      "git_mode": "100644",
+      "git_blob": "eacd0c0f410a0386a7e220e1ab97a89aad1572e6",
+      "bytes": 1639,
+      "sha256": "372697342289101688adfb81016f80db652ccf65f4e1332acc77c6d1bef2e9c3"
+    }
+  ]
+}

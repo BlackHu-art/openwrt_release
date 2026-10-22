@@ -1,0 +1,261 @@
+{
+  "source_id": "adguardhome",
+  "commit": "36108202f326f65ab6f5a85d15adcba6538f8e8b",
+  "tree": "8d903377f438583ffa32e5832c049b7cb027c5c2",
+  "files": [
+    {
+      "path": "Makefile",
+      "git_mode": "100644",
+      "git_blob": "62b2c5ad74716d795df4cecf620201e99bcce62f",
+      "bytes": 1393,
+      "sha256": "bc0f9bd0f9646bc924ed8c47611eb673cc3bcb63eb221dde62121c6e431ea055"
+    },
+    {
+      "path": "luasrc/controller/AdGuardHome.lua",
+      "git_mode": "100644",
+      "git_blob": "e9d37a766bfd96c02bc429882ef11fc306b60b9c",
+      "bytes": 4267,
+      "sha256": "c1687277a0924ecab248e68f11a2610bb15807c8023b545c47541d13d9d055a5"
+    },
+    {
+      "path": "luasrc/model/cbi/AdGuardHome/base.lua",
+      "git_mode": "100644",
+      "git_blob": "6896b61effee4607938d266622012f3b73528c07",
+      "bytes": 10451,
+      "sha256": "b788d3e1a45e9a92c8cd656207ef8e163a2b99263285527ffdc78611d8a4d8cd"
+    },
+    {
+      "path": "luasrc/model/cbi/AdGuardHome/log.lua",
+      "git_mode": "100644",
+      "git_blob": "5d18a88db41da76add26b80c5d1785e056c0df9c",
+      "bytes": 434,
+      "sha256": "366d64dfa219bfdf88b084e5400bff3d571bb8d9ec4f1a335a1a1fdee7f8cd4c"
+    },
+    {
+      "path": "luasrc/model/cbi/AdGuardHome/manual.lua",
+      "git_mode": "100644",
+      "git_blob": "ecf072bbc785e41269b45ed7be4109149f14afad",
+      "bytes": 2585,
+      "sha256": "da02f7278a94edcbd3078203f10a7d9029db14eb69c85f0b2bbebff9ed405897"
+    },
+    {
+      "path": "luasrc/view/AdGuardHome/AdGuardHome_check.htm",
+      "git_mode": "100644",
+      "git_blob": "832a1df46c2a0ea70c0749e120204b1d0973518b",
+      "bytes": 2957,
+      "sha256": "216b726f917182f30bff07a7d451ae193f3e1af5645f3fd4fdea145eb456fe61"
+    },
+    {
+      "path": "luasrc/view/AdGuardHome/AdGuardHome_chpass.htm",
+      "git_mode": "100644",
+      "git_blob": "b6ff3ebb3c2c8fad370b7d9960c3d1dd78731252",
+      "bytes": 2146,
+      "sha256": "727516a0dad1bb04b616344eb9b64969d78653d8dd74a8c556c9f8d38581f42b"
+    },
+    {
+      "path": "luasrc/view/AdGuardHome/AdGuardHome_status.htm",
+      "git_mode": "100644",
+      "git_blob": "7e924d1195bf00b17c0b499d5beb3110457d4337",
+      "bytes": 845,
+      "sha256": "a6448f818399ab869a67fd9623fa796c22143674db2d227ae6ccb4136f4a6b76"
+    },
+    {
+      "path": "luasrc/view/AdGuardHome/log.htm",
+      "git_mode": "100644",
+      "git_blob": "11a1f787a86b3c2a13794ee2947a12ae1b65bd89",
+      "bytes": 3859,
+      "sha256": "59c859d784ff054c8b8c52db9a65b418c4d7f0e05dbace93d3881228be06d707"
+    },
+    {
+      "path": "luasrc/view/AdGuardHome/yamleditor.htm",
+      "git_mode": "100644",
+      "git_blob": "639cb998888ec9571fd0e09319f37ff959a46093",
+      "bytes": 1800,
+      "sha256": "06d5bddd90f9b9606b073b53f729a13a9e845e18d78959eb71a99b5c96bc11c7"
+    },
+    {
+      "path": "po/zh-cn",
+      "git_mode": "120000",
+      "git_blob": "8d69574dddc0be327b75bd797e46591892c0a72b",
+      "bytes": 7,
+      "sha256": "99f8ad8ee53abb7f90260f8bf87a347d48395045690ef9e493e5b712fd188fe2",
+      "symlink_target": "zh_Hans",
+      "storage": "git-link-text"
+    },
+    {
+      "path": "po/zh_Hans/adguardhome.po",
+      "git_mode": "100644",
+      "git_blob": "0ace89bae49ff2462e3574c90205b2ffb9f67519",
+      "bytes": 15885,
+      "sha256": "a64c16313d017031b47492d86cbea587ebf31f97a981d46c161636da74a22e80"
+    },
+    {
+      "path": "root/etc/AdGuardHome.yaml",
+      "git_mode": "100644",
+      "git_blob": "4bef352fde97dd69bfa282c189afc323c817f143",
+      "bytes": 6246,
+      "sha256": "f208531745b52124444451e2c6f5b3e6719f097607b9df8444f2539ca98218bc"
+    },
+    {
+      "path": "root/etc/config/AdGuardHome",
+      "git_mode": "100644",
+      "git_blob": "6ecfde8b14b85f5eaa1e07d68b514b010b1ff5f2",
+      "bytes": 297,
+      "sha256": "c21ecf14be26e50eecbc6fe46689a125f49bd4d052ad287e5439cefcfda89934"
+    },
+    {
+      "path": "root/etc/init.d/AdGuardHome",
+      "git_mode": "100644",
+      "git_blob": "daf5f1f5d3c0cc94052f78e0bdedb7b3cdc89049",
+      "bytes": 19852,
+      "sha256": "b3edb799068a093899c7173ded8647102b0a6192e4aa04be7e53d8cc5d337aa7"
+    },
+    {
+      "path": "root/etc/uci-defaults/40_luci-AdGuardHome",
+      "git_mode": "100644",
+      "git_blob": "37e192cddc0671e15a499ae153bcbcc56bd4bfc7",
+      "bytes": 348,
+      "sha256": "b02d8cc8a28c83b6f2a5ec53a9f46f48dafdadd4c5f9fe53f9f5c94cb3a8bc2b"
+    },
+    {
+      "path": "root/usr/share/AdGuardHome/AdGuardHome_template.yaml",
+      "git_mode": "100644",
+      "git_blob": "612a57706faf4044bac2570c722c0138ec213774",
+      "bytes": 2821,
+      "sha256": "08534983aa86b4cdf41e18bb2ce170b3953d365bbca77e98d0025d9ce99ba363"
+    },
+    {
+      "path": "root/usr/share/AdGuardHome/addhost.sh",
+      "git_mode": "100755",
+      "git_blob": "6c6b7b7691210bbc6bd42b88668b76a8f5ee4588",
+      "bytes": 976,
+      "sha256": "3e268a269f5239a1d8a592a0c75a2c8523d61da46c100a2f9e9482683459ae2f"
+    },
+    {
+      "path": "root/usr/share/AdGuardHome/firewall.start",
+      "git_mode": "100644",
+      "git_blob": "562117e52ecb52cb0e00d0d5c8c47190acc031ed",
+      "bytes": 237,
+      "sha256": "dba1698e0f997de51779bfaccaddf665d9af5d944f81017e50e6f1e879926325"
+    },
+    {
+      "path": "root/usr/share/AdGuardHome/getsyslog.sh",
+      "git_mode": "100755",
+      "git_blob": "908bdf6318b716f810e9d34cbefe14744ff59ac3",
+      "bytes": 433,
+      "sha256": "c836feb0bb187aef93534c2e0c9b058a562fa1f2aa41633959dad7d072093c08"
+    },
+    {
+      "path": "root/usr/share/AdGuardHome/gfw2adg.sh",
+      "git_mode": "100755",
+      "git_blob": "a3add84e8b2e45d53f912e76ef951116aa9d3287",
+      "bytes": 2367,
+      "sha256": "964ae7145910b02a1aec70a7e8854f5562a2af7539b9da98b4ce5d379d418d15"
+    },
+    {
+      "path": "root/usr/share/AdGuardHome/links.txt",
+      "git_mode": "100644",
+      "git_blob": "e4f1c8fa731d10425150f35564ab128fd37df0a0",
+      "bytes": 265,
+      "sha256": "651075585ac460977a09b44a45640bfefcf68ae3a128948dcc706e4a614a9108"
+    },
+    {
+      "path": "root/usr/share/AdGuardHome/tailto.sh",
+      "git_mode": "100755",
+      "git_blob": "9ccc21903aa900c9028a736473605667062e3441",
+      "bytes": 94,
+      "sha256": "16209de1bfe69f06c30e0614716ca53e9b4a21fdd69766f37da47fd7882a176f"
+    },
+    {
+      "path": "root/usr/share/AdGuardHome/update_core.sh",
+      "git_mode": "100755",
+      "git_blob": "74ba7268d56a401f7674aa6eb2d8a6b41bbe873b",
+      "bytes": 6633,
+      "sha256": "631d1d91ab5d907fcfdbb3c3329f8830df1f9586a234a4729abb5f8b8f3959b1"
+    },
+    {
+      "path": "root/usr/share/AdGuardHome/waitnet.sh",
+      "git_mode": "100755",
+      "git_blob": "c7745e101dbb6ffc7a6a47fdc1b78f31531fcebf",
+      "bytes": 700,
+      "sha256": "431d63a2a4a88c3925ae5da06fc0c2d7186eedac4fe9f122d0956bd4a5f1866f"
+    },
+    {
+      "path": "root/usr/share/AdGuardHome/watchconfig.sh",
+      "git_mode": "100755",
+      "git_blob": "61ba09de75a5c2f87de708725ea78711e91df30f",
+      "bytes": 223,
+      "sha256": "9ae1fba1250ca9bd4ce57a55fce206f09a6f261bc0ca289a31b7b3b373dc0a6d"
+    },
+    {
+      "path": "root/usr/share/rpcd/acl.d/luci-app-adguardhome.json",
+      "git_mode": "100644",
+      "git_blob": "485aa6205829b59ecc8f587eef88e79fc9069ef6",
+      "bytes": 186,
+      "sha256": "b1416b799528767fa3f0592c64ea1829beebdea26e9c267744a67d5ce85db70c"
+    },
+    {
+      "path": "root/www/luci-static/resources/codemirror/addon/fold/foldcode.js",
+      "git_mode": "100644",
+      "git_blob": "f93d42b7fe8567518ddb48094a1e81417dc75a25",
+      "bytes": 2506,
+      "sha256": "67e25f2e6fec0d4266b1d09104d28d5b7cdf63fef214f856d41f5ebdd25fa00d"
+    },
+    {
+      "path": "root/www/luci-static/resources/codemirror/addon/fold/foldgutter.css",
+      "git_mode": "100644",
+      "git_blob": "f41acc31b318785593fc4328d204366d2fec5278",
+      "bytes": 376,
+      "sha256": "b59366c33c2144243785d8ce87be82752bbe87b8a8d348e4b9a4ac21a2835b49"
+    },
+    {
+      "path": "root/www/luci-static/resources/codemirror/addon/fold/foldgutter.js",
+      "git_mode": "100644",
+      "git_blob": "07f118e9073a726374b8ad58daca3a8c13b8aa69",
+      "bytes": 2726,
+      "sha256": "5c2e9c5b27d0d8f63ee9adc610c4a950dec91f38784c2e9dd5bd196108541a60"
+    },
+    {
+      "path": "root/www/luci-static/resources/codemirror/addon/fold/indent-fold.js",
+      "git_mode": "100644",
+      "git_blob": "87dc1ad924585b2422c86f0f18eaf809a0e7095d",
+      "bytes": 650,
+      "sha256": "25d0dae3fc23df52e6ef52bf144a2a1b4418f130cb334eeb84359f5171e6cd46"
+    },
+    {
+      "path": "root/www/luci-static/resources/codemirror/lib/codemirror.css",
+      "git_mode": "100644",
+      "git_blob": "43ac1a9fab98acf32852f0f6c439e59633f30388",
+      "bytes": 6048,
+      "sha256": "8dac61076d375ee1e378cbb531f2ea7ca7fa29506a822a7ccb8b0f5b91ac1b13"
+    },
+    {
+      "path": "root/www/luci-static/resources/codemirror/lib/codemirror.js",
+      "git_mode": "100644",
+      "git_blob": "d01f072ee425a79ecca605c0c2645e7f350f3de7",
+      "bytes": 169518,
+      "sha256": "4e87ba8c999698c31cff9c1ea220294b4e2c6c319ccdcd3c574735163d682635"
+    },
+    {
+      "path": "root/www/luci-static/resources/codemirror/mode/yaml/yaml.js",
+      "git_mode": "100644",
+      "git_blob": "4a5e499bf65bddcf8aaa7d3b462b4c90f63296b0",
+      "bytes": 1823,
+      "sha256": "8ea9bf39c961ba4de1e90c4b45296064b0fa070502b7547af24bc62820acc8bd"
+    },
+    {
+      "path": "root/www/luci-static/resources/codemirror/theme/dracula.css",
+      "git_mode": "100644",
+      "git_blob": "6c708c010c48b32f285ce793e0272c089035ec19",
+      "bytes": 1656,
+      "sha256": "035536054651b5ddfffbe9ac1cc0320a5c1e4a4422282052e7f6113a580311b0"
+    },
+    {
+      "path": "root/www/luci-static/resources/twin-bcrypt.min.js",
+      "git_mode": "100644",
+      "git_blob": "6284357c609e7fd584fb5e7dca6e8bd1784e4f9a",
+      "bytes": 20718,
+      "sha256": "9a5f3c3a6235503a0cfa0001f60bea70294ebb0a697adb762d75b98c77f989f3"
+    }
+  ]
+}

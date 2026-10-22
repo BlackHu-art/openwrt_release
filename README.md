@@ -69,6 +69,15 @@ GitHub Actions 的手动构建也提供 `add_fragments` 与 `remove_fragments` �
 bash tests/run_all.sh
 ```
 
+Windows 使用独立依赖目录运行同一套回归，首次执行 `install`，之后执行 `run`：
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File .\tests\windows-tests.ps1 -Action install
+powershell -NoProfile -ExecutionPolicy Bypass -File .\tests\windows-tests.ps1 -Action run
+```
+
+环境要求、`check`、自定义路径、日志及验证边界见 [Windows 本地回归测试](docs/windows-testing.md)。
+
 正常构建的控制台只显示阶段、软件包进度、耗时及错误/警告摘要。失败时再输出前 5 处匹配错误的上下文和日志末尾 80 行；GitHub Actions 中放在 `Failure details` 分组内。错误上下文优先展示编译、补丁和安装错误，避免已恢复的镜像下载错误占满摘要。
 
 完整详细输出仍从首次执行起保存在 `<BUILD_DIR>/logs/download.log`、`miniupnpd-prepare.log`、`compile.log` 和 OpenWrt 各软件包日志中。`build-times.tsv` 按“阶段、耗时秒数、退出码”记录结果。选用 miniupnpd 时先执行 prepare，尽早发现补丁失配；构建失败直接返回失败，不再自动将整个 world 改为单线程重试。GitHub Actions 成功或失败都会上传 `build-logs-*`，保留 7 天。
@@ -159,6 +168,8 @@ HomeProxy 从官方仓库更新后、最终 feeds 索引刷新和安装前，会
 
 ## 8. 项目结构说明
 
+完整目录职责、插件源码维护与构建之间的关系见 [项目文件布局](docs/project-layout.md)。第一批插件的原始源码、来源提交和更新说明见 [插件源码维护区](maintenance/plugins/README.md)。
+
 - `build.sh`：主编译入口，负责设备选择、模式选择、配置组合、容器构建和固件收集。
 - `firmware/`：完整构建后的固件输出目录，由脚本自动创建和刷新。
 - `wrt_core/build_container.sh`：容器内构建入口。
@@ -167,8 +178,11 @@ HomeProxy 从官方仓库更新后、最终 feeds 索引刷新和安装前，会
 - `wrt_core/compilecfg/`：设备构建元信息 `.ini`。
 - `wrt_core/deconfig/`：设备和共享默认配置 `.config`。
 - `wrt_core/deconfig/fragments/`：可组合配置片段。
-- `wrt_core/modules/`：模块化脚本，包括仓库准备、网络重试、feeds/custom_feed、源码修正、LuCI 修正、服务修正、验证、Docker、CUPS 等静态职责模块。
+- `wrt_core/modules/`：模块化脚本，包括仓库准备、网络重试、feeds/custom_feed、源码修正、LuCI 修正、服务修正、验证、Docker 等静态职责模块。
 - `wrt_core/patches/`：补丁、默认设置、Wi-Fi 初始化、NSS 诊断、PBR 规则和其他构建时注入文件。
+- `maintenance/plugins/`：独立的插件源码维护区，保存原始上游快照、提交与文件校验记录；当前构建不从这里读取源码。
+- `tests/fixtures/`：用于回归测试的固定源码和补丁基线，与维护区中获取的新上游快照分别管理。
+- `docs/`：项目布局、兼容性说明、构建诊断及设计记录。
 
 ## 9. OAF（应用过滤）功能使用说明
 

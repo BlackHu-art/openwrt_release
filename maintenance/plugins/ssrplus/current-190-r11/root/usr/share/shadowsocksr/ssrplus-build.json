@@ -1,0 +1,81 @@
+{
+  "files": {
+    "/etc/init.d/shadowsocksr": {
+      "mode": "0755",
+      "sha256": "79a1b5e9a93a72eab5871a6266c48975fb977032c04b5c0008be27c0c7c6f37a"
+    },
+    "/etc/uci-defaults/luci-ssr-plus": {
+      "mode": "0755",
+      "sha256": "99be7bf98ebacbd5b6ac5dd7d6a384e4935fdf2823a951de2e057e18293682be"
+    },
+    "/usr/bin/ssr-monitor": {
+      "mode": "0755",
+      "sha256": "fb93ba8b224fb70d1f0ed31ed47efecaa31c210c8343c08ea43baa8d8de44f9e"
+    },
+    "/usr/bin/ssr-rules": {
+      "mode": "0755",
+      "sha256": "d32efeec946abb0af4c2dc78ece3641d0656db64223ce8e38329eb879a522a45"
+    },
+    "/usr/bin/ssr-switch": {
+      "mode": "0755",
+      "sha256": "bcb988f0c837de5c2a98bcc1402a1c16afd961d88fc3e33a64efac47da9523ed"
+    },
+    "/usr/share/shadowsocksr/gen_config.lua": {
+      "mode": "0755",
+      "sha256": "58784f09dece11bd755acc99e14bac05a0d87c5dacce01aa72ca82a801a93f21"
+    },
+    "/usr/share/shadowsocksr/gfw2ipset.sh": {
+      "mode": "0755",
+      "sha256": "413dfad57eec22dc8a866b51b7e8e8b646901da31d4bee8dfa646816a0de40e2"
+    },
+    "/usr/share/shadowsocksr/shadowsocksr.config": {
+      "mode": "0644",
+      "sha256": "abafa2a4b47fd716c6a0d77dc6a94894d2391b1def56baa6e2396d70f12a8fd3"
+    },
+    "/usr/share/shadowsocksr/ssrp-runtime.sh": {
+      "mode": "0755",
+      "sha256": "bbb81fcdc7409d5c0eb8dacf449f35a1b41bb39dda47fb51638483bfbfe93387"
+    },
+    "/usr/share/shadowsocksr/ssrplusupdate.sh": {
+      "mode": "0755",
+      "sha256": "8200c987a30ebb0d7c52f25801cce60c80e68af45e44862e810ef33309d7e117"
+    },
+    "/usr/share/shadowsocksr/subscribe.lua": {
+      "mode": "0755",
+      "sha256": "577f88c65c7f6bea6bcee68c5fbb88d415cac9cb0204f0fd33f629b3e33e2d34"
+    },
+    "/usr/share/shadowsocksr/update.lua": {
+      "mode": "0755",
+      "sha256": "00c48fdca0e71d8cc6268d07aa046a9f1fa12948c557d123a7b917bc58c4b341"
+    }
+  },
+  "patches": {
+    "ssrplus-availability.patch": "f4745d68cd37851906015ac5957cecd13a0e6b8e5b4a19b96c82ef1d2b7c605a",
+    "ssrplus-custom-ports.patch": "e4fa0f8889fa02f4953ad2db6e49de357f1c46ffbe2ce36435615b846fef358f",
+    "ssrplus-dns-forwarding.patch": "c257d3cc414e56a1a091182a5b384f75306823d78c9c3b032d19d2bf59688ec8",
+    "ssrplus-dns-transaction.patch": "f71816642f74adb69b384cafcee6ad4dff1f988c555d98017b16844908263c37",
+    "ssrplus-firstboot.patch": "fb30862744bd917fdeb6cbdad9c81845e147c13891c3f1e346102e75024ce720",
+    "ssrplus-initialization-order.patch": "457dd6a4f841f2563d18df7a71de42135c85a96479392dcf9af744768f89f4da",
+    "ssrplus-monitor-scheduler.patch": "b2072dc0d00d4854b5fb204aaabca6ce3a744ccffad3a51935c348cb3b375dc5",
+    "ssrplus-node-references.patch": "779d32bf354520d12c92735099877b9fb688c5bbd0941d2045ffdd97e820ca62",
+    "ssrplus-package.patch": "c3fa0c9006e5c0d78dd0a4887ac0ffe5b0b191d8f6a6940144131f7a14ffb593",
+    "ssrplus-persistence-lifecycle.patch": "67befe4b6fafa3768e6db21e0cab50abc8e4c20f57ccc79a269cb72f66fac011",
+    "ssrplus-persistence.patch": "d4432a52e72c9325878511fdb8ecde4f656a7644e7b8fd5b0138f00c941bf61b",
+    "ssrplus-release-r10.patch": "5b911f5042816257d30015db8ff33fb28063f2c482c127f147280427e596182d",
+    "ssrplus-release-r11.patch": "5fe49a385663c65e2a119da69e78011d1b6633573a06486a6a84d154f753a6d0",
+    "ssrplus-release-r5.patch": "74082b91c5f817679aa8987b03941b9ba9155d65fcba9c156a004f22fa63f9f3",
+    "ssrplus-release-r6.patch": "c6421bbcfc75c74885749e059038088d444e958d74344393ea58c8e84719a9e8",
+    "ssrplus-release-r7.patch": "8d6fa6cb0b0dcf71f14bb21c55ed1bdb025fbc07382edf5fb1c9c6fcc7408160",
+    "ssrplus-release-r8.patch": "f5414c105b51656d9d5f5a365ad43d68a6654ef553de01a42c87dc11873aa902",
+    "ssrplus-release-r9.patch": "66579e4cfb6719ff2b3b6725d0a39fe9256dc6ad3b9ca8b0b7f04e21be116541",
+    "ssrplus-ss-parser.patch": "deae6930574c4a9824d96bf9bae6b0d40f59c1676011c70f6f1b18f07aec5a17",
+    "ssrplus-ss-password.patch": "943610436d8fdbeb80347cbcd5e13677043f1031c5bc3de2327c85445bc4b250",
+    "ssrplus-startup-lock.patch": "d652f26fa3663057efaf5a1684b9845d5d4b4f586b60f9b7e7ba6fd12c6260ae",
+    "ssrplus-subscription-auto.patch": "d81de13c983f3ce6b3db7010b95d33b1fa784b2d859f3be130454b3691a991a0",
+    "ssrplus-subscription.patch": "19ebd4494de26762a795a2b0efd0fbd4cc672608d899a9888fb62fee896d7a00",
+    "ssrplus-transport-config.patch": "d7fd2095c20a80ec57366db74b0f160587710f4191f0e88dd34d2937314992dd",
+    "ssrplus-updater-validation.patch": "f87bf308b464204c4f4c3a454802280c980f07f195c36523f363a8a497c57870"
+  },
+  "repair_version": "190-r11",
+  "source_commit": "2abdc9aa9e19607774dc9789709212b70b8607c6"
+}

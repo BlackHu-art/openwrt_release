@@ -10,6 +10,9 @@
 /tests/fixtures/lua-neturl/** text eol=lf whitespace=-blank-at-eol,-space-before-tab
 /tests/*ssrplus* text eol=lf
 /tests/run_all.sh text eol=lf
+/tests/windows_test_env.py text eol=lf
+/tests/test_windows_test_env.py text eol=lf
+/tests/windows-tests.ps1 text eol=lf
 /tests/test_custom_feed_plugins.sh text eol=lf
 /tests/test_plugin_runtime.sh text eol=lf
 /tests/test_openclash_checksum.sh text eol=lf
@@ -20,3 +23,9 @@
 /wrt_core/modules/build_steps.sh text eol=lf
 /wrt_core/modules/custom_feed.sh text eol=lf
 /wrt_core/modules/plugin_compat.sh text eol=lf
+/wrt_core/modules/xray_core_compat.sh text eol=lf
+/wrt_core/compat/proxy-cores/** text eol=lf
+/tests/*passwall* text eol=lf
+/tests/*xray* text eol=lf
+/tests/test_proxy_compat_pipeline.py text eol=lf
+/tests/fixtures/proxy-cores/** text eol=lf whitespace=-blank-at-eol,-space-before-tab

@@ -1,0 +1,367 @@
+{
+  "source_head": "6d76ce1",
+  "upstream_commit": "45893d778767f3bdb2fcb6e873cf8f9a667d94d4",
+  "upstream_tag": "v198.2",
+  "evidence_prefix": "maintenance/plugins/ssrplus/upstream-v198.2/luci-app-ssr-plus",
+  "patch_count": 8,
+  "hunk_count": 47,
+  "execution": "read-only static analysis; upstream code and tests not executed",
+  "patches": [
+    {
+      "order": 6,
+      "file": "ssrplus-subscription.patch",
+      "recommendation": "rewrite",
+      "hunk_count": 6,
+      "hunks": [
+        {
+          "patch_line": 3,
+          "status": "retain",
+          "detail": "进程锁及cursor前加锁",
+          "evidence": "subscribe.lua:7-26"
+        },
+        {
+          "patch_line": 23,
+          "status": "retain",
+          "detail": "native UCI私有savedir、共享delta拒绝、清理",
+          "evidence": "subscribe.lua:26;3018-3036"
+        },
+        {
+          "patch_line": 104,
+          "status": "rewrite",
+          "detail": "MD5返回值检查；保留新增JSON marker",
+          "evidence": "subscribe.lua:2085-2092"
+        },
+        {
+          "patch_line": 113,
+          "status": "partial_rewrite",
+          "detail": "空下载保留已覆盖；整组验证、只更新成功组、journal未覆盖；新增YAML与转换模式",
+          "evidence": "subscribe.lua:2650-2685;2864-2871;2912-2934"
+        },
+        {
+          "patch_line": 578,
+          "status": "rewrite",
+          "detail": "checked创建/碰撞/字段写入；旧domain resolver字段消费者已消失",
+          "evidence": "subscribe.lua:2957-2974"
+        },
+        {
+          "patch_line": 622,
+          "status": "retain_rewrite",
+          "detail": "原子选择提交、同步restart、rollback、成功MD5及退出码",
+          "evidence": "subscribe.lua:2978-3038"
+        }
+      ]
+    },
+    {
+      "order": 13,
+      "file": "ssrplus-firstboot.patch",
+      "recommendation": "rewrite_merge_with_15",
+      "hunk_count": 5,
+      "hunks": [
+        {
+          "patch_line": 5,
+          "status": "retain",
+          "detail": "导出initialize，保留上游clash_cache命令",
+          "evidence": "init.d/shadowsocksr:85-87"
+        },
+        {
+          "patch_line": 17,
+          "status": "retain",
+          "detail": "不替换非空文件、同FS stage验证与rename",
+          "evidence": "init.d/shadowsocksr:3322-3329"
+        },
+        {
+          "patch_line": 43,
+          "status": "rewrite",
+          "detail": "initialize进入已迁移的生命周期锁",
+          "evidence": "init.d/shadowsocksr:3322-3329"
+        },
+        {
+          "patch_line": 52,
+          "status": "superseded_by_15",
+          "detail": "历史前置调用已被15纠正，勿原样重演",
+          "evidence": "uci-defaults/luci-ssr-plus:31-127"
+        },
+        {
+          "patch_line": 64,
+          "status": "rewrite",
+          "detail": "reset路径换为最终位置的checked initializer",
+          "evidence": "uci-defaults/luci-ssr-plus:127"
+        }
+      ]
+    },
+    {
+      "order": 15,
+      "file": "ssrplus-initialization-order.patch",
+      "recommendation": "merge_with_13",
+      "hunk_count": 2,
+      "hunks": [
+        {
+          "patch_line": 10,
+          "status": "merge",
+          "detail": "消除本地13前置调用，非独立上游缺陷",
+          "evidence": "uci-defaults/luci-ssr-plus:31-127"
+        },
+        {
+          "patch_line": 22,
+          "status": "retain",
+          "detail": "已有配置迁移后、sed前checked initialize",
+          "evidence": "uci-defaults/luci-ssr-plus:127-134"
+        }
+      ]
+    },
+    {
+      "order": 17,
+      "file": "ssrplus-subscription-auto.patch",
+      "recommendation": "upstream_covers_hunk_contract_changed",
+      "hunk_count": 1,
+      "hunks": [
+        {
+          "patch_line": 10,
+          "status": "covered_narrowly",
+          "detail": "上游不补ss-rust；但删除ss_type并改backend政策，需独立兼容方案",
+          "evidence": "uci-defaults/luci-ssr-plus:31-124;subscribe.lua:41-85;init.d/shadowsocksr:1255-1258"
+        }
+      ]
+    },
+    {
+      "order": 18,
+      "file": "ssrplus-ss-parser.patch",
+      "recommendation": "partial_rewrite",
+      "hunk_count": 14,
+      "hunks": [
+        {
+          "patch_line": 17,
+          "status": "retain",
+          "detail": "消费string参数而不二次解码",
+          "evidence": "subscribe.lua:1346-1417"
+        },
+        {
+          "patch_line": 32,
+          "status": "partial",
+          "detail": "主userinfo分拆/解码已覆盖，空userinfo拒绝缺失",
+          "evidence": "subscribe.lua:1279-1296"
+        },
+        {
+          "patch_line": 61,
+          "status": "covered",
+          "detail": "method/password与colon-free扩展",
+          "evidence": "subscribe.lua:1303-1312"
+        },
+        {
+          "patch_line": 84,
+          "status": "retain",
+          "detail": "SS Reality query once",
+          "evidence": "subscribe.lua:1346-1348"
+        },
+        {
+          "patch_line": 96,
+          "status": "retain",
+          "detail": "SS WS/HTTPUpgrade/XHTTP query once",
+          "evidence": "subscribe.lua:1371-1379"
+        },
+        {
+          "patch_line": 118,
+          "status": "retain",
+          "detail": "SS H2 query once",
+          "evidence": "subscribe.lua:1398-1399"
+        },
+        {
+          "patch_line": 129,
+          "status": "retain",
+          "detail": "SS raw query once；与20字段映射合并",
+          "evidence": "subscribe.lua:1416-1417"
+        },
+        {
+          "patch_line": 140,
+          "status": "retain",
+          "detail": "Trojan WS/HTTPUpgrade/XHTTP query once",
+          "evidence": "subscribe.lua:1619;1707-1715"
+        },
+        {
+          "patch_line": 162,
+          "status": "retain",
+          "detail": "Trojan H2 query once",
+          "evidence": "subscribe.lua:1733-1734"
+        },
+        {
+          "patch_line": 173,
+          "status": "retain",
+          "detail": "Trojan raw query once；与20字段映射合并",
+          "evidence": "subscribe.lua:1751-1752"
+        },
+        {
+          "patch_line": 184,
+          "status": "retain",
+          "detail": "VLESS Reality query once",
+          "evidence": "subscribe.lua:1832-1834"
+        },
+        {
+          "patch_line": 196,
+          "status": "retain",
+          "detail": "VLESS WS/HTTPUpgrade/XHTTP query once",
+          "evidence": "subscribe.lua:1845-1853"
+        },
+        {
+          "patch_line": 218,
+          "status": "retain",
+          "detail": "VLESS H2 query once",
+          "evidence": "subscribe.lua:1871-1872"
+        },
+        {
+          "patch_line": 229,
+          "status": "retain",
+          "detail": "VLESS raw query once；与20字段映射合并",
+          "evidence": "subscribe.lua:1889-1890"
+        }
+      ]
+    },
+    {
+      "order": 20,
+      "file": "ssrplus-transport-config.patch",
+      "recommendation": "partial_rewrite",
+      "hunk_count": 11,
+      "hunks": [
+        {
+          "patch_line": 5,
+          "status": "retain",
+          "detail": "空Host视作缺失以回退SNI",
+          "evidence": "subscribe.lua:1371-1374;gen_config.lua:648-662"
+        },
+        {
+          "patch_line": 16,
+          "status": "covered",
+          "detail": "SS fm写finalmask",
+          "evidence": "subscribe.lua:1357"
+        },
+        {
+          "patch_line": 29,
+          "status": "retain",
+          "detail": "SS TLS保留独立Host",
+          "evidence": "subscribe.lua:1371;1374"
+        },
+        {
+          "patch_line": 42,
+          "status": "retain",
+          "detail": "SS raw写http_host/http_path与默认/",
+          "evidence": "subscribe.lua:1416-1417;gen_config.lua:624-635"
+        },
+        {
+          "patch_line": 53,
+          "status": "retain",
+          "detail": "SIP002外层percent-only保留Base64加号",
+          "evidence": "subscribe.lua:1432"
+        },
+        {
+          "patch_line": 62,
+          "status": "retain",
+          "detail": "whole-base64外层percent-only保留加号",
+          "evidence": "subscribe.lua:1440"
+        },
+        {
+          "patch_line": 71,
+          "status": "covered",
+          "detail": "Trojan fm写finalmask",
+          "evidence": "subscribe.lua:1690"
+        },
+        {
+          "patch_line": 84,
+          "status": "retain",
+          "detail": "Trojan TLS保留独立Host",
+          "evidence": "subscribe.lua:1707;1710"
+        },
+        {
+          "patch_line": 97,
+          "status": "partial",
+          "detail": "servicename已覆盖；headertype/quicsecurity/raw字段未覆盖",
+          "evidence": "subscribe.lua:1619;1736-1752"
+        },
+        {
+          "patch_line": 129,
+          "status": "retain",
+          "detail": "VLESS TLS/Reality保留独立Host",
+          "evidence": "subscribe.lua:1845;1848"
+        },
+        {
+          "patch_line": 142,
+          "status": "retain",
+          "detail": "VLESS raw写http_host/http_path与默认/",
+          "evidence": "subscribe.lua:1889-1890;gen_config.lua:624-635"
+        }
+      ]
+    },
+    {
+      "order": 22,
+      "file": "ssrplus-ss-password.patch",
+      "recommendation": "retain",
+      "hunk_count": 1,
+      "hunks": [
+        {
+          "patch_line": 10,
+          "status": "retain",
+          "detail": "去掉Base64解码后密码的二次URI猜测",
+          "evidence": "subscribe.lua:1458-1473"
+        }
+      ]
+    },
+    {
+      "order": 24,
+      "file": "ssrplus-node-references.patch",
+      "recommendation": "rewrite_narrow_history_plus_separate_upgrade_plan",
+      "hunk_count": 7,
+      "hunks": [
+        {
+          "patch_line": 12,
+          "status": "retain",
+          "detail": "私有历史身份表不落盘",
+          "evidence": "subscribe.lua:21-26;2012-2019"
+        },
+        {
+          "patch_line": 21,
+          "status": "retain",
+          "detail": "局部旧密码候选",
+          "evidence": "subscribe.lua:945;1458-1473"
+        },
+        {
+          "patch_line": 29,
+          "status": "rewrite",
+          "detail": "重现确切190-r9旧native密码规则；不得误用新字段模型",
+          "evidence": "subscribe.lua:1458-1473"
+        },
+        {
+          "patch_line": 43,
+          "status": "rewrite",
+          "detail": "历史基线双hash且异常不拒绝有效新节点",
+          "evidence": "subscribe.lua:2012-2019"
+        },
+        {
+          "patch_line": 66,
+          "status": "rewrite",
+          "detail": "同组精确一对一身份计划及歧义拒绝；新类型/聚合另需迁移",
+          "evidence": "subscribe.lua:2484-2564;2580-2585"
+        },
+        {
+          "patch_line": 118,
+          "status": "retain_rewrite",
+          "detail": "全部计划在UCI/YAML持久写入前检查",
+          "evidence": "subscribe.lua:2864-2871;2911"
+        },
+        {
+          "patch_line": 126,
+          "status": "retain_rewrite",
+          "detail": "原SID更新仅限匹配身份；不代表保留运行策略",
+          "evidence": "subscribe.lua:2912-2920;init.d/shadowsocksr:2525-2535"
+        }
+      ]
+    }
+  ],
+  "static_reachable_risks_not_dynamically_verified": [
+    "Nonempty invalid/all-filtered subscription advances marker before validation and may delete previous group.",
+    "UCI rollback alone cannot restore overwritten Mihomo YAML.",
+    "Native SS plus and literal percent password corruption remain.",
+    "SS WS/TLS with Rust+Xray installed selects native Rust and bypasses Xray transport parsing.",
+    "SSD/SIP008 tables bypass processData because AnyTLS pre-parsed-table branch precedes szType branch.",
+    "Old type/group hash changes cannot be repaired by password-only r11 identity migration.",
+    "Startup rewrites independent SOCKS5 server selection to same/nil.",
+    "New finalize/early-exit migration must clean temporary direct-bypass rules."
+  ]
+}

@@ -1,0 +1,435 @@
+{
+  "snapshot_kind": "derived-project-package",
+  "source_commit": "2abdc9aa9e19607774dc9789709212b70b8607c6",
+  "project_commit": "6d76ce124426086bbc5f90a9fcb9fcc0ba3b0a41",
+  "repair_version": "190-r11",
+  "files": [
+    {
+      "path": "Makefile",
+      "git_mode": "100644",
+      "git_blob": "72af241808fa842ef603e88dae3e6c0fc40f7bc2",
+      "bytes": 8554,
+      "sha256": "e378d3853f8c68c454e4e977aa86c32aeeb7b7df4945a220fbcf0dad85c07b65"
+    },
+    {
+      "path": "htdocs/luci-static/resources/view/shadowsocksr/Sortable.min.js",
+      "git_mode": "100644",
+      "git_blob": "8148b9dda22424c300191fcd3fcff1648de41e2e",
+      "bytes": 45478,
+      "sha256": "bf4241bc73fef7f11c59a283a69fe8051cdd31c6d8ff5a2b9ba219e7831fcf76"
+    },
+    {
+      "path": "luasrc/controller/shadowsocksr.lua",
+      "git_mode": "100644",
+      "git_blob": "d5e3b63afa54fa97c9a89d3315dd3f8003560bff",
+      "bytes": 14644,
+      "sha256": "b5a2f938d30cd2c76637669986aa5788ed20aec98c39de6d1c53d36eb25ac6ce"
+    },
+    {
+      "path": "luasrc/model/cbi/shadowsocksr/advanced.lua",
+      "git_mode": "100644",
+      "git_blob": "995c6c620c06db54b715bcab073f8bafe57d98fd",
+      "bytes": 18686,
+      "sha256": "91f4f9946c1c5e6883024b16dca22d6323ee69dc76dcc8496fe77a66eb2ee132"
+    },
+    {
+      "path": "luasrc/model/cbi/shadowsocksr/client-config.lua",
+      "git_mode": "100644",
+      "git_blob": "567989ba0632d19186a0ee1a25f7501c14c7a03e",
+      "bytes": 56076,
+      "sha256": "3e3decdcb292214afdbd65fbff8c9d7bff6b74eb95522364570ea39370ef6d7b"
+    },
+    {
+      "path": "luasrc/model/cbi/shadowsocksr/client.lua",
+      "git_mode": "100644",
+      "git_blob": "1404134c05880c8b37bbd81d8c76b4b2a83e9545",
+      "bytes": 13187,
+      "sha256": "889b6458bb44c0243c74e40db91b283bc7ec1a63b094c372f2516c48bed56101"
+    },
+    {
+      "path": "luasrc/model/cbi/shadowsocksr/control.lua",
+      "git_mode": "100644",
+      "git_blob": "4d4367a7dcf85a24ca779fd8cfcc5f80e4b54ce6",
+      "bytes": 5150,
+      "sha256": "73d667f09e15788f8588152ef648f2f243fbe2771dd2e33e327b673c82a2b974"
+    },
+    {
+      "path": "luasrc/model/cbi/shadowsocksr/log.lua",
+      "git_mode": "100644",
+      "git_blob": "c7af147985eaf9424d29ac3e2ed62b53f44cf399",
+      "bytes": 3632,
+      "sha256": "d65a2e054164077fabc947b9c7cc76bd6afdb06bca2e75c7bd00e01dfc54428a"
+    },
+    {
+      "path": "luasrc/model/cbi/shadowsocksr/server-config.lua",
+      "git_mode": "100644",
+      "git_blob": "145c400f83dd042d313e23c24b8c240dcd42160b",
+      "bytes": 3429,
+      "sha256": "7e018587388c41bc48bed9520b3adb02452f6b81743c6ec0f877a85fd7ad1bd0"
+    },
+    {
+      "path": "luasrc/model/cbi/shadowsocksr/server.lua",
+      "git_mode": "100644",
+      "git_blob": "db3160ab4cd811f595d91ade133174ab9344c2a4",
+      "bytes": 2946,
+      "sha256": "766b888a11a6452d0595f8b3b747d14283f7e335754cf2f2eabbb3c2ec38a874"
+    },
+    {
+      "path": "luasrc/model/cbi/shadowsocksr/servers.lua",
+      "git_mode": "100644",
+      "git_blob": "ac087f4741de79fb6e28bdf938d561332f646af9",
+      "bytes": 14397,
+      "sha256": "a2ae8f285ca6701cfefa7244f4735c2bfde0b4dbff814b991c35ee7e440244a6"
+    },
+    {
+      "path": "luasrc/model/cbi/shadowsocksr/status.lua",
+      "git_mode": "100644",
+      "git_blob": "639486a921181632b155692f3991a15e70d02c8d",
+      "bytes": 6848,
+      "sha256": "a47b3a68cc84260d8c6616994f864fecf8e57cd590e3c1d59c41889309c6de7b"
+    },
+    {
+      "path": "luasrc/view/shadowsocksr/backup_restore.htm",
+      "git_mode": "100644",
+      "git_blob": "364b148222d6fd0628fe9d8fbe523b9cb3ca7a52",
+      "bytes": 4812,
+      "sha256": "f0e3ff788d3ba3080030fe3b8915dd1d02c233895d2d225e7cfc36d1d3410b55"
+    },
+    {
+      "path": "luasrc/view/shadowsocksr/certupload.htm",
+      "git_mode": "100644",
+      "git_blob": "f34f04d7b88e37b912a72a9bb3ac24363f20ffc8",
+      "bytes": 229,
+      "sha256": "75922696beb709f10497ab27218d5b79c7bd709f62a6d3403532a7895c6b0462"
+    },
+    {
+      "path": "luasrc/view/shadowsocksr/check.htm",
+      "git_mode": "100644",
+      "git_blob": "4a16adce695994bdf952a9e5341aa56f0c6568b2",
+      "bytes": 912,
+      "sha256": "27c14065c638b6b33ce1370e0b5c95357e5ddb1299b84d71b448e59e8e39c2e0"
+    },
+    {
+      "path": "luasrc/view/shadowsocksr/checkport.htm",
+      "git_mode": "100644",
+      "git_blob": "56ee0ab2aa5478a498561c9805dde85e87f7e937",
+      "bytes": 705,
+      "sha256": "d48205e755e8d434a55d5b04e3dcdc6265b33cb7a4c42a42b479f2428297ee39"
+    },
+    {
+      "path": "luasrc/view/shadowsocksr/log.htm",
+      "git_mode": "100644",
+      "git_blob": "251f14b22b879545d0d728abb1fd488b12c509ce",
+      "bytes": 1298,
+      "sha256": "7e7d0a7950c6ce27a2f1d794e117da6330187d2e3cf71e03a597d364097b1a32"
+    },
+    {
+      "path": "luasrc/view/shadowsocksr/optimize_cbi_ui.htm",
+      "git_mode": "100644",
+      "git_blob": "579d03835b17e4e3b14a3d20d8810ff99850d1f7",
+      "bytes": 896,
+      "sha256": "e88b1186479afc07521cb4c621e2e50a942141ef49f160ab76d626a1e4e168c8"
+    },
+    {
+      "path": "luasrc/view/shadowsocksr/ping.htm",
+      "git_mode": "100644",
+      "git_blob": "5b396f7ceecd5dffbc00dc17ae2bb6f9f08ce0e7",
+      "bytes": 113,
+      "sha256": "9267497c52544321669dab8070f42949ffc7ce89c0fada22f4355f5a5ffbbfed"
+    },
+    {
+      "path": "luasrc/view/shadowsocksr/refresh.htm",
+      "git_mode": "100644",
+      "git_blob": "ea4113d878b28e9d31b77c04fff8cfa7bc4885be",
+      "bytes": 1121,
+      "sha256": "979c6f4138870507aa1aa8e3c9392a0e07b286e482ff2ad9236bd2691252b49c"
+    },
+    {
+      "path": "luasrc/view/shadowsocksr/reset.htm",
+      "git_mode": "100644",
+      "git_blob": "ff0c4860f2d9c3397693fa8c614d8e5d4095e7b6",
+      "bytes": 993,
+      "sha256": "8382498738706d6fc6208465cd2c5463e6d1fdfc3cfe64b749fad5681b055aeb"
+    },
+    {
+      "path": "luasrc/view/shadowsocksr/server_list.htm",
+      "git_mode": "100644",
+      "git_blob": "0d0eb3c21a191b46ea18a1aeb16bcfabb52b5fb8",
+      "bytes": 22253,
+      "sha256": "786f48001a62f173ccfaacdd955d00ab4249bd07f9b1a8f7d75516bd0ac5f1de"
+    },
+    {
+      "path": "luasrc/view/shadowsocksr/socket.htm",
+      "git_mode": "100644",
+      "git_blob": "74c6b1bf60ac176cd864bb14604882e2ca75d3e7",
+      "bytes": 451,
+      "sha256": "d53667f8fdb7a7bbdfca9db8448e0e5efdc1407e199996c7fa0a2c00b4358d9e"
+    },
+    {
+      "path": "luasrc/view/shadowsocksr/ssrurl.htm",
+      "git_mode": "100644",
+      "git_blob": "b5610c2e36c1d4b5312972516b5ed0d3a054d753",
+      "bytes": 63782,
+      "sha256": "d05f6a1e454b16c058659a01bdf9e8deeb3d9b4863e48157605bff23c400e0b7"
+    },
+    {
+      "path": "luasrc/view/shadowsocksr/status.htm",
+      "git_mode": "100644",
+      "git_blob": "58bf67f25c933c320562fda861e21de603dd28d1",
+      "bytes": 670,
+      "sha256": "d5a43ed80934f6b5f2d3d199821901f8e8c7fdab5f69ead10d6ed889c3ce55d3"
+    },
+    {
+      "path": "luasrc/view/shadowsocksr/subscribe.htm",
+      "git_mode": "100644",
+      "git_blob": "90e86dd35c66c30f2378d0d6f0facd2cca8b0772",
+      "bytes": 828,
+      "sha256": "eee4a4da3bd1f2a099547ef564596269a19ea52c7ea1c14deeb4bea44771c180"
+    },
+    {
+      "path": "po/templates/ssr-plus.pot",
+      "git_mode": "100644",
+      "git_blob": "266a8082363c6eef398a728fe69157cd11e45646",
+      "bytes": 97114,
+      "sha256": "62fdab138e8599e8430a2b136f887799c594aeda0ca4c7bb50e7f19558aa7e71"
+    },
+    {
+      "path": "po/zh-cn",
+      "git_mode": "120000",
+      "git_blob": "8d69574dddc0be327b75bd797e46591892c0a72b",
+      "bytes": 7,
+      "sha256": "99f8ad8ee53abb7f90260f8bf87a347d48395045690ef9e493e5b712fd188fe2"
+    },
+    {
+      "path": "po/zh_Hans/ssr-plus.po",
+      "git_mode": "100644",
+      "git_blob": "d5e4cc3928a2ee8dd3b72c5061f099cc2dfcc754",
+      "bytes": 115810,
+      "sha256": "6f8f6a26dc17b07599a595d1f7a32ec6657984a7c53aa8b3f1350f266c386881"
+    },
+    {
+      "path": "root/etc/config/shadowsocksr",
+      "git_mode": "100644",
+      "git_blob": "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "root/etc/init.d/shadowsocksr",
+      "git_mode": "100755",
+      "git_blob": "baafcc8d9cd5bd9cd674147bc79c5fba1133fc85",
+      "bytes": 70385,
+      "sha256": "79a1b5e9a93a72eab5871a6266c48975fb977032c04b5c0008be27c0c7c6f37a"
+    },
+    {
+      "path": "root/etc/ssrplus/ad.conf",
+      "git_mode": "100644",
+      "git_blob": "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "root/etc/ssrplus/applechina.conf",
+      "git_mode": "100644",
+      "git_blob": "bc8a7658fbabbf63f2666caf2980ac3ce7dcd66f",
+      "bytes": 8460,
+      "sha256": "2b933e27187ff34e3f45d8693b79f66540c037de391666626e9dccea32438b3a"
+    },
+    {
+      "path": "root/etc/ssrplus/black.list",
+      "git_mode": "100644",
+      "git_blob": "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "root/etc/ssrplus/china_ssr.txt",
+      "git_mode": "100644",
+      "git_blob": "d35488334ddb39f583ad56487dbe685674e7c510",
+      "bytes": 134054,
+      "sha256": "b2973b25129cfaae125bbebbfb0948df73c0c0beeca49edde8b4690015453299"
+    },
+    {
+      "path": "root/etc/ssrplus/deny.list",
+      "git_mode": "100644",
+      "git_blob": "dc4344e7d71be551ba004f789ce2681272d779f2",
+      "bytes": 333,
+      "sha256": "73a21a4b48cdd11d0116744554218093f8d036bfe244aa29eea2dcff54852855"
+    },
+    {
+      "path": "root/etc/ssrplus/dnsproxy_dns.list",
+      "git_mode": "100644",
+      "git_blob": "8010cc1b3cf7e2168d531abff8e944b579ea4810",
+      "bytes": 1149,
+      "sha256": "dd5b9ab53e1e34daad7ce0e2ab25e1c9d00168aed6dff57d8070883598deca6a"
+    },
+    {
+      "path": "root/etc/ssrplus/gfw_base.conf",
+      "git_mode": "100644",
+      "git_blob": "d47df256497e41822ed501d51deabd00e23edeed",
+      "bytes": 3542,
+      "sha256": "2e164cc3ffbd7b4f4f80848ac43d58733ff5d25423edb418ef52d7c8ee447fc3"
+    },
+    {
+      "path": "root/etc/ssrplus/gfw_list.conf",
+      "git_mode": "100644",
+      "git_blob": "a44d3714a7b40f62b7ce3e67aa093c2d5b22b3ad",
+      "bytes": 1215374,
+      "sha256": "2cd885b3497c520fabe8564878ae4cadf6f0f777225b2a19b8133c90aeb7fdef"
+    },
+    {
+      "path": "root/etc/ssrplus/mosdns-config.yaml",
+      "git_mode": "100644",
+      "git_blob": "a0b9f5c56172425b1e98e8b56bbfb4d2facd7ffe",
+      "bytes": 826,
+      "sha256": "205003a9491a7623ad26eb7e63e66a5e468886bb42941ddac97be3f580dc3a17"
+    },
+    {
+      "path": "root/etc/ssrplus/netflix.list",
+      "git_mode": "100644",
+      "git_blob": "f98f711b30644db546e03d9191802c7ec0b5fe7b",
+      "bytes": 374,
+      "sha256": "d508e5d0fb81aaf358fb93f6ee026af10dc462d76153f8c483f5ab6de9a426da"
+    },
+    {
+      "path": "root/etc/ssrplus/netflixip.list",
+      "git_mode": "100644",
+      "git_blob": "445ff62f53a52f9bc5dae4d2805e25e926dabdc1",
+      "bytes": 459,
+      "sha256": "05fa62c2a08ff34433c9f58cc966e1ba6941cbb8d503778d8ae57ea75b9b9921"
+    },
+    {
+      "path": "root/etc/ssrplus/oversea_list.conf",
+      "git_mode": "100644",
+      "git_blob": "ae50fb90d0a83a3c109542e5f0ebdd3d194b38e0",
+      "bytes": 7094,
+      "sha256": "2cda73b29d200fa3157c27d4b70db6897e5b5a07c2ad23f76fa4cfce29273f91"
+    },
+    {
+      "path": "root/etc/ssrplus/white.list",
+      "git_mode": "100644",
+      "git_blob": "9055fcb9140cfac4df3f4f0e80acb129262ab4a9",
+      "bytes": 85,
+      "sha256": "c64b33dad5f7ccd5b69e433df53101d4098257ffa3aed912b445eaa0fd4eddc8"
+    },
+    {
+      "path": "root/etc/uci-defaults/luci-ssr-plus",
+      "git_mode": "100755",
+      "git_blob": "2f839756c3ea92992defdcf61498ff385d89198f",
+      "bytes": 3107,
+      "sha256": "99be7bf98ebacbd5b6ac5dd7d6a384e4935fdf2823a951de2e057e18293682be"
+    },
+    {
+      "path": "root/usr/bin/ssr-monitor",
+      "git_mode": "100755",
+      "git_blob": "ed777358cc98c93ec1461a837780bb44a20077be",
+      "bytes": 4256,
+      "sha256": "fb93ba8b224fb70d1f0ed31ed47efecaa31c210c8343c08ea43baa8d8de44f9e"
+    },
+    {
+      "path": "root/usr/bin/ssr-rules",
+      "git_mode": "100755",
+      "git_blob": "88631194a96306805771ecaba07d5daf49bd3fc9",
+      "bytes": 72127,
+      "sha256": "d32efeec946abb0af4c2dc78ece3641d0656db64223ce8e38329eb879a522a45"
+    },
+    {
+      "path": "root/usr/bin/ssr-switch",
+      "git_mode": "100755",
+      "git_blob": "4e3a72945dd418582cdb111046f865b5cca8a03d",
+      "bytes": 4276,
+      "sha256": "bcb988f0c837de5c2a98bcc1402a1c16afd961d88fc3e33a64efac47da9523ed"
+    },
+    {
+      "path": "root/usr/share/rpcd/acl.d/luci-app-ssr-plus.json",
+      "git_mode": "100644",
+      "git_blob": "4b96a2dd18f3b774569567998701b09b5df8ffe5",
+      "bytes": 283,
+      "sha256": "bd7ca5ee5c4f8bc6b8d32ff3906691843b0bfa58d08e98019462263e863376b3"
+    },
+    {
+      "path": "root/usr/share/shadowsocksr/chinaipset.sh",
+      "git_mode": "100755",
+      "git_blob": "48164d1cbeb6616194d0d86f4406b3f3acd201d4",
+      "bytes": 1263,
+      "sha256": "a44246eb143ea48e4775ef8acecfcdb2b9225fab3dc0df61429cb73206b4a091"
+    },
+    {
+      "path": "root/usr/share/shadowsocksr/gen_config.lua",
+      "git_mode": "100755",
+      "git_blob": "e226697bced19dab2481fd920f3cad219fa0c666",
+      "bytes": 39762,
+      "sha256": "58784f09dece11bd755acc99e14bac05a0d87c5dacce01aa72ca82a801a93f21"
+    },
+    {
+      "path": "root/usr/share/shadowsocksr/genred2config.sh",
+      "git_mode": "100755",
+      "git_blob": "3750d3f9c5c0658ee104a3a3c00cd5408f3c31df",
+      "bytes": 1274,
+      "sha256": "ed275efbad23c52b1487e89007d2bdf40b3dbc6ac0e80d8ebf5579ba70e513f3"
+    },
+    {
+      "path": "root/usr/share/shadowsocksr/gfw2ipset.sh",
+      "git_mode": "100755",
+      "git_blob": "b1647758405b03109f6e939a7996fd4d02f5f9fc",
+      "bytes": 5795,
+      "sha256": "413dfad57eec22dc8a866b51b7e8e8b646901da31d4bee8dfa646816a0de40e2"
+    },
+    {
+      "path": "root/usr/share/shadowsocksr/hy2_test.sh",
+      "git_mode": "100755",
+      "git_blob": "1bac264dc8facfbedf90598640e20d4f22828e25",
+      "bytes": 4766,
+      "sha256": "dc1bd8d36e51d986afa9d1602f8e876fa9d7d534a3e917550144a959f5b68b76"
+    },
+    {
+      "path": "root/usr/share/shadowsocksr/shadowsocksr.config",
+      "git_mode": "100644",
+      "git_blob": "ded6977f352d1c10da96b4bc2fdb9b4cac2c36d1",
+      "bytes": 1588,
+      "sha256": "abafa2a4b47fd716c6a0d77dc6a94894d2391b1def56baa6e2396d70f12a8fd3"
+    },
+    {
+      "path": "root/usr/share/shadowsocksr/ssrp-runtime.sh",
+      "git_mode": "100755",
+      "git_blob": "862d8edade48fffdcfcd5e1d155de213ca6a6936",
+      "bytes": 5037,
+      "sha256": "bbb81fcdc7409d5c0eb8dacf449f35a1b41bb39dda47fb51638483bfbfe93387"
+    },
+    {
+      "path": "root/usr/share/shadowsocksr/ssrplus-build.json",
+      "git_mode": "100644",
+      "git_blob": "69c7e851a7ef257c1d8896c9f4fb0ef766b26aea",
+      "bytes": 4627,
+      "sha256": "f709b1901eb743a797207b369ccf736c766e42747857505a71e4f1750d72baf2"
+    },
+    {
+      "path": "root/usr/share/shadowsocksr/ssrplusupdate.sh",
+      "git_mode": "100755",
+      "git_blob": "fc198b6cee561a36834fee356edb114c76bdce6b",
+      "bytes": 294,
+      "sha256": "8200c987a30ebb0d7c52f25801cce60c80e68af45e44862e810ef33309d7e117"
+    },
+    {
+      "path": "root/usr/share/shadowsocksr/subscribe.lua",
+      "git_mode": "100755",
+      "git_blob": "9c3058f6f7dd39c1488be357113d09ada407374d",
+      "bytes": 68762,
+      "sha256": "577f88c65c7f6bea6bcee68c5fbb88d415cac9cb0204f0fd33f629b3e33e2d34"
+    },
+    {
+      "path": "root/usr/share/shadowsocksr/update.lua",
+      "git_mode": "100755",
+      "git_blob": "389f14b9f23f05aa7c8de54ac88fdd3d84532c31",
+      "bytes": 14718,
+      "sha256": "00c48fdca0e71d8cc6268d07aa046a9f1fa12948c557d123a7b917bc58c4b341"
+    },
+    {
+      "path": "root/usr/share/ucitrack/luci-app-ssr-plus.json",
+      "git_mode": "100644",
+      "git_blob": "5f4740d9692190c2832df6685e3a28a2e62a761c",
+      "bytes": 55,
+      "sha256": "dd1b787b6c91ce64bb51c937a1fc4ddbbb5ee4da0ef7f8c260505eb568992e5a"
+    }
+  ]
+}

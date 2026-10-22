@@ -26,6 +26,7 @@ source "$SCRIPT_DIR/modules/target_fixes.sh"
 source "$SCRIPT_DIR/modules/luci_fixes.sh"
 source "$SCRIPT_DIR/modules/service_fixes.sh"
 source "$SCRIPT_DIR/modules/plugin_compat.sh"
+source "$SCRIPT_DIR/modules/xray_core_compat.sh"
 
 
 # 阶段顺序不可随意调整：feeds install 前后依赖的目录不同。
@@ -58,9 +59,12 @@ stage_pre_install_source_fixes() {
     update_homeproxy || return 1
     fix_ssrplus_compat "$(get_custom_feed_worktree_dir)/luci-app-ssr-plus" || return 1
     fix_openclash_compat "$(get_custom_feed_worktree_dir)/luci-app-openclash" || return 1
+    fix_passwall_compat "$(get_custom_feed_worktree_dir)/luci-app-passwall" passwall || return 1
+    fix_passwall_compat "$(get_custom_feed_worktree_dir)/luci-app-passwall2" passwall2 || return 1
     fix_default_set
     fix_miniupnpd || return 1
     update_golang
+    fix_xray_core_compat "$(get_custom_feed_worktree_dir)/xray-core" || return 1
     change_dnsmasq2full
     fix_mk_def_depends
 

@@ -53,6 +53,16 @@ fix_openclash_compat() {
         openclash-wan-subnets.patch openclash-checksum-filename.patch
 }
 
+fix_passwall_compat() {
+    local package_dir=$1 plugin=$2
+    case "$plugin" in
+        passwall|passwall2) ;;
+        *) echo "错误：未知的 Passwall 插件：$plugin" >&2; return 1 ;;
+    esac
+    apply_plugin_compat_patches "$package_dir" "$plugin" \
+        "$plugin-singbox-tls-pin.patch" "$plugin-singbox-launch.patch"
+}
+
 fix_ssrplus_compat() (
     local package_dir=$1 runtime_source="$BASE_PATH/compat/ssrplus/runtime.sh"
     local runtime_path=root/usr/share/shadowsocksr/ssrp-runtime.sh

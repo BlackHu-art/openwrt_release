@@ -5,7 +5,13 @@ repo_root=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
 cd "$repo_root"
 
 python tests/verify_upstream_sync.py
+python tests/test_windows_test_env.py
 python tests/test_plugin_selection.py
+python tests/test_xray_core_compat.py
+python tests/test_passwall_tls.py
+python tests/test_passwall_launch.py
+python tests/test_proxy_compat_pipeline.py
+python tests/test_shared_xray_compat.py
 bash tests/test_custom_feed_plugins.sh
 bash tests/test_plugin_runtime.sh
 bash tests/test_openclash_checksum.sh

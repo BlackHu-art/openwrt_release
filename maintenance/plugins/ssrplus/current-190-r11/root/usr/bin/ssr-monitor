@@ -1,0 +1,100 @@
+#!/bin/sh
+#
+# Copyright (C) 2017 openwrt-ssr
+# Copyright (C) 2017 yushi studio <ywb94@qq.com>
+#
+# This is free software, licensed under the GNU General Public License v3.
+# See /LICENSE for more information.
+#
+. $IPKG_INSTROOT/etc/init.d/shadowsocksr
+LOCK_FILE="/var/lock/ssr-monitor.lock"
+[ -f "$LOCK_FILE" ] && exit 2
+touch "$LOCK_FILE"
+server_process_count=$1
+redir_tcp_process=$2
+redir_udp_process=$3
+kcp_process=$4
+local_process=$5
+pdnsd_process=$6
+if [ -z "$pdnsd_process" ]; then
+	pdnsd_process=0
+fi
+i=0
+# All recovery enters the init script's checked, bounded lifecycle lock.
+# Never launch individual daemons or rewrite DNS inputs from the monitor.
+ssrp_monitor_restart() {
+	local result
+	logger -t "$NAME" "$1"
+	echolog "$1"
+	/etc/init.d/shadowsocksr restart
+	result=$?
+	if [ "$result" -ne 0 ]; then
+		logger -t "$NAME" "ssrplus recovery failed: $result"
+		echolog "ssrplus recovery failed: $result"
+	fi
+	exit "$result"
+}
+
+while [ "1" == "1" ]; do #死循环
+	sleep 000030s
+	# Core process recovery uses the same lifecycle as DNS recovery.
+	if [ "$redir_tcp_process" -gt 0 ]; then
+		icount=$(busybox ps -w | grep ssr-retcp | grep -v grep | wc -l)
+		[ "$icount" -gt 0 ] || ssrp_monitor_restart "ssrplus redir tcp error.restart!"
+	fi
+	if [ "$redir_udp_process" -gt 0 ]; then
+		icount=$(busybox ps -w | grep ssr-reudp | grep -v grep | wc -l)
+		[ "$icount" -gt 0 ] || ssrp_monitor_restart "ssrplus redir udp error.restart!"
+	fi
+	if [ "$server_process_count" -gt 0 ]; then
+		icount=$(busybox ps -w | grep ssr-server | grep -v grep | wc -l)
+		[ "$icount" -ge "$server_process_count" ] || ssrp_monitor_restart "ssrplus server error.restart!"
+	fi
+	if [ "$kcp_process" -gt 0 ]; then
+		icount=$(busybox ps -w | grep kcptun-client | grep -v grep | wc -l)
+		[ "$icount" -ge "$kcp_process" ] || ssrp_monitor_restart "ssrplus kcptun error.restart!"
+	fi
+	if [ "$local_process" -gt 0 ]; then
+		icount=$(busybox ps -w | grep ssr-local | grep -v grep | wc -l)
+		[ "$icount" -ge "$local_process" ] || ssrp_monitor_restart "global socks server error.restart!"
+	fi
+	case "$pdnsd_process" in
+	1)
+		icount=$(busybox ps -w | grep -F "$TMP_BIN_PATH/dns2tcp" | grep -v grep | wc -l)
+		[ "$icount" -ge 1 ] || ssrp_monitor_restart "dns2tcp tunnel error.restart!"
+		;;
+	2|3)
+		# Both processes are required. A surviving microsocks cannot mask a
+		# dead converter. dns2socks may rewrite ':' in its visible argv.
+		icount=$(busybox ps -w | grep ssrplus-dns | grep -v grep | wc -l)
+		[ "$icount" -ge 1 ] || ssrp_monitor_restart "DNS socks server error.restart!"
+		if [ "$pdnsd_process" -eq 2 ]; then
+			icount=$(busybox ps -w | grep -E "dns2socks[[:space:]]+127[.]0[.]0[.]1(:|[[:space:]])$tmp_dns_port([[:space:]]|$)" | grep -v grep | wc -l)
+		else
+			icount=$(busybox ps -w | grep -E "dns2socks-rust[[:space:]]+-s[[:space:]]+socks5://127[.]0[.]0[.]1(:|[[:space:]])$tmp_dns_port([[:space:]]|$)" | grep -v grep | wc -l)
+		fi
+		[ "$icount" -ge 1 ] || ssrp_monitor_restart "DNS socks converter error.restart!"
+		;;
+	4)
+		icount=$(busybox ps -w | grep -F "$TMP_BIN_PATH/mosdns" | grep -v grep | wc -l)
+		[ "$icount" -ge 1 ] || ssrp_monitor_restart "mosdns tunnel error.restart!"
+		;;
+	5)
+		icount=$(busybox ps -w | grep -E "dnsproxy[[:space:]]+-l[[:space:]]+127[.]0[.]0[.]1[[:space:]]+-p[[:space:]]+$tmp_dns_port([[:space:]]|$)" | grep -v grep | wc -l)
+		[ "$icount" -ge 1 ] || ssrp_monitor_restart "dnsproxy tunnel error.restart!"
+		;;
+	6)
+		icount=$(busybox ps -w | grep -E "chinadns-ng[[:space:]]+-b[[:space:]]+127[.]0[.]0[.]1[[:space:]]+-l[[:space:]]+$tmp_dns_port([[:space:]]|$)" | grep -v grep | wc -l)
+		[ "$icount" -ge 1 ] || ssrp_monitor_restart "chinadns-ng proxy tunnel error.restart!"
+		;;
+	esac
+	# Match start_dns: router mode owns a separate China listener on 5333.
+	# Its private DNS bundle does not set the legacy DHCP migration marker.
+	if [ "$(uci_get_by_type global run_mode)" = router ] &&
+		[ "$(uci_get_by_type global pdnsd_enable 0)" != 0 ] &&
+		[ -n "$(uci_get_by_type global chinadns_forward)" ]; then
+		icount=$(busybox ps -w | grep -F "$TMP_BIN_PATH/chinadns-ng " |
+			grep -E "(^|[[:space:]])-l[[:space:]]+$china_dns_port([[:space:]]|$)" | grep -v grep | wc -l)
+		[ "$icount" -ge 1 ] || ssrp_monitor_restart "chinadns-ng tunnel error.restart!"
+	fi
+done

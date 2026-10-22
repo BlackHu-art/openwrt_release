@@ -14,6 +14,11 @@ on:
       - 'wrt_core/update.sh'
       - 'wrt_core/modules/**'
       - 'wrt_core/patches/ssrplus-*.patch'
+      - 'wrt_core/patches/passwall*-singbox-*.patch'
+      - 'wrt_core/patches/xray-core-*.patch'
+      - 'wrt_core/compat/proxy-cores/**'
+      - 'maintenance/plugins/passwall/**'
+      - 'maintenance/plugins/passwall2/**'
       - 'wrt_core/patches/.gitattributes'
       - 'tests/**'
   push:
@@ -29,6 +34,11 @@ on:
       - 'wrt_core/update.sh'
       - 'wrt_core/modules/**'
       - 'wrt_core/patches/ssrplus-*.patch'
+      - 'wrt_core/patches/passwall*-singbox-*.patch'
+      - 'wrt_core/patches/xray-core-*.patch'
+      - 'wrt_core/compat/proxy-cores/**'
+      - 'maintenance/plugins/passwall/**'
+      - 'maintenance/plugins/passwall2/**'
       - 'wrt_core/patches/.gitattributes'
       - 'tests/**'
   workflow_dispatch:
@@ -56,6 +66,10 @@ jobs:
           from lupa.lua51 import LuaRuntime
           assert LuaRuntime().eval('_VERSION') == 'Lua 5.1'
           PY
+      - name: Fetch and verify the pinned shared Xray test core
+        run: |
+          python tests/fetch_xray_test_core.py --output "$RUNNER_TEMP/shared-xray/xray"
+          echo "XRAY_TEST_BINARY=$RUNNER_TEMP/shared-xray/xray" >> "$GITHUB_ENV"
       - name: Run project regression tests
         run: |
           bash tests/run_all.sh

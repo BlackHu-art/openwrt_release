@@ -1,0 +1,14 @@
+# Preserve upstream Git blob bytes; do not normalize imported snapshots.
+/smartdns/** -text -filter -ident -working-tree-encoding whitespace=-blank-at-eol,-blank-at-eof,-space-before-tab
+/passwall/** -text -filter -ident -working-tree-encoding whitespace=-blank-at-eol,-blank-at-eof,-space-before-tab
+/passwall2/** -text -filter -ident -working-tree-encoding whitespace=-blank-at-eol,-blank-at-eof,-space-before-tab
+/openclash/** -text -filter -ident -working-tree-encoding whitespace=-blank-at-eol,-blank-at-eof,-space-before-tab
+/adguardhome/** -text -filter -ident -working-tree-encoding whitespace=-blank-at-eol,-blank-at-eof,-space-before-tab
+/ssrplus/upstream-v198.2/** -text -filter -ident -working-tree-encoding whitespace=-blank-at-eol,-blank-at-eof,-space-before-tab
+/ssrplus/current-190-r11/** -text -filter -ident -working-tree-encoding whitespace=-blank-at-eol,-blank-at-eof,-space-before-tab
+/ssrplus/*.json text eol=lf
+/ssrplus/*.md text eol=lf
+/licenses/** -text -filter -ident -working-tree-encoding
+/sources.lock.json text eol=lf
+/manifests/*.json text eol=lf
+/README.md text eol=lf

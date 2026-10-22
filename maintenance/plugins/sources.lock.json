@@ -1,0 +1,317 @@
+{
+  "schema_version": 1,
+  "captured_at_utc": "2026-10-22T15:17:05.200043+00:00",
+  "project_baseline_commit": "6d76ce124426086bbc5f90a9fcb9fcc0ba3b0a41",
+  "purpose": "maintenance-reference-only",
+  "consumed_by_firmware_build": false,
+  "storage": {
+    "regular_files": "exact-git-blob-bytes",
+    "symlinks": "git-link-text",
+    "permissions": "original-git-modes-recorded-in-manifests"
+  },
+  "sources": [
+    {
+      "id": "smartdns-package",
+      "name": "SmartDNS package",
+      "repository": "https://github.com/ZqinKing/openwrt-smartdns.git",
+      "requested_ref": "HEAD",
+      "ref_selection": "upstream-default-branch",
+      "resolved_branch": "master",
+      "commit": "cdf0de1d3e64984ea2c56ec873f233495ddb1de0",
+      "commit_date": "2026-02-09T07:33:08Z",
+      "commit_subject": "chore: update SmartDNS to 1.2025.47",
+      "tree": "4c499dfd232864ec32d43e3921637f7a50ce9eaf",
+      "upstream_path": ".",
+      "snapshot_kind": "repository-root",
+      "local_path": "smartdns/package",
+      "build_source": {
+        "file": "wrt_core/modules/package_source_updates.sh",
+        "function": "update_smartdns"
+      },
+      "package_makefile_fields": {
+        "PKG_NAME": "smartdns",
+        "PKG_VERSION": "1.2025.47",
+        "PKG_RELEASE": "1",
+        "PKG_SOURCE_PROTO": "git",
+        "PKG_SOURCE_URL": "https://www.github.com/pymumu/smartdns.git",
+        "PKG_SOURCE_VERSION": "136c0c2690138d6dedd8b520281aafe49112643f",
+        "PKG_LICENSE": "GPL-3.0-or-later",
+        "PKG_LICENSE_FILES": "LICENSE"
+      },
+      "file_count": 8,
+      "total_blob_bytes": 19470,
+      "git_mode_counts": {
+        "100755": 5,
+        "100644": 3
+      },
+      "manifest": "manifests/smartdns-package.json",
+      "manifest_sha256": "35471203348d923a69cef7a54ff168ff1893cb548564a39390b3404a43f6b498",
+      "supplemental_license_files": [],
+      "nested_attributes": [],
+      "nested_ignore_files": [],
+      "snapshot_state": "unmodified-upstream-before-project-patches"
+    },
+    {
+      "id": "smartdns-luci",
+      "name": "SmartDNS LuCI",
+      "repository": "https://github.com/pymumu/luci-app-smartdns.git",
+      "requested_ref": "HEAD",
+      "ref_selection": "upstream-default-branch",
+      "resolved_branch": "master",
+      "commit": "581e5e816d92d3a663b1b2e331e3f21685968cf1",
+      "commit_date": "2026-07-09T07:03:36+08:00",
+      "commit_subject": "fix typo and up version",
+      "tree": "87e1b80f097689ed7125ab3aff3e2887b90d428a",
+      "upstream_path": ".",
+      "snapshot_kind": "repository-root",
+      "local_path": "smartdns/luci-app-smartdns",
+      "build_source": {
+        "file": "wrt_core/modules/package_source_updates.sh",
+        "function": "update_smartdns"
+      },
+      "package_makefile_fields": {
+        "PKG_NAME": "luci-app-smartdns",
+        "PKG_VERSION": "1.2026.48.2",
+        "PKG_RELEASE": "2",
+        "PKG_LICENSE": "GPL-3.0-or-later",
+        "LUCI_TITLE": "LuCI for smartdns"
+      },
+      "file_count": 13,
+      "total_blob_bytes": 275883,
+      "git_mode_counts": {
+        "100644": 12,
+        "100755": 1
+      },
+      "manifest": "manifests/smartdns-luci.json",
+      "manifest_sha256": "de0813dc170fe89f51a7df8f35716065eea8e8177ef4d84e5c7769aa49e928be",
+      "supplemental_license_files": [],
+      "nested_attributes": [],
+      "nested_ignore_files": [],
+      "snapshot_state": "unmodified-upstream-before-project-patches"
+    },
+    {
+      "id": "passwall",
+      "name": "Passwall",
+      "repository": "https://github.com/Openwrt-Passwall/openwrt-passwall.git",
+      "requested_ref": "main",
+      "ref_selection": "explicit-branch",
+      "resolved_branch": "main",
+      "commit": "7cdb8379d42866af93d996d5afb7d5b2b18eb061",
+      "commit_date": "2026-10-22T21:41:24+08:00",
+      "commit_subject": "luci: bump 26.10.22-2",
+      "tree": "582cac29cfabc8fee312386ac1ab66dd7c9b5566",
+      "upstream_path": "luci-app-passwall",
+      "snapshot_kind": "package-subtree",
+      "local_path": "passwall/luci-app-passwall",
+      "build_source": {
+        "file": "wrt_core/modules/custom_feed.sh",
+        "function": "install_custom_feed"
+      },
+      "package_makefile_fields": {
+        "PKG_NAME": "luci-app-passwall",
+        "PKG_VERSION": "26.10.22",
+        "PKG_RELEASE": "2",
+        "LUCI_TITLE": "LuCI support for PassWall"
+      },
+      "file_count": 128,
+      "total_blob_bytes": 3153782,
+      "git_mode_counts": {
+        "100644": 111,
+        "120000": 1,
+        "100755": 16
+      },
+      "manifest": "manifests/passwall.json",
+      "manifest_sha256": "712e1e9e25facaac446c7a98ba466a5fa5ed7ce6dc85c6951d539e340d384e22",
+      "supplemental_license_files": [
+        {
+          "upstream_path": "LICENSE",
+          "local_path": "licenses/passwall/LICENSE",
+          "git_blob": "f288702d2fa16d3cdf0035b15a9fcbc552cd88e7",
+          "git_mode": "100644",
+          "bytes": 35149,
+          "sha256": "3972dc9744f6499f0f9b2dbf76696f2ae7ad8af9b23dde66d6af86c9dfb36986",
+          "role": "source-repository-license-not-package-relicensing"
+        }
+      ],
+      "nested_attributes": [],
+      "nested_ignore_files": [],
+      "snapshot_state": "unmodified-upstream-before-project-patches"
+    },
+    {
+      "id": "passwall2",
+      "name": "Passwall2",
+      "repository": "https://github.com/Openwrt-Passwall/openwrt-passwall2.git",
+      "requested_ref": "main",
+      "ref_selection": "explicit-branch",
+      "resolved_branch": "main",
+      "commit": "896c586a27c9a7c0b9e3d75b631965dea86b9945",
+      "commit_date": "2026-10-21T23:54:26+08:00",
+      "commit_subject": "luci: select nslookup DNS port format based on BusyBox version",
+      "tree": "f4f597102e1b61c93858f2f1677cb1bd5f9586ee",
+      "upstream_path": "luci-app-passwall2",
+      "snapshot_kind": "package-subtree",
+      "local_path": "passwall2/luci-app-passwall2",
+      "build_source": {
+        "file": "wrt_core/modules/custom_feed.sh",
+        "function": "install_custom_feed"
+      },
+      "package_makefile_fields": {
+        "PKG_NAME": "luci-app-passwall2",
+        "PKG_VERSION": "26.10.20",
+        "PKG_RELEASE": "1",
+        "LUCI_TITLE": "LuCI support for PassWall 2"
+      },
+      "file_count": 111,
+      "total_blob_bytes": 1677527,
+      "git_mode_counts": {
+        "100644": 95,
+        "120000": 2,
+        "100755": 14
+      },
+      "manifest": "manifests/passwall2.json",
+      "manifest_sha256": "3f4aa4ea7e886a45389f5064bad7d08491af340b869fb28abd6686e7101f21e6",
+      "supplemental_license_files": [
+        {
+          "upstream_path": "LICENSE",
+          "local_path": "licenses/passwall2/LICENSE",
+          "git_blob": "f288702d2fa16d3cdf0035b15a9fcbc552cd88e7",
+          "git_mode": "100644",
+          "bytes": 35149,
+          "sha256": "3972dc9744f6499f0f9b2dbf76696f2ae7ad8af9b23dde66d6af86c9dfb36986",
+          "role": "source-repository-license-not-package-relicensing"
+        }
+      ],
+      "nested_attributes": [],
+      "nested_ignore_files": [],
+      "snapshot_state": "unmodified-upstream-before-project-patches"
+    },
+    {
+      "id": "openclash",
+      "name": "OpenClash",
+      "repository": "https://github.com/kenzok8/small-package.git",
+      "requested_ref": "HEAD",
+      "ref_selection": "upstream-default-branch",
+      "resolved_branch": "main",
+      "commit": "3d5609257639ed76aaacdeffe242343d51265fea",
+      "commit_date": "2026-10-22T16:59:46+08:00",
+      "commit_subject": "update 2026-10-22 16:59:46",
+      "tree": "d544bd03cdaae26d19836bd911875458ba9cae76",
+      "upstream_path": "luci-app-openclash",
+      "snapshot_kind": "package-subtree",
+      "local_path": "openclash/luci-app-openclash",
+      "build_source": {
+        "file": "wrt_core/modules/custom_feed.sh",
+        "function": "install_custom_feed"
+      },
+      "package_makefile_fields": {
+        "PKG_NAME": "luci-app-openclash",
+        "PKG_VERSION": "0.48.002"
+      },
+      "file_count": 234,
+      "total_blob_bytes": 23455262,
+      "git_mode_counts": {
+        "100644": 233,
+        "120000": 1
+      },
+      "manifest": "manifests/openclash.json",
+      "manifest_sha256": "d2e4f9c1d7687dc91e0995b8c92a902b09db0f31629c126db82fdd912230264e",
+      "supplemental_license_files": [
+        {
+          "upstream_path": "LICENSE",
+          "local_path": "licenses/openclash/LICENSE",
+          "git_blob": "261eeb9e9f8b2b4b0d119366dda99c6fd7d35c64",
+          "git_mode": "100644",
+          "bytes": 11357,
+          "sha256": "c71d239df91726fc519c6eb72d318ec65820627232b2f796219e87dcf35d0ab4",
+          "role": "source-repository-license-not-package-relicensing"
+        }
+      ],
+      "nested_attributes": [],
+      "nested_ignore_files": [],
+      "snapshot_state": "unmodified-upstream-before-project-patches"
+    },
+    {
+      "id": "adguardhome",
+      "name": "AdGuard Home LuCI",
+      "repository": "https://github.com/ZqinKing/luci-app-adguardhome.git",
+      "requested_ref": "HEAD",
+      "ref_selection": "upstream-default-branch",
+      "resolved_branch": "main",
+      "commit": "36108202f326f65ab6f5a85d15adcba6538f8e8b",
+      "commit_date": "2025-09-23T14:46:00+08:00",
+      "commit_subject": "feat(firewall): Add nftables support for DNS redirection",
+      "tree": "8d903377f438583ffa32e5832c049b7cb027c5c2",
+      "upstream_path": ".",
+      "snapshot_kind": "repository-root",
+      "local_path": "adguardhome/luci-app-adguardhome",
+      "build_source": {
+        "file": "wrt_core/modules/service_fixes.sh",
+        "function": "update_adguardhome"
+      },
+      "package_makefile_fields": {
+        "PKG_NAME": "luci-app-adguardhome",
+        "LUCI_TITLE": "LuCI app for AdGuardHome"
+      },
+      "file_count": 36,
+      "total_blob_bytes": 294328,
+      "git_mode_counts": {
+        "100644": 28,
+        "120000": 1,
+        "100755": 7
+      },
+      "manifest": "manifests/adguardhome.json",
+      "manifest_sha256": "7383458e15723108b4bf8974a35bbd8458fbc02b605b2e28532c59df09f026d5",
+      "supplemental_license_files": [],
+      "nested_attributes": [],
+      "nested_ignore_files": [],
+      "snapshot_state": "unmodified-upstream-before-project-patches"
+    },
+    {
+      "id": "ssrplus-v198.2",
+      "name": "SSR Plus+ v198.2 complete upstream repository",
+      "repository": "https://github.com/fw876/helloworld.git",
+      "requested_ref": "v198.2",
+      "ref_selection": "explicit-release-tag",
+      "resolved_branch": null,
+      "commit": "45893d778767f3bdb2fcb6e873cf8f9a667d94d4",
+      "commit_date": "2026-10-22T11:38:30+08:00",
+      "commit_subject": "luci-app-ssr-plus: bump version to v198.2",
+      "tree": "fe37ff9ab420e178544ff2c7402b34c387f32b44",
+      "upstream_path": ".",
+      "snapshot_kind": "repository-root",
+      "local_path": "ssrplus/upstream-v198.2",
+      "build_source": {
+        "file": "wrt_core/modules/custom_feed.sh",
+        "function": "install_custom_feed",
+        "active_ref": "master",
+        "evaluation_only": true
+      },
+      "package_makefile_path": "luci-app-ssr-plus/Makefile",
+      "package_makefile_fields": {
+        "PKG_NAME": "luci-app-ssr-plus",
+        "PKG_VERSION": "198",
+        "PKG_RELEASE": "2"
+      },
+      "file_count": 962,
+      "total_blob_bytes": 14357069,
+      "git_mode_counts": {
+        "100644": 925,
+        "120000": 1,
+        "100755": 36
+      },
+      "manifest": "manifests/ssrplus-v198.2.json",
+      "manifest_sha256": "274d46eadf5b1314b22cc0623491053c15737485fbdc2cd16097fdc4fbfd5beb",
+      "supplemental_license_files": [],
+      "nested_attributes": [],
+      "nested_ignore_files": [
+        ".gitignore",
+        "shadowsocksr-libev/src/debian/.gitignore",
+        "shadowsocksr-libev/src/libsodium/.gitignore",
+        "shadowsocksr-libev/src/libsodium/packaging/nuget/.gitignore"
+      ],
+      "snapshot_state": "unmodified-upstream-release-for-migration-assessment",
+      "captured_at_utc": "2026-10-22T15:45:37.018902+00:00"
+    }
+  ],
+  "updated_at_utc": "2026-10-22T15:45:37.018902+00:00"
+}

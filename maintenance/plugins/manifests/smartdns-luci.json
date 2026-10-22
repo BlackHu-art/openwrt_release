@@ -1,0 +1,98 @@
+{
+  "source_id": "smartdns-luci",
+  "commit": "581e5e816d92d3a663b1b2e331e3f21685968cf1",
+  "tree": "87e1b80f097689ed7125ab3aff3e2887b90d428a",
+  "files": [
+    {
+      "path": "Makefile",
+      "git_mode": "100644",
+      "git_blob": "e804577c18240d57d2c2aa77a753a64d8ecb9205",
+      "bytes": 809,
+      "sha256": "6f4ab067acd42df3d018f6f26c2f8a84413e157b3a5da33209f386d827139a4e"
+    },
+    {
+      "path": "ReadMe.md",
+      "git_mode": "100644",
+      "git_blob": "51475a320fe9af3aea6cf123e60f7d416cf751de",
+      "bytes": 2647,
+      "sha256": "1ec6f9b2d632bf452acb48adf8a65c6878eeb4c4bae133fcc30ef68b652a139e"
+    },
+    {
+      "path": "htdocs/luci-static/resources/view/smartdns/log.js",
+      "git_mode": "100644",
+      "git_blob": "ff8c95f7a8cb04bc86fd9b19520eee9bc2709cc2",
+      "bytes": 4355,
+      "sha256": "d8db306b98df260dc78dc4a60e29a6630880059676902e384b0f223582e4b5c4"
+    },
+    {
+      "path": "htdocs/luci-static/resources/view/smartdns/smartdns.js",
+      "git_mode": "100644",
+      "git_blob": "ff563046d6c19b68020c137c4e2d1de130ccd833",
+      "bytes": 56380,
+      "sha256": "3a477aaa05208e429a1d2aa046193a6e4d8d17c525e6776143a8109345af93f0"
+    },
+    {
+      "path": "po/de/smartdns.po",
+      "git_mode": "100644",
+      "git_blob": "cd5aadfd097c08555e3c3f5433b6f0eb7393ab9a",
+      "bytes": 38848,
+      "sha256": "24e2561b0843f63788f04535c71122fd2a1e455516af9f90e5f221db79dbae63"
+    },
+    {
+      "path": "po/es/smartdns.po",
+      "git_mode": "100644",
+      "git_blob": "1207c43531f71c3e2d2a893d67a8be4ab433186e",
+      "bytes": 40663,
+      "sha256": "4b9b13c9ee8ca7788ad65a875a82b2d726078b88f0a2ba28c06057f7744222ef"
+    },
+    {
+      "path": "po/pt-BR/smartdns.po",
+      "git_mode": "100644",
+      "git_blob": "6ec49c1bbbd5e4be5352594a66d8569e10e65d1d",
+      "bytes": 39559,
+      "sha256": "edacb4e829de6df74d1b256afa739767f748bf6f54d12902ac6f649ae43e473c"
+    },
+    {
+      "path": "po/templates/smartdns.pot",
+      "git_mode": "100644",
+      "git_blob": "4c50e69e1236b18d4a2f0c38204acac30f4c28db",
+      "bytes": 21753,
+      "sha256": "88d9452ce68589bacaeadd04cfd13ad7dc8df8bafa092cf98fba32c594fbc5fd"
+    },
+    {
+      "path": "po/zh_Hans/smartdns.po",
+      "git_mode": "100644",
+      "git_blob": "f91f500cc7b99fdf9bd7596786092f8bcd839998",
+      "bytes": 30905,
+      "sha256": "b6243a71ab2d6807d6f2858d054c0f6d64d0f4e0c846b418d5362a28342d91a4"
+    },
+    {
+      "path": "po/zh_Hant/smartdns.po",
+      "git_mode": "100644",
+      "git_blob": "c904ddd5804c4187539c1ac52e1290860c6c00bd",
+      "bytes": 38531,
+      "sha256": "e8446f5b2e5af316ac4fe2b5a698ce1382d1d94909795581c87eb6c387102000"
+    },
+    {
+      "path": "root/usr/libexec/smartdns-call",
+      "git_mode": "100755",
+      "git_blob": "2537792a7926a6f6de9033da6ee12f51e077983a",
+      "bytes": 549,
+      "sha256": "63fd184a79615f2a6ae83e04c02b371164aaac848adb9fdc548119afc8204a5f"
+    },
+    {
+      "path": "root/usr/share/luci/menu.d/luci-app-smartdns.json",
+      "git_mode": "100644",
+      "git_blob": "45f796c9b18793b9a0f89c732a34f134a1f13039",
+      "bytes": 331,
+      "sha256": "20947b4d6b983af152569bd29566370b1f5bdee1c044d59268cd60bc4c045b32"
+    },
+    {
+      "path": "root/usr/share/rpcd/acl.d/luci-app-smartdns.json",
+      "git_mode": "100644",
+      "git_blob": "f2762301f58f027e54b0fff36e6433a9e61e1104",
+      "bytes": 553,
+      "sha256": "5093fc3e119f2ff4c143cbf50ee8cb90e3b9f2c0515f1e15e871fccfa6ac1d3d"
+    }
+  ]
+}

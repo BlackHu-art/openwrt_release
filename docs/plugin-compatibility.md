@@ -1,12 +1,44 @@
 # 插件兼容修复与编译入口
 
-本次修复沿用当前选择的插件来源，不切换 SSR dev 分支，不升级代理内核。
+兼容修复沿用当前选择的插件来源，不切换 SSR dev 分支。为满足当前 Passwall / Passwall2
+生成器的最低版本要求，共享 Xray 配方从 `26.3.27` 调整为 `26.7.11`；sing-box 保持 `1.14.3`。
 后续通过项目标准 `build.sh` / GitHub Actions 编译、并选中对应插件的固件，
 会在编译源码准备阶段自动应用这些补丁。
 
-当前 AX6600 的 `jdcloud_ipq60xx_immwrt.config` 已启用这三个插件。
+当前 AX6600 的 `jdcloud_ipq60xx_immwrt.config` 已启用 SSR Plus、OpenClash 和 AdGuard Home。
 `jdcloud_ipq60xx_libwrt.config` 启用 OpenClash/ADG，SSR 需由最终配置选中；
 本次不改变各机型的插件选择。
+
+## Passwall、Passwall2 与共享 Xray
+
+两套插件继续从 `Openwrt-Passwall` 各自仓库的 `main` 获取。维护区保存的原始源码不改写；
+`stage_pre_install_source_fixes` 在 feeds install 前通过 `fix_passwall_compat` 应用补丁。
+
+- sing-box `< 1.15.0` 遇到非空 `tls_pinSHA256` 时明确报错，不再将证书指纹丢弃并自动设置
+  `tls.insecure=true`。即使原配置同时指定允许不安全连接，也不会忽略已指定的指纹。
+- 三个生成器调用入口检查 Lua 的退出状态，将诊断写入插件日志，删除失败时留下的 JSON，
+  并停止该次核心检查和启动。已有空指纹配置及显式 `tls_allowInsecure` 语义保持不变；
+  支持指纹字段的 sing-box 分支继续使用原有格式转换。
+- 旧核心上使用证书指纹的节点现在会被拒绝，需要使用支持该字段的核心，或由用户明确重新配置
+  证书验证方式。补丁不自动删除指纹、改成公有 CA 校验或将证书指纹冒充公钥指纹。
+
+两套插件生成的 Xray JSON 声明 `version.min=26.7.11`。当前 small-package 的 `26.3.27`
+会拒绝这类配置，因此通过 [Xray 配方补丁](../wrt_core/patches/xray-core-26.7.11.patch)
+仅调整版本与源码 SHA-256，继续使用原有 XTLS 下载来源、依赖、构建参数和安装规则。
+`26.7.11` 的[官方发布](https://github.com/XTLS/Xray-core/releases/tag/v26.7.11)标记为预发布；
+本次选择的是满足最低要求的版本，不将其称为稳定版。来源、提交、源码哈希及审查时的 Go
+配方记录在 [版本记录](../wrt_core/compat/proxy-cores/xray-26.7.11.json)。
+
+[fix_xray_core_compat](../wrt_core/modules/xray_core_compat.sh) 在现有 `update_golang` 之后执行，
+检查本轮实际获取的 Go 配方至少为 `1.26`，并读取两套插件实际生成器的最低 Xray 版本。
+未审查的 Xray Makefile、插件最低版本提高、版本声明异常或 Go 不满足要求都会停止构建，
+不继续使用不兼容配方；重复执行也会重新检查版本条件。
+
+Passwall、Passwall2 和 SSR Plus 共用 `/usr/bin/xray`，因此此次配方调整也影响选用 Xray 的
+SSR Plus 节点。新增回归执行三者真实生成器，覆盖 53 份最终配置，包括 VLESS / Trojan / SS
+的 raw、WebSocket、HTTPUpgrade、gRPC 与 TLS，以及 VMess WebSocket/TLS、VLESS Reality、
+透明代理、DNS、分流和辅助代理入口。
+SSR Plus 用例先执行实际订阅器再生成配置。`xray-plugin` 是独立软件包及二进制，不随此配方改版。
 
 ## SSR Plus
 
@@ -72,15 +104,25 @@ feeds install 后，`wrt_core/modules/service_fixes.sh` 的 `update_adguardhome`
 
 ## 验证与适用范围
 
-`tests/run_all.sh` 包含三组新增专项回归及现有完整回归。
+`tests/run_all.sh` 包含插件专项回归及现有完整回归。Passwall TLS 与启动入口回归覆盖旧核心
+拒绝指纹、受支持核心保留指纹、无指纹配置、隐式 TLS 协议、生成失败后停止启动，以及补丁重复应用。
+Xray 配方回归覆盖源码与补丁哈希、版本及 Go 门槛、重复执行和失败时不写入原配方；
+源码准备阶段回归另外验证实际接入顺序。
 `.github/workflows/test_ssrplus.yml` 在 Linux 上执行该入口，并在隔离网络
 命名空间内用真实 nft/dnsmasq 验证生成配置与生命周期。
 标准固件构建及发布工作流继续依赖测试门禁。
+
+共享 Xray 回归通过 `XRAY_TEST_BINARY` 调用官方核心的 `run -test` 检查最终配置。
+CI 使用 [固定版本下载器](../tests/fetch_xray_test_core.py) 校验归档 SHA-256 后设置该变量；
+本地未设置时会明确跳过实际核心校验，但仍运行生成器检查。Windows 与 Linux amd64 的
+官方测试归档分别锁定哈希。该校验不启动代理监听，也不能证明真实 TLS 握手或数据转发成功。
 
 测试执行实际打补丁后的程序，下载、服务和外部网络边界在测试中替换。
 首次初始化测试通过限定的 UCI 边界提交实际配置，再由真实 sed 和 Lua 5.1
 订阅器处理，覆盖最终核心选择和 WebSocket 参数；订阅传输回归继续执行真实
 上游 `gen_config.lua` 检查最终 JSON。这不替代目标 UCI 或核心握手的验收。
-源码补丁支持重复执行，补丁或 SSR 源码校验不匹配时在写入前拒绝。Windows 本地验证不能
-替代 Linux 可执行权限及 nft/dnsmasq 检查；这些由 Linux CI 完成。
+源码补丁支持重复执行，补丁或 SSR 源码校验不匹配时在写入前拒绝。Windows 的 SSR 首次初始化
+回归也需要真实 `flock`；只有 Git Bash 时会因缺少该命令失败，可通过现有 `SSRP_TEST_FLOCK_DIR`
+指定可用工具目录。Windows 本地验证不能替代 Linux 可执行权限及 nft/dnsmasq 检查；
+这些仍需在 Linux CI 验证。
 以上不代表已完成完整固件交叉编译或路由器实机验收。

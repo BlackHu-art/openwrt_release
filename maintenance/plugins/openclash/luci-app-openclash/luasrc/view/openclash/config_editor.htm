@@ -1,0 +1,62 @@
+<script src="/cgi-bin/luci/admin/services/openclash/translate_js?f=common&v=@OPENCLASH_VERSION@&l=<%=luci.i18n.context.lang%>"></script>
+<link rel="stylesheet" href="/luci-static/resources/openclash/css/oc-common.css?v=@OPENCLASH_VERSION@">
+
+<%-
+local path_info = os.getenv("PATH_INFO") or ""
+local sid = path_info:match("(cfg[0-9a-f]+)") or ""
+-%>
+
+<script src="/luci-static/resources/openclash/js/oc-icons.js?v=@OPENCLASH_VERSION@"></script>
+<script src="/cgi-bin/luci/admin/services/openclash/translate_js?f=editors&v=@OPENCLASH_VERSION@&l=<%=luci.i18n.context.lang%>"></script>
+<script type="text/javascript">//<![CDATA[
+
+(function() {
+var oc_log = document.getElementById("cbid.openclash.config.clog");
+if (oc_log) { log_editor(oc_log, 'oc', true, '100%', '540px'); }
+
+var custom_cfg_value = document.getElementById("cbid.openclash.<%=sid%>.other_parameters");
+if (custom_cfg_value) {
+	editor(custom_cfg_value, false, '100%', '300px');
+}
+
+var custom_firewall = document.getElementById("cbid.openclash.config.firewall_custom");
+if (custom_firewall) {
+	shell_editor(custom_firewall, false, "100%", '300px');
+}
+
+var myEditor_hosts = document.getElementById("cbid.openclash.config.custom_hosts");
+var myEditor_fall_fil = document.getElementById("cbid.openclash.config.custom_fallback_fil");
+var myEditor_name_pol = document.getElementById("cbid.openclash.config.custom_domain_dns_core");
+var myEditor_name_cus_r1 = document.getElementById("cbid.openclash.config.custom_rules_2");
+var myEditor_name_cus_r2 = document.getElementById("cbid.openclash.config.custom_rules");
+var myEditor_fake_filter = document.getElementById("cbid.openclash.config.custom_fake_filter");
+var myEditor_custom_domain_dns = document.getElementById("cbid.openclash.config.custom_domain_dns");
+var myEditor_edit_file = document.getElementById("cbid.openclash.config.edit_file");
+var myEditor_custom_sniffer = document.getElementById("cbid.openclash.config.sniffer_custom");
+var myEditor_proxy_name_pol = document.getElementById("cbid.openclash.config.custom_proxy_server_dns_policy");
+var myEditor_local_network_pass = document.getElementById("cbid.openclash.config.local_network_pass");
+var myEditor_chnroute_pass = document.getElementById("cbid.openclash.config.chnroute_pass");
+var myEditor_local_network6_pass = document.getElementById("cbid.openclash.config.local_network6_pass");
+var myEditor_chnroute6_pass = document.getElementById("cbid.openclash.config.chnroute6_pass");
+
+if (myEditor_hosts) { editor(myEditor_hosts, false, '100%', '300px'); }
+if (myEditor_edit_file) { editor(myEditor_edit_file, false, '100%', '700px'); ocStreamEditorOnSubmit(myEditor_edit_file); }
+if (myEditor_fall_fil) { editor(myEditor_fall_fil, false, '100%', '300px'); }
+if (myEditor_name_pol) { editor(myEditor_name_pol, false, '100%', '300px'); }
+if (myEditor_proxy_name_pol) { editor(myEditor_proxy_name_pol, false, '100%', '300px'); }
+if (myEditor_name_cus_r1) {
+	editor(myEditor_name_cus_r1, false, '100%', '300px');
+	editor(myEditor_name_cus_r2, false, '100%', '300px');
+}
+if (myEditor_fake_filter) { other_editor(myEditor_fake_filter, false, '100%', '300px'); }
+if (myEditor_custom_domain_dns) { other_editor(myEditor_custom_domain_dns, false, '100%', '300px'); }
+if (myEditor_custom_sniffer) { other_editor(myEditor_custom_sniffer, false, '100%', '300px'); }
+if (myEditor_local_network_pass) { other_editor(myEditor_local_network_pass, false, '600px', '300px'); }
+if (myEditor_chnroute_pass) { other_editor(myEditor_chnroute_pass, false, '600px', '300px'); }
+if (myEditor_local_network6_pass) { other_editor(myEditor_local_network6_pass, false, '600px', '300px'); }
+if (myEditor_chnroute6_pass) { other_editor(myEditor_chnroute6_pass, false, '600px', '300px'); }
+
+})();
+
+//]]>
+</script>

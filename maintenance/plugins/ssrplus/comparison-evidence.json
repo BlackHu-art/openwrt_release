@@ -1,0 +1,523 @@
+{
+  "schema_version": 1,
+  "project_commit": "6d76ce124426086bbc5f90a9fcb9fcc0ba3b0a41",
+  "upstream_base": "2abdc9aa9e19607774dc9789709212b70b8607c6",
+  "upstream_target": "45893d778767f3bdb2fcb6e873cf8f9a667d94d4",
+  "reconstruction": {
+    "method": "complete baseline package plus production fix_ssrplus_compat",
+    "helper_exit": 0,
+    "idempotence_exit": 0,
+    "idempotence_byte_identical": true,
+    "inputs_sha256": {
+      "wrt_core/compat/ssrplus/patches.list": "dfeb0a0d4082589fe2ccb93dfe91c181892868fb335c6b95ced7d166c7cdde37",
+      "wrt_core/compat/ssrplus/source-files.tsv": "61308490f7b2200591d99267caedf9381a3bcc734420d6e69b5e32654d1c8788",
+      "wrt_core/compat/ssrplus/runtime.sh": "bbb81fcdc7409d5c0eb8dacf449f35a1b41bb39dda47fb51638483bfbfe93387",
+      "wrt_core/modules/plugin_compat.sh": "d6c751163ddc375e47e5e58c41a44f5fd04cd2c84dec8072a28b5b55d95699f3",
+      "wrt_core/ssrplus_verify.py": "821032c8838021ac6efbfa394a4ab822a2dea22376b595a983ea09c4d45f6e87"
+    },
+    "inputs_match_project_commit": true
+  },
+  "patch_checks": [
+    {
+      "order": 1,
+      "patch": "ssrplus-startup-lock.patch",
+      "sha256": "d652f26fa3663057efaf5a1684b9845d5d4b4f586b60f9b7e7ba6fd12c6260ae",
+      "forward_applies_to_clean_v198_2": false,
+      "reverse_applies_to_clean_v198_2": false,
+      "forward_diagnostic": "error: patch failed: root/etc/init.d/shadowsocksr:151\nerror: root/etc/init.d/shadowsocksr: patch does not apply",
+      "reverse_diagnostic": "error: patch failed: root/etc/init.d/shadowsocksr:151\nerror: root/etc/init.d/shadowsocksr: patch does not apply"
+    },
+    {
+      "order": 2,
+      "patch": "ssrplus-dns-transaction.patch",
+      "sha256": "f71816642f74adb69b384cafcee6ad4dff1f988c555d98017b16844908263c37",
+      "forward_applies_to_clean_v198_2": false,
+      "reverse_applies_to_clean_v198_2": false,
+      "forward_diagnostic": "error: patch failed: root/etc/init.d/shadowsocksr:442\nerror: root/etc/init.d/shadowsocksr: patch does not apply\nerror: patch failed: root/usr/share/shadowsocksr/gfw2ipset.sh:24\nerror: root/usr/share/shadowsocksr/gfw2ipset.sh: patch does not apply\nerror: patch failed: root/usr/share/shadowsocksr/update.lua:207\nerror: root/usr/share/shadowsocksr/update.lua: patch does not apply",
+      "reverse_diagnostic": "error: patch failed: root/usr/share/shadowsocksr/update.lua:8\nerror: root/usr/share/shadowsocksr/update.lua: patch does not apply\nerror: patch failed: root/usr/share/shadowsocksr/gfw2ipset.sh:4\nerror: root/usr/share/shadowsocksr/gfw2ipset.sh: patch does not apply\nerror: patch failed: root/etc/init.d/shadowsocksr:432\nerror: root/etc/init.d/shadowsocksr: patch does not apply"
+    },
+    {
+      "order": 3,
+      "patch": "ssrplus-updater-validation.patch",
+      "sha256": "f87bf308b464204c4f4c3a454802280c980f07f195c36523f363a8a497c57870",
+      "forward_applies_to_clean_v198_2": false,
+      "reverse_applies_to_clean_v198_2": false,
+      "forward_diagnostic": "error: patch failed: root/usr/share/shadowsocksr/update.lua:6\nerror: root/usr/share/shadowsocksr/update.lua: patch does not apply",
+      "reverse_diagnostic": "error: patch failed: root/usr/share/shadowsocksr/update.lua:6\nerror: root/usr/share/shadowsocksr/update.lua: patch does not apply"
+    },
+    {
+      "order": 4,
+      "patch": "ssrplus-persistence.patch",
+      "sha256": "d4432a52e72c9325878511fdb8ecde4f656a7644e7b8fd5b0138f00c941bf61b",
+      "forward_applies_to_clean_v198_2": false,
+      "reverse_applies_to_clean_v198_2": false,
+      "forward_diagnostic": "error: patch failed: root/usr/bin/ssr-rules:1321\nerror: root/usr/bin/ssr-rules: patch does not apply",
+      "reverse_diagnostic": "error: patch failed: root/usr/bin/ssr-rules:1307\nerror: root/usr/bin/ssr-rules: patch does not apply"
+    },
+    {
+      "order": 5,
+      "patch": "ssrplus-availability.patch",
+      "sha256": "f4745d68cd37851906015ac5957cecd13a0e6b8e5b4a19b96c82ef1d2b7c605a",
+      "forward_applies_to_clean_v198_2": false,
+      "reverse_applies_to_clean_v198_2": false,
+      "forward_diagnostic": "error: patch failed: root/etc/init.d/shadowsocksr:89\nerror: root/etc/init.d/shadowsocksr: patch does not apply",
+      "reverse_diagnostic": "error: patch failed: root/etc/init.d/shadowsocksr:18\nerror: root/etc/init.d/shadowsocksr: patch does not apply"
+    },
+    {
+      "order": 6,
+      "patch": "ssrplus-subscription.patch",
+      "sha256": "19ebd4494de26762a795a2b0efd0fbd4cc672608d899a9888fb62fee896d7a00",
+      "forward_applies_to_clean_v198_2": false,
+      "reverse_applies_to_clean_v198_2": false,
+      "forward_diagnostic": "error: patch failed: root/usr/share/shadowsocksr/subscribe.lua:22\nerror: root/usr/share/shadowsocksr/subscribe.lua: patch does not apply",
+      "reverse_diagnostic": "error: patch failed: root/usr/share/shadowsocksr/subscribe.lua:9\nerror: root/usr/share/shadowsocksr/subscribe.lua: patch does not apply"
+    },
+    {
+      "order": 7,
+      "patch": "ssrplus-monitor-scheduler.patch",
+      "sha256": "b2072dc0d00d4854b5fb204aaabca6ce3a744ccffad3a51935c348cb3b375dc5",
+      "forward_applies_to_clean_v198_2": false,
+      "reverse_applies_to_clean_v198_2": false,
+      "forward_diagnostic": "error: patch failed: root/usr/bin/ssr-monitor:20\nerror: root/usr/bin/ssr-monitor: patch does not apply\nerror: patch failed: root/usr/share/shadowsocksr/ssrplusupdate.sh:1\nerror: root/usr/share/shadowsocksr/ssrplusupdate.sh: patch does not apply\nerror: patch failed: root/usr/bin/ssr-switch:99\nerror: root/usr/bin/ssr-switch: patch does not apply",
+      "reverse_diagnostic": "error: patch failed: root/usr/bin/ssr-switch:99\nerror: root/usr/bin/ssr-switch: patch does not apply\nerror: patch failed: root/usr/share/shadowsocksr/ssrplusupdate.sh:1\nerror: root/usr/share/shadowsocksr/ssrplusupdate.sh: patch does not apply\nerror: patch failed: root/usr/bin/ssr-monitor:20\nerror: root/usr/bin/ssr-monitor: patch does not apply"
+    },
+    {
+      "order": 8,
+      "patch": "ssrplus-persistence-lifecycle.patch",
+      "sha256": "67befe4b6fafa3768e6db21e0cab50abc8e4c20f57ccc79a269cb72f66fac011",
+      "forward_applies_to_clean_v198_2": false,
+      "reverse_applies_to_clean_v198_2": false,
+      "forward_diagnostic": "error: patch failed: root/usr/bin/ssr-rules:221\nerror: root/usr/bin/ssr-rules: patch does not apply",
+      "reverse_diagnostic": "error: patch failed: root/usr/bin/ssr-rules:51\nerror: root/usr/bin/ssr-rules: patch does not apply"
+    },
+    {
+      "order": 9,
+      "patch": "ssrplus-package.patch",
+      "sha256": "c3fa0c9006e5c0d78dd0a4887ac0ffe5b0b191d8f6a6940144131f7a14ffb593",
+      "forward_applies_to_clean_v198_2": false,
+      "reverse_applies_to_clean_v198_2": false,
+      "forward_diagnostic": "error: patch failed: Makefile:5\nerror: Makefile: patch does not apply",
+      "reverse_diagnostic": "error: patch failed: Makefile:5\nerror: Makefile: patch does not apply"
+    },
+    {
+      "order": 10,
+      "patch": "ssrplus-dns-forwarding.patch",
+      "sha256": "c257d3cc414e56a1a091182a5b384f75306823d78c9c3b032d19d2bf59688ec8",
+      "forward_applies_to_clean_v198_2": false,
+      "reverse_applies_to_clean_v198_2": false,
+      "forward_diagnostic": "error: patch failed: root/etc/init.d/shadowsocksr:256\nerror: root/etc/init.d/shadowsocksr: patch does not apply",
+      "reverse_diagnostic": "error: patch failed: root/etc/init.d/shadowsocksr:256\nerror: root/etc/init.d/shadowsocksr: patch does not apply"
+    },
+    {
+      "order": 11,
+      "patch": "ssrplus-custom-ports.patch",
+      "sha256": "e4fa0f8889fa02f4953ad2db6e49de357f1c46ffbe2ce36435615b846fef358f",
+      "forward_applies_to_clean_v198_2": false,
+      "reverse_applies_to_clean_v198_2": false,
+      "forward_diagnostic": "error: patch failed: root/etc/init.d/shadowsocksr:1563\nerror: root/etc/init.d/shadowsocksr: patch does not apply",
+      "reverse_diagnostic": "error: patch failed: root/etc/init.d/shadowsocksr:1563\nerror: root/etc/init.d/shadowsocksr: patch does not apply"
+    },
+    {
+      "order": 12,
+      "patch": "ssrplus-release-r5.patch",
+      "sha256": "74082b91c5f817679aa8987b03941b9ba9155d65fcba9c156a004f22fa63f9f3",
+      "forward_applies_to_clean_v198_2": false,
+      "reverse_applies_to_clean_v198_2": false,
+      "forward_diagnostic": "error: patch failed: Makefile:5\nerror: Makefile: patch does not apply",
+      "reverse_diagnostic": "error: patch failed: Makefile:5\nerror: Makefile: patch does not apply"
+    },
+    {
+      "order": 13,
+      "patch": "ssrplus-firstboot.patch",
+      "sha256": "fb30862744bd917fdeb6cbdad9c81845e147c13891c3f1e346102e75024ce720",
+      "forward_applies_to_clean_v198_2": false,
+      "reverse_applies_to_clean_v198_2": false,
+      "forward_diagnostic": "error: patch failed: root/etc/init.d/shadowsocksr:72\nerror: root/etc/init.d/shadowsocksr: patch does not apply\nerror: patch failed: root/etc/uci-defaults/luci-ssr-plus:63\nerror: root/etc/uci-defaults/luci-ssr-plus: patch does not apply",
+      "reverse_diagnostic": "error: patch failed: root/etc/uci-defaults/luci-ssr-plus:31\nerror: root/etc/uci-defaults/luci-ssr-plus: patch does not apply\nerror: patch failed: root/etc/init.d/shadowsocksr:72\nerror: root/etc/init.d/shadowsocksr: patch does not apply"
+    },
+    {
+      "order": 14,
+      "patch": "ssrplus-release-r6.patch",
+      "sha256": "c6421bbcfc75c74885749e059038088d444e958d74344393ea58c8e84719a9e8",
+      "forward_applies_to_clean_v198_2": false,
+      "reverse_applies_to_clean_v198_2": false,
+      "forward_diagnostic": "error: patch failed: Makefile:5\nerror: Makefile: patch does not apply",
+      "reverse_diagnostic": "error: patch failed: Makefile:5\nerror: Makefile: patch does not apply"
+    },
+    {
+      "order": 15,
+      "patch": "ssrplus-initialization-order.patch",
+      "sha256": "457dd6a4f841f2563d18df7a71de42135c85a96479392dcf9af744768f89f4da",
+      "forward_applies_to_clean_v198_2": false,
+      "reverse_applies_to_clean_v198_2": false,
+      "forward_diagnostic": "error: patch failed: root/etc/uci-defaults/luci-ssr-plus:31\nerror: root/etc/uci-defaults/luci-ssr-plus: patch does not apply",
+      "reverse_diagnostic": "error: patch failed: root/etc/uci-defaults/luci-ssr-plus:63\nerror: root/etc/uci-defaults/luci-ssr-plus: patch does not apply"
+    },
+    {
+      "order": 16,
+      "patch": "ssrplus-release-r7.patch",
+      "sha256": "8d6fa6cb0b0dcf71f14bb21c55ed1bdb025fbc07382edf5fb1c9c6fcc7408160",
+      "forward_applies_to_clean_v198_2": false,
+      "reverse_applies_to_clean_v198_2": false,
+      "forward_diagnostic": "error: patch failed: Makefile:5\nerror: Makefile: patch does not apply",
+      "reverse_diagnostic": "error: patch failed: Makefile:5\nerror: Makefile: patch does not apply"
+    },
+    {
+      "order": 17,
+      "patch": "ssrplus-subscription-auto.patch",
+      "sha256": "d81de13c983f3ce6b3db7010b95d33b1fa784b2d859f3be130454b3691a991a0",
+      "forward_applies_to_clean_v198_2": false,
+      "reverse_applies_to_clean_v198_2": false,
+      "forward_diagnostic": "error: patch failed: root/etc/uci-defaults/luci-ssr-plus:42\nerror: root/etc/uci-defaults/luci-ssr-plus: patch does not apply",
+      "reverse_diagnostic": "error: patch failed: root/etc/uci-defaults/luci-ssr-plus:42\nerror: root/etc/uci-defaults/luci-ssr-plus: patch does not apply"
+    },
+    {
+      "order": 18,
+      "patch": "ssrplus-ss-parser.patch",
+      "sha256": "deae6930574c4a9824d96bf9bae6b0d40f59c1676011c70f6f1b18f07aec5a17",
+      "forward_applies_to_clean_v198_2": false,
+      "reverse_applies_to_clean_v198_2": false,
+      "forward_diagnostic": "error: patch failed: root/usr/share/shadowsocksr/subscribe.lua:281\nerror: root/usr/share/shadowsocksr/subscribe.lua: patch does not apply",
+      "reverse_diagnostic": "error: patch failed: root/usr/share/shadowsocksr/subscribe.lua:281\nerror: root/usr/share/shadowsocksr/subscribe.lua: patch does not apply"
+    },
+    {
+      "order": 19,
+      "patch": "ssrplus-release-r8.patch",
+      "sha256": "f5414c105b51656d9d5f5a365ad43d68a6654ef553de01a42c87dc11873aa902",
+      "forward_applies_to_clean_v198_2": false,
+      "reverse_applies_to_clean_v198_2": false,
+      "forward_diagnostic": "error: patch failed: Makefile:5\nerror: Makefile: patch does not apply",
+      "reverse_diagnostic": "error: patch failed: Makefile:5\nerror: Makefile: patch does not apply"
+    },
+    {
+      "order": 20,
+      "patch": "ssrplus-transport-config.patch",
+      "sha256": "d7fd2095c20a80ec57366db74b0f160587710f4191f0e88dd34d2937314992dd",
+      "forward_applies_to_clean_v198_2": false,
+      "reverse_applies_to_clean_v198_2": false,
+      "forward_diagnostic": "error: patch failed: root/usr/share/shadowsocksr/subscribe.lua:289\nerror: root/usr/share/shadowsocksr/subscribe.lua: patch does not apply",
+      "reverse_diagnostic": "error: patch failed: root/usr/share/shadowsocksr/subscribe.lua:289\nerror: root/usr/share/shadowsocksr/subscribe.lua: patch does not apply"
+    },
+    {
+      "order": 21,
+      "patch": "ssrplus-release-r9.patch",
+      "sha256": "66579e4cfb6719ff2b3b6725d0a39fe9256dc6ad3b9ca8b0b7f04e21be116541",
+      "forward_applies_to_clean_v198_2": false,
+      "reverse_applies_to_clean_v198_2": false,
+      "forward_diagnostic": "error: patch failed: Makefile:5\nerror: Makefile: patch does not apply",
+      "reverse_diagnostic": "error: patch failed: Makefile:5\nerror: Makefile: patch does not apply"
+    },
+    {
+      "order": 22,
+      "patch": "ssrplus-ss-password.patch",
+      "sha256": "943610436d8fdbeb80347cbcd5e13677043f1031c5bc3de2327c85445bc4b250",
+      "forward_applies_to_clean_v198_2": true,
+      "reverse_applies_to_clean_v198_2": false,
+      "forward_diagnostic": "",
+      "reverse_diagnostic": "error: patch failed: root/usr/share/shadowsocksr/subscribe.lua:897\nerror: root/usr/share/shadowsocksr/subscribe.lua: patch does not apply"
+    },
+    {
+      "order": 23,
+      "patch": "ssrplus-release-r10.patch",
+      "sha256": "5b911f5042816257d30015db8ff33fb28063f2c482c127f147280427e596182d",
+      "forward_applies_to_clean_v198_2": false,
+      "reverse_applies_to_clean_v198_2": false,
+      "forward_diagnostic": "error: patch failed: Makefile:5\nerror: Makefile: patch does not apply",
+      "reverse_diagnostic": "error: patch failed: Makefile:5\nerror: Makefile: patch does not apply"
+    },
+    {
+      "order": 24,
+      "patch": "ssrplus-node-references.patch",
+      "sha256": "779d32bf354520d12c92735099877b9fb688c5bbd0941d2045ffdd97e820ca62",
+      "forward_applies_to_clean_v198_2": false,
+      "reverse_applies_to_clean_v198_2": false,
+      "forward_diagnostic": "error: patch failed: root/usr/share/shadowsocksr/subscribe.lua:32\nerror: root/usr/share/shadowsocksr/subscribe.lua: patch does not apply",
+      "reverse_diagnostic": "error: patch failed: root/usr/share/shadowsocksr/subscribe.lua:32\nerror: root/usr/share/shadowsocksr/subscribe.lua: patch does not apply"
+    },
+    {
+      "order": 25,
+      "patch": "ssrplus-release-r11.patch",
+      "sha256": "5fe49a385663c65e2a119da69e78011d1b6633573a06486a6a84d154f753a6d0",
+      "forward_applies_to_clean_v198_2": false,
+      "reverse_applies_to_clean_v198_2": false,
+      "forward_diagnostic": "error: patch failed: Makefile:5\nerror: Makefile: patch does not apply",
+      "reverse_diagnostic": "error: patch failed: Makefile:5\nerror: Makefile: patch does not apply"
+    }
+  ],
+  "protected_source_checks": [
+    {
+      "path": "root/etc/init.d/shadowsocksr",
+      "baseline_blob": "1d5c32973355320958fd9ced04599a7e5350e7d3",
+      "target_blob": "bc43b4ce60049911afd34d3c9e1a37170cb0cabd",
+      "match": false
+    },
+    {
+      "path": "root/usr/share/shadowsocksr/gfw2ipset.sh",
+      "baseline_blob": "f4ade91b08e3cc350a1100e99cf96eba0008706f",
+      "target_blob": "187b55236f0700d8790dc4dacd3abbcb167fe93b",
+      "match": false
+    },
+    {
+      "path": "root/usr/share/shadowsocksr/update.lua",
+      "baseline_blob": "34d13dc89e5c013e3213f02c37d8dc8d698d3a4c",
+      "target_blob": "33ce23cec15900f90e931b07300345cc37152274",
+      "match": false
+    },
+    {
+      "path": "root/usr/bin/ssr-rules",
+      "baseline_blob": "074d002cf612cc18357529dcb24c9cd5b93a9593",
+      "target_blob": "34226f3d85dca00cb5ffb39eadd4fd4a3aa3642b",
+      "match": false
+    },
+    {
+      "path": "root/usr/share/shadowsocksr/subscribe.lua",
+      "baseline_blob": "f88a83d10027d2854e3464d5d70cc959e0259b2d",
+      "target_blob": "05307242b067e5cf89129432d355053c02eca7ac",
+      "match": false
+    },
+    {
+      "path": "root/usr/bin/ssr-monitor",
+      "baseline_blob": "51f9efc400b1271528f5c442951474326c620dd9",
+      "target_blob": "3d22988ad4f691849305dfa0365107ae830f9f53",
+      "match": false
+    },
+    {
+      "path": "root/usr/share/shadowsocksr/ssrplusupdate.sh",
+      "baseline_blob": "9424cfac716f7b265b7e89cb75ce88106d0a7cfd",
+      "target_blob": "9c69b511edfcd6ad1ca5720c0aca03870e99f72a",
+      "match": false
+    },
+    {
+      "path": "root/usr/bin/ssr-switch",
+      "baseline_blob": "5a2a3709032f791fb8d6bd2822576fe7d0e76dbd",
+      "target_blob": "27a36220296a6f8e227b851e9e558a29dd12d181",
+      "match": false
+    },
+    {
+      "path": "Makefile",
+      "baseline_blob": "41a65caeda830cd9d032b8d8595c0d045b041805",
+      "target_blob": "af5a2aeef7336e6ecaa8f44b63c979d6c7d26128",
+      "match": false
+    },
+    {
+      "path": "root/etc/uci-defaults/luci-ssr-plus",
+      "baseline_blob": "5f54eb9974052df4f437afd0c45dc5d2f3337c4a",
+      "target_blob": "3e69e08aeb452f283ca78d8746f6203473ce3cbc",
+      "match": false
+    },
+    {
+      "path": "root/usr/share/shadowsocksr/shadowsocksr.config",
+      "baseline_blob": "ded6977f352d1c10da96b4bc2fdb9b4cac2c36d1",
+      "target_blob": "0810b88508f8801424f6f330f86515f8636a2e8f",
+      "match": false
+    },
+    {
+      "path": "root/usr/share/shadowsocksr/gen_config.lua",
+      "baseline_blob": "e226697bced19dab2481fd920f3cad219fa0c666",
+      "target_blob": "4f0eabf58094ad86bc0fd567ba40a7f52772267f",
+      "match": false
+    }
+  ],
+  "comparisons": [
+    {
+      "from_snapshot": "base190",
+      "to_snapshot": "current190",
+      "added": [
+        "root/usr/share/shadowsocksr/ssrp-runtime.sh",
+        "root/usr/share/shadowsocksr/ssrplus-build.json"
+      ],
+      "removed": [],
+      "changed": [
+        "Makefile",
+        "root/etc/init.d/shadowsocksr",
+        "root/etc/uci-defaults/luci-ssr-plus",
+        "root/usr/bin/ssr-monitor",
+        "root/usr/bin/ssr-rules",
+        "root/usr/bin/ssr-switch",
+        "root/usr/share/shadowsocksr/gfw2ipset.sh",
+        "root/usr/share/shadowsocksr/ssrplusupdate.sh",
+        "root/usr/share/shadowsocksr/subscribe.lua",
+        "root/usr/share/shadowsocksr/update.lua"
+      ],
+      "unchanged_count": 49
+    },
+    {
+      "from_snapshot": "base190",
+      "to_snapshot": "v1982",
+      "added": [
+        "luasrc/model/cbi/shadowsocksr/component.lua",
+        "luasrc/view/shadowsocksr/advanced_switch_compact.htm",
+        "luasrc/view/shadowsocksr/clash_main_panel.htm",
+        "luasrc/view/shadowsocksr/clash_panel.htm",
+        "luasrc/view/shadowsocksr/clash_panel_button.htm",
+        "luasrc/view/shadowsocksr/clash_yaml_upload.htm",
+        "luasrc/view/shadowsocksr/client_dns_defaults.htm",
+        "luasrc/view/shadowsocksr/component.htm",
+        "luasrc/view/shadowsocksr/control_layout.htm",
+        "luasrc/view/shadowsocksr/server_header.htm",
+        "luasrc/view/shadowsocksr/server_table.htm",
+        "luasrc/view/shadowsocksr/servers_subscribe_url_style.htm",
+        "luasrc/view/shadowsocksr/subscribe_actions_footer.htm",
+        "luasrc/view/shadowsocksr/subscribe_enabled_autosave.htm",
+        "luasrc/view/shadowsocksr/subscribe_schedule_compact.htm",
+        "root/etc/hotplug.d/iface/99-ssrplus-pppoe",
+        "root/etc/ssrplus/china6_ssr.txt",
+        "root/usr/share/shadowsocksr/Country.mmdb",
+        "root/usr/share/shadowsocksr/clash_yaml.lua",
+        "root/usr/share/shadowsocksr/gen_anytls_server.lua",
+        "root/usr/share/shadowsocksr/gen_naive_server.lua",
+        "root/usr/share/shadowsocksr/gen_snell_server.lua",
+        "root/usr/share/shadowsocksr/gen_ssr_server.lua",
+        "root/usr/share/shadowsocksr/gen_tuic_server.lua",
+        "root/usr/share/shadowsocksr/ipv6.sh",
+        "root/usr/share/shadowsocksr/update_components.sh",
+        "tests/ipv6-cbi.js",
+        "tests/ipv6-dns.py",
+        "tests/ipv6-nft.sh",
+        "tests/subscribe-ss.lua"
+      ],
+      "removed": [
+        "htdocs/luci-static/resources/view/shadowsocksr/Sortable.min.js",
+        "root/etc/ssrplus/netflix.list",
+        "root/etc/ssrplus/oversea_list.conf",
+        "root/usr/share/shadowsocksr/genred2config.sh",
+        "root/usr/share/shadowsocksr/hy2_test.sh"
+      ],
+      "changed": [
+        "Makefile",
+        "luasrc/controller/shadowsocksr.lua",
+        "luasrc/model/cbi/shadowsocksr/advanced.lua",
+        "luasrc/model/cbi/shadowsocksr/client-config.lua",
+        "luasrc/model/cbi/shadowsocksr/client.lua",
+        "luasrc/model/cbi/shadowsocksr/control.lua",
+        "luasrc/model/cbi/shadowsocksr/log.lua",
+        "luasrc/model/cbi/shadowsocksr/server-config.lua",
+        "luasrc/model/cbi/shadowsocksr/server.lua",
+        "luasrc/model/cbi/shadowsocksr/servers.lua",
+        "luasrc/model/cbi/shadowsocksr/status.lua",
+        "luasrc/view/shadowsocksr/log.htm",
+        "luasrc/view/shadowsocksr/ping.htm",
+        "luasrc/view/shadowsocksr/server_list.htm",
+        "luasrc/view/shadowsocksr/socket.htm",
+        "luasrc/view/shadowsocksr/ssrurl.htm",
+        "luasrc/view/shadowsocksr/status.htm",
+        "luasrc/view/shadowsocksr/subscribe.htm",
+        "po/templates/ssr-plus.pot",
+        "po/zh_Hans/ssr-plus.po",
+        "root/etc/init.d/shadowsocksr",
+        "root/etc/uci-defaults/luci-ssr-plus",
+        "root/usr/bin/ssr-monitor",
+        "root/usr/bin/ssr-rules",
+        "root/usr/bin/ssr-switch",
+        "root/usr/share/shadowsocksr/chinaipset.sh",
+        "root/usr/share/shadowsocksr/gen_config.lua",
+        "root/usr/share/shadowsocksr/gfw2ipset.sh",
+        "root/usr/share/shadowsocksr/shadowsocksr.config",
+        "root/usr/share/shadowsocksr/ssrplusupdate.sh",
+        "root/usr/share/shadowsocksr/subscribe.lua",
+        "root/usr/share/shadowsocksr/update.lua"
+      ],
+      "unchanged_count": 22
+    },
+    {
+      "from_snapshot": "current190",
+      "to_snapshot": "v1982",
+      "added": [
+        "luasrc/model/cbi/shadowsocksr/component.lua",
+        "luasrc/view/shadowsocksr/advanced_switch_compact.htm",
+        "luasrc/view/shadowsocksr/clash_main_panel.htm",
+        "luasrc/view/shadowsocksr/clash_panel.htm",
+        "luasrc/view/shadowsocksr/clash_panel_button.htm",
+        "luasrc/view/shadowsocksr/clash_yaml_upload.htm",
+        "luasrc/view/shadowsocksr/client_dns_defaults.htm",
+        "luasrc/view/shadowsocksr/component.htm",
+        "luasrc/view/shadowsocksr/control_layout.htm",
+        "luasrc/view/shadowsocksr/server_header.htm",
+        "luasrc/view/shadowsocksr/server_table.htm",
+        "luasrc/view/shadowsocksr/servers_subscribe_url_style.htm",
+        "luasrc/view/shadowsocksr/subscribe_actions_footer.htm",
+        "luasrc/view/shadowsocksr/subscribe_enabled_autosave.htm",
+        "luasrc/view/shadowsocksr/subscribe_schedule_compact.htm",
+        "root/etc/hotplug.d/iface/99-ssrplus-pppoe",
+        "root/etc/ssrplus/china6_ssr.txt",
+        "root/usr/share/shadowsocksr/Country.mmdb",
+        "root/usr/share/shadowsocksr/clash_yaml.lua",
+        "root/usr/share/shadowsocksr/gen_anytls_server.lua",
+        "root/usr/share/shadowsocksr/gen_naive_server.lua",
+        "root/usr/share/shadowsocksr/gen_snell_server.lua",
+        "root/usr/share/shadowsocksr/gen_ssr_server.lua",
+        "root/usr/share/shadowsocksr/gen_tuic_server.lua",
+        "root/usr/share/shadowsocksr/ipv6.sh",
+        "root/usr/share/shadowsocksr/update_components.sh",
+        "tests/ipv6-cbi.js",
+        "tests/ipv6-dns.py",
+        "tests/ipv6-nft.sh",
+        "tests/subscribe-ss.lua"
+      ],
+      "removed": [
+        "htdocs/luci-static/resources/view/shadowsocksr/Sortable.min.js",
+        "root/etc/ssrplus/netflix.list",
+        "root/etc/ssrplus/oversea_list.conf",
+        "root/usr/share/shadowsocksr/genred2config.sh",
+        "root/usr/share/shadowsocksr/hy2_test.sh",
+        "root/usr/share/shadowsocksr/ssrp-runtime.sh",
+        "root/usr/share/shadowsocksr/ssrplus-build.json"
+      ],
+      "changed": [
+        "Makefile",
+        "luasrc/controller/shadowsocksr.lua",
+        "luasrc/model/cbi/shadowsocksr/advanced.lua",
+        "luasrc/model/cbi/shadowsocksr/client-config.lua",
+        "luasrc/model/cbi/shadowsocksr/client.lua",
+        "luasrc/model/cbi/shadowsocksr/control.lua",
+        "luasrc/model/cbi/shadowsocksr/log.lua",
+        "luasrc/model/cbi/shadowsocksr/server-config.lua",
+        "luasrc/model/cbi/shadowsocksr/server.lua",
+        "luasrc/model/cbi/shadowsocksr/servers.lua",
+        "luasrc/model/cbi/shadowsocksr/status.lua",
+        "luasrc/view/shadowsocksr/log.htm",
+        "luasrc/view/shadowsocksr/ping.htm",
+        "luasrc/view/shadowsocksr/server_list.htm",
+        "luasrc/view/shadowsocksr/socket.htm",
+        "luasrc/view/shadowsocksr/ssrurl.htm",
+        "luasrc/view/shadowsocksr/status.htm",
+        "luasrc/view/shadowsocksr/subscribe.htm",
+        "po/templates/ssr-plus.pot",
+        "po/zh_Hans/ssr-plus.po",
+        "root/etc/init.d/shadowsocksr",
+        "root/etc/uci-defaults/luci-ssr-plus",
+        "root/usr/bin/ssr-monitor",
+        "root/usr/bin/ssr-rules",
+        "root/usr/bin/ssr-switch",
+        "root/usr/share/shadowsocksr/chinaipset.sh",
+        "root/usr/share/shadowsocksr/gen_config.lua",
+        "root/usr/share/shadowsocksr/gfw2ipset.sh",
+        "root/usr/share/shadowsocksr/shadowsocksr.config",
+        "root/usr/share/shadowsocksr/ssrplusupdate.sh",
+        "root/usr/share/shadowsocksr/subscribe.lua",
+        "root/usr/share/shadowsocksr/update.lua"
+      ],
+      "unchanged_count": 22
+    }
+  ],
+  "verification_limits": [
+    "Textual patch checks are not semantic coverage or runtime tests.",
+    "No upstream code executed, firmware compilation or router testing.",
+    "POSIX modes are recorded metadata on Windows."
+  ],
+  "license_comparison": {
+    "base_root_license_git_blob": "f288702d2fa16d3cdf0035b15a9fcbc552cd88e7",
+    "target_root_license_git_blob": "f288702d2fa16d3cdf0035b15a9fcbc552cd88e7",
+    "identical": true
+  },
+  "unmodified_v1982_production_guard_trial": {
+    "exit_code": 1,
+    "package_byte_identical": true,
+    "diagnostic": "错误：SSR Plus 上游文件发生未审查或不完整的变化：root/etc/init.d/shadowsocksr",
+    "interpretation": "Expected rejection of unreviewed source, not a failed migration test."
+  },
+  "upstream_ignored_paths_requiring_force_add": [
+    "maintenance/plugins/ssrplus/upstream-v198.2/.github/copilot-instructions.md"
+  ],
+  "scope_note": "Assessment is pinned to the project commit. Unrelated concurrent worktree changes in Passwall/Xray compatibility were preserved and reviewed separately in the report."
+}

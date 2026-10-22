@@ -1,0 +1,1647 @@
+{
+  "source_id": "openclash",
+  "commit": "3d5609257639ed76aaacdeffe242343d51265fea",
+  "tree": "d544bd03cdaae26d19836bd911875458ba9cae76",
+  "files": [
+    {
+      "path": "Makefile",
+      "git_mode": "100644",
+      "git_blob": "330ebbd55bdfa5725fb988f2ff24b01b201fc173",
+      "bytes": 4951,
+      "sha256": "5c5359cd0e63e274eda89db5ba7f2d06f808018b4f30eac8d28754742d18bef3"
+    },
+    {
+      "path": "Makefile.rej",
+      "git_mode": "100644",
+      "git_blob": "b7a0955e863f730a721684eab8db5f5bfaaebd01",
+      "bytes": 427,
+      "sha256": "6d54809cf5dd69242084b776d546443df5e73c6d3b881155a84526b01c211526"
+    },
+    {
+      "path": "luasrc/controller/openclash.lua",
+      "git_mode": "100644",
+      "git_blob": "f04546b358bdcb7e8c98a93b5980eec30bbb6304",
+      "bytes": 216210,
+      "sha256": "5eeeacd451a5604064a4dd4c7cf4d006b2f83fcc15b65e10d8db1bb3bc47a341"
+    },
+    {
+      "path": "luasrc/model/cbi/openclash/client.lua",
+      "git_mode": "100644",
+      "git_blob": "4d8c851b05a979bf77357033e5ce36b1a80461ba",
+      "bytes": 870,
+      "sha256": "438da480e59501fd0db7d30d721a7463c748e9532cf3dc254b74b19f835e391d"
+    },
+    {
+      "path": "luasrc/model/cbi/openclash/config-overwrite.lua",
+      "git_mode": "100644",
+      "git_blob": "0521aab8c745836eae7169fddc5551b06a5d4915",
+      "bytes": 25241,
+      "sha256": "4b4a2d4b756d8f48e529a5bd3fb16a1a97d22acce33c618e2f3bb5ed66baaff6"
+    },
+    {
+      "path": "luasrc/model/cbi/openclash/config-subscribe-edit.lua",
+      "git_mode": "100644",
+      "git_blob": "609f2f3804639877e716805dc4fd5bd5a9b29a76",
+      "bytes": 13907,
+      "sha256": "8bd2a9c43668ed03f2c380000de661de4a2bd8962d1309b99ff60ed69655ed85"
+    },
+    {
+      "path": "luasrc/model/cbi/openclash/config-subscribe.lua",
+      "git_mode": "100644",
+      "git_blob": "f886aca3b830f90143b983cd23c5bd1ade423c3d",
+      "bytes": 3987,
+      "sha256": "20e319ff21df0d4d62d6b33a17f0d5ca3d64a08ff0e15275398eda8c89aa2c15"
+    },
+    {
+      "path": "luasrc/model/cbi/openclash/config.lua",
+      "git_mode": "100644",
+      "git_blob": "a41f8ebb1224bfa2d51b2dd3c835817d6f313c3f",
+      "bytes": 14576,
+      "sha256": "0bcc20431e7a50dfa4c7a1a9eb3381690a212a57b55432c89aff03fadc888be2"
+    },
+    {
+      "path": "luasrc/model/cbi/openclash/custom-dns-edit.lua",
+      "git_mode": "100644",
+      "git_blob": "8e1e3e0f69a95d18c9104e816f33c5d0f58e6ccc",
+      "bytes": 5655,
+      "sha256": "8f3cb5b3cb1d98913baaf3b867c3a771452c1a3ecd00251a29383b51f09fdda9"
+    },
+    {
+      "path": "luasrc/model/cbi/openclash/log.lua",
+      "git_mode": "100644",
+      "git_blob": "9202f4bddffef01735f00c45dceea8b1f36c53dc",
+      "bytes": 449,
+      "sha256": "256e496d33a138455b62019f53ff3d5b8822e47ab1b98d15adbb39612cce5c8a"
+    },
+    {
+      "path": "luasrc/model/cbi/openclash/other-file-edit.lua",
+      "git_mode": "100644",
+      "git_blob": "e161945a5044b7c0056a6c7af5b98877f635d9f0",
+      "bytes": 1851,
+      "sha256": "faf1cd85b7138c454f2e4e29feafddfb77360712ebdc22dc7928d40a4300e5e5"
+    },
+    {
+      "path": "luasrc/model/cbi/openclash/proxies-config.lua",
+      "git_mode": "100644",
+      "git_blob": "8ba8b29259b12e00badfc08c371a715f782a1899",
+      "bytes": 57045,
+      "sha256": "459d3ca519356e5a02b4746bad28a34c90fb9aaae847c8442bff7b80705a46a4"
+    },
+    {
+      "path": "luasrc/model/cbi/openclash/proxy-groups-config.lua",
+      "git_mode": "100644",
+      "git_blob": "ee986b054aeedc999584e37d824289485bb9f872",
+      "bytes": 9641,
+      "sha256": "273c7c97897323c5c705fb52df9c1b5e6e4124763e2d6b835d6e162952e27367"
+    },
+    {
+      "path": "luasrc/model/cbi/openclash/proxy-providers-config.lua",
+      "git_mode": "100644",
+      "git_blob": "161405a3100c7b67c02c502d52707e9af8d09d53",
+      "bytes": 5336,
+      "sha256": "2cb0716c367461c2a6ba4b965bff41e4247508613cb313807f6b23fa44c1eff3"
+    },
+    {
+      "path": "luasrc/model/cbi/openclash/proxy-providers-file-manage.lua",
+      "git_mode": "100644",
+      "git_blob": "0251e38ac86f59f6c3c925b07dc6a33a66e7e49f",
+      "bytes": 3561,
+      "sha256": "adddae155fa16642c80d4cc28adfaecca7dd895c1392459b68b716ec8a89f1a7"
+    },
+    {
+      "path": "luasrc/model/cbi/openclash/rule-providers-file-manage.lua",
+      "git_mode": "100644",
+      "git_blob": "3ce3917e32a29ddec9d4c18a3aaadb6beec21f91",
+      "bytes": 3542,
+      "sha256": "bb4353c3324fa51dded4d85b67907dd11a3deac2eae515bddf3fb0350e79a5f0"
+    },
+    {
+      "path": "luasrc/model/cbi/openclash/servers.lua",
+      "git_mode": "100644",
+      "git_blob": "377905e5e39a6b86b84c1b33f9777a250792f282",
+      "bytes": 7902,
+      "sha256": "6e7e9606fc09d671c1994a9a537a901e6ac4d4c36d3e8dabbb71c10e1ebbc955"
+    },
+    {
+      "path": "luasrc/model/cbi/openclash/settings.lua",
+      "git_mode": "100644",
+      "git_blob": "047b497980b53b159f95a3f38d41106097ee0f16",
+      "bytes": 70376,
+      "sha256": "eb6dd6823e1d85023168e699fe2c2a702bec62c03243148549baa7ec3ec3cf81"
+    },
+    {
+      "path": "luasrc/openclash.lua",
+      "git_mode": "100644",
+      "git_blob": "72f61f4f81507f68a6e57aacb12a51de78a4342c",
+      "bytes": 26438,
+      "sha256": "4eaf68ee3c2177ae221054cf993d9d8bb9904057eb3c5f7fb331b0e7171e8428"
+    },
+    {
+      "path": "luasrc/view/openclash/cfg_check.htm",
+      "git_mode": "100644",
+      "git_blob": "b8d3622fcd6a63ad28bf7a762843ce1b70b11001",
+      "bytes": 262,
+      "sha256": "d1e9bdc4a798e207a0139f8f9ee52a85c874e9a730f1a0287dbef4b566109c0b"
+    },
+    {
+      "path": "luasrc/view/openclash/config_edit.htm",
+      "git_mode": "100644",
+      "git_blob": "808c22d583cb5362ad344b744155e1dfe15a155a",
+      "bytes": 4814,
+      "sha256": "06a963088f8b3f8bce8a1c50b40807c9ab4ba8bbaca89d202e718578b392f083"
+    },
+    {
+      "path": "luasrc/view/openclash/config_editor.htm",
+      "git_mode": "100644",
+      "git_blob": "94dbe152b96e4bce83a5a79dd4982bb300d1dacf",
+      "bytes": 3754,
+      "sha256": "e895874b7aa4744572dee5ea1473d272a17bae0c894a1b51cc9fd8d837744fa3"
+    },
+    {
+      "path": "luasrc/view/openclash/config_merge_editor.htm",
+      "git_mode": "100644",
+      "git_blob": "63212678122b9fd5b2f088953baeae38907e7961",
+      "bytes": 2602,
+      "sha256": "281e001ee298af84bf4d61c6ddf5d8d0c09f1bd70b0aacf3bf6b0f0f83f01ed1"
+    },
+    {
+      "path": "luasrc/view/openclash/config_upload.htm",
+      "git_mode": "100644",
+      "git_blob": "28fc7a19bb5e04a5e0a20cce98027add84b0c6f5",
+      "bytes": 35705,
+      "sha256": "4579a16b9ba399fb0e6afd4c1a07ba8d0e66f8497d6160938efe4e64b56b9fa6"
+    },
+    {
+      "path": "luasrc/view/openclash/debug.htm",
+      "git_mode": "100644",
+      "git_blob": "d65b20434b83523c64f672cad71af6a9f2cf7e7e",
+      "bytes": 5828,
+      "sha256": "1a99d08a9d2f6a5e14e85299a56397b544b94cc564a788a1a4f639024cd199da"
+    },
+    {
+      "path": "luasrc/view/openclash/developer.htm",
+      "git_mode": "100644",
+      "git_blob": "d81ab1da3e3f427e00510561a8d4f3f7113458b3",
+      "bytes": 8422,
+      "sha256": "b1f423c6020cab5be19c6f8988fef8aa51e0e2014e0134ad9eccf0121c29498e"
+    },
+    {
+      "path": "luasrc/view/openclash/flush_dns_cache.htm",
+      "git_mode": "100644",
+      "git_blob": "e324ae7dce402e58ecc106cc9a098224b99e49cd",
+      "bytes": 1147,
+      "sha256": "b49c5b941c130e2b9dbe4be944f69bf4f6d9a3b0e636f07af0160a914f6af0ce"
+    },
+    {
+      "path": "luasrc/view/openclash/flush_smart_cache.htm",
+      "git_mode": "100644",
+      "git_blob": "f7c8b020002df7a7bfdf7322f17f28e885531ca8",
+      "bytes": 1130,
+      "sha256": "244b20059cb6ddf4beba15ac19f3c0ec27ef640d7345fa712b93d67d4b837454"
+    },
+    {
+      "path": "luasrc/view/openclash/generate_age.htm",
+      "git_mode": "100644",
+      "git_blob": "8f3703af3f785c5e812dd05c61664eac8c854e5b",
+      "bytes": 3314,
+      "sha256": "ac8ab7ba9a819a459a73793147b06a863cfef8116bbff693d555c923be352624"
+    },
+    {
+      "path": "luasrc/view/openclash/guide.htm",
+      "git_mode": "100644",
+      "git_blob": "e31bbdda46d5d84f16d7943ba5ea4364698685a7",
+      "bytes": 430,
+      "sha256": "8c156648016cd38ac8c91617d24f74e17fadcc87a624db81c74897270cae9c2d"
+    },
+    {
+      "path": "luasrc/view/openclash/input_file_name.htm",
+      "git_mode": "100644",
+      "git_blob": "a93be811d1dd782611e2251fb9d99689dd7d6dcf",
+      "bytes": 781,
+      "sha256": "84082d86a0089147e32e2ea16b2bdc95c300209e93c791cdca2e8321f388384e"
+    },
+    {
+      "path": "luasrc/view/openclash/input_rename.htm",
+      "git_mode": "100644",
+      "git_blob": "63701b599e744671adf48238feb818a01902063a",
+      "bytes": 1003,
+      "sha256": "1f288a4159f277fea6444424673929a51e1344ce25074639632908b5fa32f6bd"
+    },
+    {
+      "path": "luasrc/view/openclash/log.htm",
+      "git_mode": "100644",
+      "git_blob": "22cc98593bfe3f1457ed6ab51f899088fa64d019",
+      "bytes": 4465,
+      "sha256": "87c814cf534d45d070d6c6b7260c9fc475ab7de79f82f60713d0a61449e1cc1d"
+    },
+    {
+      "path": "luasrc/view/openclash/myip.htm",
+      "git_mode": "100644",
+      "git_blob": "b8207267bb460192de4c0423a0ad82f7e1177fc1",
+      "bytes": 11796,
+      "sha256": "6095c79afa208d0658c827b8c4b218945c6e7c5a0ed5a398c50f9f473d5ca08e"
+    },
+    {
+      "path": "luasrc/view/openclash/oix_login.htm",
+      "git_mode": "100644",
+      "git_blob": "f2ed40f901e436c8bf9855fd13eb92d10b8e6485",
+      "bytes": 11809,
+      "sha256": "9737ae37ea228e3e70ea7aa0bb4c5dc93285506a4f149e5beac0a7e85eea48bd"
+    },
+    {
+      "path": "luasrc/view/openclash/oixcloud.htm",
+      "git_mode": "100644",
+      "git_blob": "0684a2470b4dad3c92a2f2d40998a9a1d70d392c",
+      "bytes": 12596,
+      "sha256": "b36813f55cd607b7f390baf5ee8cb43aa4ca89d2a52362501731c646b00389e6"
+    },
+    {
+      "path": "luasrc/view/openclash/other_stream_option.htm",
+      "git_mode": "100644",
+      "git_blob": "6da58cc44b2bd10ac2be7a34d893846727bb22d2",
+      "bytes": 1251,
+      "sha256": "e40ea19cf85a19ff4ca0cfe3c9d038a792785e73a3a018c9ce02e4ceb5a23c7c"
+    },
+    {
+      "path": "luasrc/view/openclash/server_url.htm",
+      "git_mode": "100644",
+      "git_blob": "7b3776dbed9c82916612833d4e570a499cf4ea2f",
+      "bytes": 524,
+      "sha256": "7304a2f5d6519222a8dcf95f5e20073deb7b682eed699b0271591262e2429521"
+    },
+    {
+      "path": "luasrc/view/openclash/status.htm",
+      "git_mode": "100644",
+      "git_blob": "a49286c90a94e7b4ade64b7f71343429af50e2d3",
+      "bytes": 36494,
+      "sha256": "4b2808f73bf3b320e0e4770b0ae29efd8c3207ee6698c64dcdccf31ac3a956c8"
+    },
+    {
+      "path": "luasrc/view/openclash/sub_info_show.htm",
+      "git_mode": "100644",
+      "git_blob": "74d7777ea0afe9ff40ba73a65dab88d5231f1578",
+      "bytes": 14034,
+      "sha256": "21b96af48e0444ed1adb6943ab271d60343992e18c01b329279c4991b5c4ea69"
+    },
+    {
+      "path": "luasrc/view/openclash/subconverter_version.htm",
+      "git_mode": "100644",
+      "git_blob": "08c884668a5dd421780899b33b225bba18af3250",
+      "bytes": 1503,
+      "sha256": "1615c4f4fc97b2a51764246498d9d8d5f98f90fee8fd4a78a1d3cbcbfe0027e4"
+    },
+    {
+      "path": "luasrc/view/openclash/switch_dashboard.htm",
+      "git_mode": "100644",
+      "git_blob": "735d7fbefd51bf0e6ba716a09a630d463901138c",
+      "bytes": 6688,
+      "sha256": "16a70b598a6ab599b5928be51bfae0f17b1ff1795e77265e876b458a8ed96ae1"
+    },
+    {
+      "path": "luasrc/view/openclash/switch_mode.htm",
+      "git_mode": "100644",
+      "git_blob": "521a765fa05d1eae19021f4f3178c4fefb70a103",
+      "bytes": 2000,
+      "sha256": "e24b32a3ce80e56072f5f024599e8e5358160add14048b45e71f01b8c3586f0d"
+    },
+    {
+      "path": "luasrc/view/openclash/tblsection.htm",
+      "git_mode": "100644",
+      "git_blob": "0cfa957899671ce5851fefd0fcaccec049abd3c2",
+      "bytes": 23273,
+      "sha256": "87ae417a43ae7bb60284f3493bf2c3f15ec741c459c3cf8bd17b890105596f6f"
+    },
+    {
+      "path": "luasrc/view/openclash/update.htm",
+      "git_mode": "100644",
+      "git_blob": "a533d31c78b7aaf5a7b1c039d09dbe349b781820",
+      "bytes": 15172,
+      "sha256": "a2fa5452f4aa63eeeffb9f20e07972f01f4430ea1271268330f0136a8c72c200"
+    },
+    {
+      "path": "luasrc/view/openclash/update_config.htm",
+      "git_mode": "100644",
+      "git_blob": "0a638c9a57e93d3807ca84afaa7dbfa9d77b5d22",
+      "bytes": 1080,
+      "sha256": "00222ab00a788ec94494a77700d7c2fe45acfe42b2699688a0e2bf1c9cc0fa76"
+    },
+    {
+      "path": "luasrc/view/openclash/upload.htm",
+      "git_mode": "100644",
+      "git_blob": "0f89f993f4f3f4dced8fc176b547aec075e6064b",
+      "bytes": 6125,
+      "sha256": "ac99af8eabc6e373646fa868a0cd1a3091795bfd7f5315b89346e94e30f96a81"
+    },
+    {
+      "path": "po/es/openclash.es.po",
+      "git_mode": "100644",
+      "git_blob": "e8f180c6abfb0cbae547c59b49206a2cee68ebb7",
+      "bytes": 158958,
+      "sha256": "f060f0c72a3aea73c35512c0f692ba6a890c066621a6f3ec32a02fb1caf435ab"
+    },
+    {
+      "path": "po/zh-cn/openclash.zh-cn.po",
+      "git_mode": "100644",
+      "git_blob": "be53f6690e0580d800c1b414b99a93b8db8246b6",
+      "bytes": 148809,
+      "sha256": "793621c0d18d16592434e76cf902720b04d642ea0cf0d292a6e8855e15649698"
+    },
+    {
+      "path": "po/zh_Hans",
+      "git_mode": "120000",
+      "git_blob": "41451e4a19c465672ff675371a2bc27cf25a3083",
+      "bytes": 5,
+      "sha256": "a482105e5860f3ad7e8f19a4bb34fddddaee2d2f449e023f5aedff5847119548",
+      "symlink_target": "zh-cn",
+      "storage": "git-link-text"
+    },
+    {
+      "path": "root/etc/config/openclash",
+      "git_mode": "100644",
+      "git_blob": "292c7360eff82326a174639210e2e1d3f62715b1",
+      "bytes": 7872,
+      "sha256": "e615c5e056c803ce0721b158441d51425832bd9ca78da1037f07ca77cf7fd8cc"
+    },
+    {
+      "path": "root/etc/init.d/openclash",
+      "git_mode": "100644",
+      "git_blob": "7bc7e7568c74c197668ddf6372c7013de2baf152",
+      "bytes": 194982,
+      "sha256": "f664f3a47a27bc38ff92e26d88fd90c6414d68162d0f4538eadde6f72a01fc44"
+    },
+    {
+      "path": "root/etc/openclash/Country.mmdb",
+      "git_mode": "100644",
+      "git_blob": "7a9273add0462a9bd9afba9aa7990fdf472dd3ab",
+      "bytes": 205449,
+      "sha256": "165435212030a8e5508edfd40d51294bf4155fc2c43fc7c6f5f8969b69bd2625"
+    },
+    {
+      "path": "root/etc/openclash/GeoSite.dat",
+      "git_mode": "100644",
+      "git_blob": "bdbc8c035083ba2a692c6011b22d80064f3e61f4",
+      "bytes": 10407328,
+      "sha256": "26d0b6e76cf277ef95ce8ddd9aa38dc302756d6e546d9d6c6950aaa9e9f51dfe"
+    },
+    {
+      "path": "root/etc/openclash/china_ip6_route.ipset",
+      "git_mode": "100644",
+      "git_blob": "c42682bee9b57e537010367a2d4d9952d2403a45",
+      "bytes": 28426,
+      "sha256": "4750683e77404a699bac2ebbbd893ba755da074c8cb40b753b042c9cd1082665"
+    },
+    {
+      "path": "root/etc/openclash/china_ip_route.ipset",
+      "git_mode": "100644",
+      "git_blob": "56ec7169ce6d7587ee519fe7c6f1595c1203d1f0",
+      "bytes": 65698,
+      "sha256": "953136c06acc857be0daf6d80483b0cb0881c9bdf3eae21d323d5b7dd217ede7"
+    },
+    {
+      "path": "root/etc/openclash/custom/openclash_custom_chnroute6_pass.list",
+      "git_mode": "100644",
+      "git_blob": "0ad3ecf21302796efc1fe49326e715c4234cb332",
+      "bytes": 32,
+      "sha256": "5834a85d556c407e8015f28a04dd2c42f093d4768e99aea2463ad77e6453de22"
+    },
+    {
+      "path": "root/etc/openclash/custom/openclash_custom_chnroute_pass.list",
+      "git_mode": "100644",
+      "git_blob": "8d7e51a8fad3aa2588bc16a0fb571d94984269b9",
+      "bytes": 27,
+      "sha256": "a219cbb16abd550dd639c71264d76be538377c4370b41d749761c6e4035d7f8e"
+    },
+    {
+      "path": "root/etc/openclash/custom/openclash_custom_domain_dns.list",
+      "git_mode": "100644",
+      "git_blob": "6e1fa82b46fdb3b5fc067799e5f74a5a8b9af58d",
+      "bytes": 10,
+      "sha256": "4ed36b219ed7b0b408e15454ac8e5b5536738673608a0c563e58318728e920d2"
+    },
+    {
+      "path": "root/etc/openclash/custom/openclash_custom_domain_dns_policy.list",
+      "git_mode": "100644",
+      "git_blob": "de1b56416f15b19a61f6b6c79ce75df7af1912a0",
+      "bytes": 324,
+      "sha256": "0cf8de5e9b1b7fb814d553b988a1164ad6665f367ed1e219955d147e187542a3"
+    },
+    {
+      "path": "root/etc/openclash/custom/openclash_custom_fake_filter.list",
+      "git_mode": "100644",
+      "git_blob": "76559167f011d8f04546ea98e5154b08425053d5",
+      "bytes": 2812,
+      "sha256": "399b911ba83af5fe68c5abd95598cf575cbd8a769de686d423de4bdbefa60f04"
+    },
+    {
+      "path": "root/etc/openclash/custom/openclash_custom_fallback_filter.yaml",
+      "git_mode": "100644",
+      "git_blob": "2aeddee0219d5ea658d957fb8ffb84640f7a2064",
+      "bytes": 1122,
+      "sha256": "be4aa1539424b70afaa32639528560bd4209724bd06ba385f93a668a3e739861"
+    },
+    {
+      "path": "root/etc/openclash/custom/openclash_custom_firewall_rules.sh",
+      "git_mode": "100644",
+      "git_blob": "34755ecae51544dd696141d3cc9bb4219eab11fb",
+      "bytes": 267,
+      "sha256": "509a4af2dc6f88cbb47aa036248ded93541d8b966fb93bc51b6df4b9e322c222"
+    },
+    {
+      "path": "root/etc/openclash/custom/openclash_custom_hosts.list",
+      "git_mode": "100644",
+      "git_blob": "13d1e236a555144ea07089ed1e1be47d613918d7",
+      "bytes": 412,
+      "sha256": "5655bec76618474cc4149ac7f2769f1b30f06f282458125183b9f6602268704b"
+    },
+    {
+      "path": "root/etc/openclash/custom/openclash_custom_localnetwork_ipv4.list",
+      "git_mode": "100644",
+      "git_blob": "3ea51823d84e1766f32d87cfbe1b1e2ab0205ecf",
+      "bytes": 443,
+      "sha256": "5cfd703c4a23c7108da5fc0c47b58dae021611ee5b6fadef7aacb61a48570dd4"
+    },
+    {
+      "path": "root/etc/openclash/custom/openclash_custom_localnetwork_ipv6.list",
+      "git_mode": "100644",
+      "git_blob": "1d9d0c2363dcab66d64be4e26697e1019b68a06e",
+      "bytes": 696,
+      "sha256": "87fd7f0bfd6d4add44c6d68fd473156b295417a0d071869d85a584cb89a7a1d8"
+    },
+    {
+      "path": "root/etc/openclash/custom/openclash_custom_overwrite.sh",
+      "git_mode": "100644",
+      "git_blob": "05b4afecd3967a33aa45a67a611a2b2686a74143",
+      "bytes": 6899,
+      "sha256": "f1d1a48f04665a9815d30b00ba127c43277a21f0931519e70f9be5e4aea3c77f"
+    },
+    {
+      "path": "root/etc/openclash/custom/openclash_custom_proxy_server_dns_policy.list",
+      "git_mode": "100644",
+      "git_blob": "914f4ca480e552f0c71c6b0feb9cb1df82a7434b",
+      "bytes": 344,
+      "sha256": "9819c9aaf5ffcd65e36b7e6baf58ea73ca4fcd616c2943acde05285e1ce68a48"
+    },
+    {
+      "path": "root/etc/openclash/custom/openclash_custom_rules.list",
+      "git_mode": "100644",
+      "git_blob": "f57e62174370086d0a5e43c9ae0dd557753b187a",
+      "bytes": 3338,
+      "sha256": "dde584b2b5ff4cafe12b87aef50b56dbf58362601afc8cfee246a4927bcdb907"
+    },
+    {
+      "path": "root/etc/openclash/custom/openclash_custom_rules_2.list",
+      "git_mode": "100644",
+      "git_blob": "1da48c0b563867ce99f2dcac5a5d2a87a0c9126d",
+      "bytes": 954,
+      "sha256": "ba01a3351d67737475a215f1a8cb094884c41cf6d53fd1cc3a4c861a5ce31d19"
+    },
+    {
+      "path": "root/etc/openclash/custom/openclash_custom_sniffer.yaml",
+      "git_mode": "100644",
+      "git_blob": "87e10e02173184cbc78b8d59f7731ee03b247cb3",
+      "bytes": 1157,
+      "sha256": "c186251735e05c74abf472c97d63b1e5ef71cbf14199e3778b532e681998ae6a"
+    },
+    {
+      "path": "root/etc/openclash/overwrite/Google_Play",
+      "git_mode": "100644",
+      "git_blob": "0033d8fa8fe35e91fc8a293b2901411457bb4bcd",
+      "bytes": 794,
+      "sha256": "1bf3e94036be0479fd6cf2a4258b128332fedf31cd31c1fd660a20110728b39a"
+    },
+    {
+      "path": "root/etc/openclash/overwrite/Tailscale",
+      "git_mode": "100644",
+      "git_blob": "1fada933fd32cd257624566de6398c8317abf505",
+      "bytes": 228,
+      "sha256": "e5b8300bdb6ba1c74427f04535bf887c10fd0ceb27d80e5977bd29b2f2e98e83"
+    },
+    {
+      "path": "root/etc/openclash/overwrite/WiFi_Calling",
+      "git_mode": "100644",
+      "git_blob": "cd640c799fee2b70c590ab72eef9476389135a1a",
+      "bytes": 910,
+      "sha256": "7ecd4d96ff1fef18a50b9af42d9eebaff1c83f2dbd9c85c2902bb94209e645dd"
+    },
+    {
+      "path": "root/etc/openclash/overwrite/default",
+      "git_mode": "100644",
+      "git_blob": "08618236cc29baa64c8e36d775743ac30f7fb93c",
+      "bytes": 20623,
+      "sha256": "0ea7ea35399c8b23790edcc833e22b6d6e95214ee1cea1ddf471d8ea90d33fb2"
+    },
+    {
+      "path": "root/etc/openclash/rule_provider/oc-cn-domain.mrs",
+      "git_mode": "100644",
+      "git_blob": "06ac5111d8f294b4f758683d90c8d82ed767bb56",
+      "bytes": 556732,
+      "sha256": "be926f16330dc672f7226c6f80cd5e37827f70f1338bc6db03caea8c297697df"
+    },
+    {
+      "path": "root/etc/uci-defaults/luci-openclash",
+      "git_mode": "100644",
+      "git_blob": "d3fcd3c02694bd658a7a9cabf548b3f0e832323e",
+      "bytes": 11974,
+      "sha256": "99f7913f04c9c3a0783650bbb9c4857a681de756ba92c5526fc74210dcb8ebe0"
+    },
+    {
+      "path": "root/usr/share/openclash/YAML.rb",
+      "git_mode": "100644",
+      "git_blob": "1addd1d1cbf09de4ecbec4593a2ba3af25c20e27",
+      "bytes": 42278,
+      "sha256": "1249abf411e1df9e8fe542fb3584f34a27e6e3a587942e5d9f759a32b1bd8261"
+    },
+    {
+      "path": "root/usr/share/openclash/log.sh",
+      "git_mode": "100644",
+      "git_blob": "ba894db5076494412341348cb2760ac029c991a0",
+      "bytes": 1115,
+      "sha256": "b59f3a673c0922c666d00d94eb7962c86ee1138ad22e47538facc6cdf885b5c2"
+    },
+    {
+      "path": "root/usr/share/openclash/openclash.sh",
+      "git_mode": "100644",
+      "git_blob": "6c181265ca96c452660653d60ec552d58eccc12c",
+      "bytes": 16282,
+      "sha256": "64214ab550a69345323fc91a924ed99f9e35c4a658c72dcb862ae1ed17867082"
+    },
+    {
+      "path": "root/usr/share/openclash/openclash_chnroute.sh",
+      "git_mode": "100644",
+      "git_blob": "b6db1349b27a8276ad0a4ec26dc68c75fde99f17",
+      "bytes": 4813,
+      "sha256": "ba7c171c7a30f2ef776727f536995a833c67ab1e5ea97ad15b3537e3fbdd343d"
+    },
+    {
+      "path": "root/usr/share/openclash/openclash_core.sh",
+      "git_mode": "100644",
+      "git_blob": "c8858e54a8575439ff818fd20f434489623d6ff0",
+      "bytes": 9315,
+      "sha256": "66d7130b23947a23d255ed2d57f2da0bb3feabbae1fd88af4f81d3de746e6189"
+    },
+    {
+      "path": "root/usr/share/openclash/openclash_curl.sh",
+      "git_mode": "100644",
+      "git_blob": "0d2a371bc2389d833bc81cdafdf075e5d70f0648",
+      "bytes": 11319,
+      "sha256": "f8cfe5f4a5d97d0d40ffbb64373a7c048894653206084297f8fcc0204ac25ddb"
+    },
+    {
+      "path": "root/usr/share/openclash/openclash_custom_domain_dns.sh",
+      "git_mode": "100644",
+      "git_blob": "6fdb09cbc009d258acc4e526e6046f5746ec48be",
+      "bytes": 1571,
+      "sha256": "4bbc7cd3fcdde20f598495264f6db9c6007b5acb7b760e9d99c03ae8d64323cf"
+    },
+    {
+      "path": "root/usr/share/openclash/openclash_debug.sh",
+      "git_mode": "100644",
+      "git_blob": "75df261e36917cc469375545aea72760daf922b5",
+      "bytes": 22511,
+      "sha256": "2d23deb1c500a4e53f87f6b8c552f177eac9d336b0a3f9d68e5c9bc9955211d4"
+    },
+    {
+      "path": "root/usr/share/openclash/openclash_debug_dns.lua",
+      "git_mode": "100644",
+      "git_blob": "ba11cadddf8b7c0a772e2bf41623fdd875e878b0",
+      "bytes": 2603,
+      "sha256": "4ae0ffd56d8eca72ce2d022d37c9e583da3c4090aed22605ebf5a131faf2bdf9"
+    },
+    {
+      "path": "root/usr/share/openclash/openclash_debug_getcon.lua",
+      "git_mode": "100644",
+      "git_blob": "bc9c0138b5c321426f2c1116058522ac3adb7873",
+      "bytes": 3598,
+      "sha256": "006abebb90884c436d6723d5a7914a356fd37ea717ec4cb10105e9ddf9c7010b"
+    },
+    {
+      "path": "root/usr/share/openclash/openclash_download_dashboard.sh",
+      "git_mode": "100644",
+      "git_blob": "fb943fba5b6651b89c5041cf69d19208af1c0522",
+      "bytes": 5428,
+      "sha256": "64b87c1172d09c125ab0f12057f0ce698f694931142beeacd80923fcfde2f25f"
+    },
+    {
+      "path": "root/usr/share/openclash/openclash_etag.sh",
+      "git_mode": "100644",
+      "git_blob": "9a5313dccf8603fa0dc82737d08941604574c3f3",
+      "bytes": 2360,
+      "sha256": "e939a8f3005877f08b575f1a8b334e4cf117a50c8c53f5be6bbb8c492ea496f7"
+    },
+    {
+      "path": "root/usr/share/openclash/openclash_geo.sh",
+      "git_mode": "100644",
+      "git_blob": "d3b866b50e566fe8375631dd3686fbe2ae04261e",
+      "bytes": 6998,
+      "sha256": "b0eb374c8868ef06b0673eb14f349dd19dc39fb07228968a3b53bf264e261bdd"
+    },
+    {
+      "path": "root/usr/share/openclash/openclash_get_network.lua",
+      "git_mode": "100644",
+      "git_blob": "8e759101ec8262446f6d60541b216023a8ebfeec",
+      "bytes": 4709,
+      "sha256": "4ef4075c8e02f8f2f9581ab345195cd373e0e0191d013366224ea208df588e0e"
+    },
+    {
+      "path": "root/usr/share/openclash/openclash_history_get.sh",
+      "git_mode": "100644",
+      "git_blob": "a6f84146c67dcd97ac8df1086ebbba034edd13ee",
+      "bytes": 2927,
+      "sha256": "7674a60f78d3b8a91ef81eb3e72e444caf2989732fbf908d325339060a97122d"
+    },
+    {
+      "path": "root/usr/share/openclash/openclash_lgbm.sh",
+      "git_mode": "100644",
+      "git_blob": "47c8e26f949f1ef6847a395c41e556f885f0b466",
+      "bytes": 1777,
+      "sha256": "91c169b0d73a918ec6743c681350ef997313bf8b43bfbc46b81680dd416c962f"
+    },
+    {
+      "path": "root/usr/share/openclash/openclash_nginx.sh",
+      "git_mode": "100644",
+      "git_blob": "1ae78fb41f2394595fa191311f7e4822a1bd54fd",
+      "bytes": 1080,
+      "sha256": "60ee071c7a1b6ab7ea34d64825eeb9fadab1ba37e76bb04a0b16cd0523011608"
+    },
+    {
+      "path": "root/usr/share/openclash/openclash_oix_checkin.lua",
+      "git_mode": "100644",
+      "git_blob": "7a47d1dcafe0ac53e162209a1ce1c819443ec836",
+      "bytes": 1793,
+      "sha256": "198990e2c1b4b074027a109fc301523f69b3f8349af42d1980d27c3759e0c6da"
+    },
+    {
+      "path": "root/usr/share/openclash/openclash_ps.sh",
+      "git_mode": "100644",
+      "git_blob": "41c8a51c0099243ad2af83ecbeb7a21cd18f7217",
+      "bytes": 2125,
+      "sha256": "9730659a54f097a2c5f2aacf64ddd8f0e7399a6f520cd84ac057b232f6c4427f"
+    },
+    {
+      "path": "root/usr/share/openclash/openclash_streaming_unlock.lua",
+      "git_mode": "100644",
+      "git_blob": "1d631b5ef10a589af2705a6595a031d644c9006c",
+      "bytes": 69386,
+      "sha256": "19b3b4783d0721802ceac83ec22910b82e981ccefbd4a25c6a19b817529f43cf"
+    },
+    {
+      "path": "root/usr/share/openclash/openclash_sub_parser.lua",
+      "git_mode": "100644",
+      "git_blob": "d84a83b4fb2adc77ec440cbe1a6e6157fbfc2651",
+      "bytes": 6373,
+      "sha256": "a9eacd9d75ff15cc81c66d33c3899ad69bf892dc2258b948110819a1de6e7ba1"
+    },
+    {
+      "path": "root/usr/share/openclash/openclash_update.sh",
+      "git_mode": "100644",
+      "git_blob": "30d4c6261aa6f6c225080f63f336109a0e7fb205",
+      "bytes": 18527,
+      "sha256": "391f14bd749062975a98a10fb7aea3b843cad3544a7b52313ed9d846463dca6c"
+    },
+    {
+      "path": "root/usr/share/openclash/openclash_urlencode.lua",
+      "git_mode": "100644",
+      "git_blob": "9c113253d7299aed1e1edb5d7edffe27b9e0dca1",
+      "bytes": 201,
+      "sha256": "5cfd9423778cdfdc9dc9ad292642ef5bdab64710bbcd7f9a1bd51549582a9bba"
+    },
+    {
+      "path": "root/usr/share/openclash/openclash_version.lua",
+      "git_mode": "100644",
+      "git_blob": "6d8bb91d23f2d96604e84c2658f493a3eb602b7f",
+      "bytes": 17470,
+      "sha256": "c7da7f4978ea144609b279e54ebb2b5b230c6e895fab3a1ca6e04e5d3e98a738"
+    },
+    {
+      "path": "root/usr/share/openclash/openclash_watchdog.sh",
+      "git_mode": "100644",
+      "git_blob": "0557297415b5e43e2da84d2b5c98493504476b57",
+      "bytes": 25676,
+      "sha256": "43eb4949cb6ebeaa4a02bdc43a1320f9a6ec19f7a441133e84506d37f6634582"
+    },
+    {
+      "path": "root/usr/share/openclash/res/cdn.list",
+      "git_mode": "100644",
+      "git_blob": "f6af0eb86d5bf7db2e3bccee52fffce1499a62ca",
+      "bytes": 430,
+      "sha256": "389f4bc1836a29c526a9912b55026f29dcb9a90503e945d97a9799218965f811"
+    },
+    {
+      "path": "root/usr/share/openclash/res/default.yaml",
+      "git_mode": "100644",
+      "git_blob": "677a4d3cb20d9ab21e43dd0eff30e2e162d16c80",
+      "bytes": 108819,
+      "sha256": "6158556e497a51653c14ebbbb92d9a416e3b26a0e65caa8cecf44a13cde2cc47"
+    },
+    {
+      "path": "root/usr/share/openclash/res/sub_ini.list",
+      "git_mode": "100644",
+      "git_blob": "325bce302b703aa54d6367cf98f92c68a5732ba2",
+      "bytes": 6829,
+      "sha256": "22dfd72b51cb17fba89d8b742b0b286d259ee653628228addccd6d46a2fbfe05"
+    },
+    {
+      "path": "root/usr/share/openclash/ruby.sh",
+      "git_mode": "100644",
+      "git_blob": "97a79184ea1cb00c303766de8937b7df067b0201",
+      "bytes": 2667,
+      "sha256": "a96a71acb02b204801cbdc1547272b6c5ce97f0204ea8c0632f2cc72e4e1d40e"
+    },
+    {
+      "path": "root/usr/share/openclash/uci.rb",
+      "git_mode": "100644",
+      "git_blob": "726b0ea480762404aa9a15903fcce5bc1e2801ed",
+      "bytes": 75766,
+      "sha256": "b343bf5718604e77388eef1e8946c685ca23288e9777f90a7b71d7db35ea22ed"
+    },
+    {
+      "path": "root/usr/share/openclash/uci.sh",
+      "git_mode": "100644",
+      "git_blob": "d12beb6623eb580050c02c3498439a8eecd19385",
+      "bytes": 5113,
+      "sha256": "5808e5b56f742362b939b2ad4986c1b92ff529afaf5c0c3495d4ce32e8966852"
+    },
+    {
+      "path": "root/usr/share/openclash/ui/metacubexd/CNAME",
+      "git_mode": "100644",
+      "git_blob": "82221cbe3aa7b6c8c893e21f04b4a0cfadd4f6f8",
+      "bytes": 16,
+      "sha256": "7cd5cdd52f74a25cc34cf6f7ca9c3f7d566a41a2a616d33eb878a007ceac3c59"
+    },
+    {
+      "path": "root/usr/share/openclash/ui/metacubexd/apple-touch-icon-180x180.png",
+      "git_mode": "100644",
+      "git_blob": "f03b4796b0c04652cd82d4420ee4cfe2f7f30875",
+      "bytes": 1188,
+      "sha256": "51c6c0136cc74c59df203f2ef4c70f9074945599a1800ff2dfb07b9a3cc545a3"
+    },
+    {
+      "path": "root/usr/share/openclash/ui/metacubexd/assets/Config-9NNS9COU.js",
+      "git_mode": "100644",
+      "git_blob": "921610c5e39cca964e0c75f8de474ed7148e491c",
+      "bytes": 10434,
+      "sha256": "5e63069f0c8c836aee41f3c72111a72aa894cd69b3b8205f8ae9e438b006fb46"
+    },
+    {
+      "path": "root/usr/share/openclash/ui/metacubexd/assets/Config-OnPrERLZ.js",
+      "git_mode": "100644",
+      "git_blob": "00bc0c99725a7f77fed155bb18ed8de3a0c8b01e",
+      "bytes": 9385,
+      "sha256": "6ac9b5fc2cbcc6e5ab4d7df45ecc6d7d77707c1a68c277aefcf643a4c46cfcfc"
+    },
+    {
+      "path": "root/usr/share/openclash/ui/metacubexd/assets/Connections-CgFIezGO.js",
+      "git_mode": "100644",
+      "git_blob": "03bbb6bad87ead8bbbd1a9b4cf4888e7d20162e1",
+      "bytes": 20078,
+      "sha256": "c09548574c90dbd76ce17f5fb956ee6737a796e66c684f7a0ea88f2e5f55e9a2"
+    },
+    {
+      "path": "root/usr/share/openclash/ui/metacubexd/assets/Connections-N_Z6THP_.js",
+      "git_mode": "100644",
+      "git_blob": "dabf9e583b6b7fc15d5fa204b066cca85affc577",
+      "bytes": 11432,
+      "sha256": "d17c2f6e33e38962bb6199a917b35fe388109dcb6991ff319be3fe894ffccecc"
+    },
+    {
+      "path": "root/usr/share/openclash/ui/metacubexd/assets/DocumentTitle-DG90V81t.js",
+      "git_mode": "100644",
+      "git_blob": "5be2aebc423ff1a6424f634139bbc87fcc773089",
+      "bytes": 137,
+      "sha256": "552c16430c79c3be7c2bab42914cb94b4b408cb8b25eec896125219364a33999"
+    },
+    {
+      "path": "root/usr/share/openclash/ui/metacubexd/assets/FiraSans-Regular-BN6hITtY.ttf",
+      "git_mode": "100644",
+      "git_blob": "6f806474948b2cfc5f8fb3fcea4b49e67c49031a",
+      "bytes": 440984,
+      "sha256": "3dabf3d48bf4599f95cffd92f99ea426a014d5311f52a5eb5ec3af265e97cd97"
+    },
+    {
+      "path": "root/usr/share/openclash/ui/metacubexd/assets/IconChevronRight-Dm97ewab.js",
+      "git_mode": "100644",
+      "git_blob": "69d6de0d5a10f063e32f810cafa9ea8194952591",
+      "bytes": 132,
+      "sha256": "8e8a76525d77c6239b9c959b7c4972b97dd78ff50db3063ca1e150a3872ffee8"
+    },
+    {
+      "path": "root/usr/share/openclash/ui/metacubexd/assets/IconReload--QlVe2wP.js",
+      "git_mode": "100644",
+      "git_blob": "9fedc90fcca7ace42689ebee98f5379f9a85006e",
+      "bytes": 392,
+      "sha256": "2424dbfad37da344badf4f223b16c17217a60ab49af4a501ea779f5776d15f64"
+    },
+    {
+      "path": "root/usr/share/openclash/ui/metacubexd/assets/IconReload-BSlLPZuq.js",
+      "git_mode": "100644",
+      "git_blob": "6f520e7a731dccb228b1a87f7130a2417eb57636",
+      "bytes": 203,
+      "sha256": "fd799fe74acce82855018d3714db7ce3215fae823dc81f0440f28f71225f5248"
+    },
+    {
+      "path": "root/usr/share/openclash/ui/metacubexd/assets/Logs-DcK4Yp9Y.js",
+      "git_mode": "100644",
+      "git_blob": "4e8d3cdac3d69e0cf608e4c4f0cd953d92979999",
+      "bytes": 3107,
+      "sha256": "d704ceff1d649dc53576a81e4a580f2cb9e83c3c6de839a05aeda7b4029adabe"
+    },
+    {
+      "path": "root/usr/share/openclash/ui/metacubexd/assets/Logs-uIQcQmXC.js",
+      "git_mode": "100644",
+      "git_blob": "5d5c407bc11b55c315fa567bc1d7ffe410b72b67",
+      "bytes": 4596,
+      "sha256": "43550ccbb08c94a725243a9a1edd6cf709a335ae4727907584fcd2ab8f61969d"
+    },
+    {
+      "path": "root/usr/share/openclash/ui/metacubexd/assets/Overview-B99qGorf.js",
+      "git_mode": "100644",
+      "git_blob": "d514ae5596860efad1f210e47752838ba20f3c54",
+      "bytes": 572419,
+      "sha256": "38a58e58e308c8f9fb78314198f60ff147955b00082fd68a4eaabcd052f3c0a2"
+    },
+    {
+      "path": "root/usr/share/openclash/ui/metacubexd/assets/Overview-BP3yBMkt.js",
+      "git_mode": "100644",
+      "git_blob": "a5c838cf32ff7bbb5dc022a5c1b3252da6ba3328",
+      "bytes": 4349,
+      "sha256": "fead35de9e8bccc881f9061d7a933b37ed1ad0630d2b542c8240618b1c72efce"
+    },
+    {
+      "path": "root/usr/share/openclash/ui/metacubexd/assets/Proxies-BRo6NEi-.js",
+      "git_mode": "100644",
+      "git_blob": "b79a64ed4eb930c24b2b31d440e9cd9815015baa",
+      "bytes": 8078,
+      "sha256": "0486071686c07241ec5d1e3c5a9343f7dfec138a460d2aaf12e0da79b6081856"
+    },
+    {
+      "path": "root/usr/share/openclash/ui/metacubexd/assets/Proxies-Lk5uJ4LX.js",
+      "git_mode": "100644",
+      "git_blob": "f126e040473fc7b4d4fcf8855dc793df9b6500d1",
+      "bytes": 16271,
+      "sha256": "23c3c603cd4121fb32cc1c53e13639b31280769eaa8d97af546e89fe9d01cb6c"
+    },
+    {
+      "path": "root/usr/share/openclash/ui/metacubexd/assets/Rules-B-8TizmP.js",
+      "git_mode": "100644",
+      "git_blob": "7db14d3825468498c74a75e1c248ee4b77cef04b",
+      "bytes": 24458,
+      "sha256": "758d3fc8bcbec5122d98ba0e1c74d935ac477506cf9a81e0bb63295ba43ff775"
+    },
+    {
+      "path": "root/usr/share/openclash/ui/metacubexd/assets/Rules-C4_l0aqo.js",
+      "git_mode": "100644",
+      "git_blob": "f98580c33f073a4a05410d1d7d64ba6ff7063d2e",
+      "bytes": 24939,
+      "sha256": "d24d7c5fb8b5ef88d87330dbd635b86e5e14aeb2e75796cee91badde99f1fa5e"
+    },
+    {
+      "path": "root/usr/share/openclash/ui/metacubexd/assets/Setup-10EXNRX9.js",
+      "git_mode": "100644",
+      "git_blob": "cb6f3e68a9475b19ae567916afea64302cd3bd98",
+      "bytes": 3841,
+      "sha256": "c70b270f684b29dbdc51b828ab488db5239e1c204708d72bd0b57310bf965c31"
+    },
+    {
+      "path": "root/usr/share/openclash/ui/metacubexd/assets/Setup-CdphtcBj.js",
+      "git_mode": "100644",
+      "git_blob": "02a13d705949e186d6d6028629488acfb32624a4",
+      "bytes": 3746,
+      "sha256": "79fb40e4efab912b8460c2545b7f892de6fe0a29fcebae6de46960bb4118fa7e"
+    },
+    {
+      "path": "root/usr/share/openclash/ui/metacubexd/assets/TwemojiMozilla-flags-B12sb_Bp.woff2",
+      "git_mode": "100644",
+      "git_blob": "b87c4ce0f71489db054b99a7a2f7a2c8a6ba526d",
+      "bytes": 78308,
+      "sha256": "c030920068cc493d59cc8c21ff29000b7a3676c40414cba7e7a5780d02f41cbf"
+    },
+    {
+      "path": "root/usr/share/openclash/ui/metacubexd/assets/apexcharts.esm-D-nlnKto.js",
+      "git_mode": "100644",
+      "git_blob": "58d68b3d0bb8f6cf970b69a37fbfd5b0a700bc97",
+      "bytes": 574463,
+      "sha256": "12d7d7512e6e5085079b62c3236128ac87040ad91a86b1a1ec28b4247765195c"
+    },
+    {
+      "path": "root/usr/share/openclash/ui/metacubexd/assets/fira-sans-cyrillic-400-normal-CKu2TFQr.woff2",
+      "git_mode": "100644",
+      "git_blob": "2a176a771bde669e966829e6c2fa3bb1e1411d3d",
+      "bytes": 10788,
+      "sha256": "2ce9f91ccd598790f734442b0a203f4b2e9383ce7789735b4f4e816a7bdc7c53"
+    },
+    {
+      "path": "root/usr/share/openclash/ui/metacubexd/assets/fira-sans-cyrillic-400-normal-D9eUeF-O.woff",
+      "git_mode": "100644",
+      "git_blob": "2e1460fd336b1b38ec7a29c51afe4a2f0da3aed7",
+      "bytes": 8876,
+      "sha256": "285a57077e1f4cd85b851e6ee41b8a9b88e1e3b313b91fa349e1826c6aab5774"
+    },
+    {
+      "path": "root/usr/share/openclash/ui/metacubexd/assets/fira-sans-cyrillic-ext-400-normal-Cycyekte.woff2",
+      "git_mode": "100644",
+      "git_blob": "0e8bf3370b7653291aee5b84b0193d1850a87604",
+      "bytes": 17692,
+      "sha256": "34d63f54cb610e0f8abe5e0d62d27841f72b2dd6f18c8043dbe2ff7249df53c3"
+    },
+    {
+      "path": "root/usr/share/openclash/ui/metacubexd/assets/fira-sans-cyrillic-ext-400-normal-Dd5dApAy.woff",
+      "git_mode": "100644",
+      "git_blob": "7251e1b5c244612ca5303badc805de137b71c8dc",
+      "bytes": 15200,
+      "sha256": "5ed4fc62858910285028c6c04df03212a00d66fd336ff8fc41a7ab09cdaacae9"
+    },
+    {
+      "path": "root/usr/share/openclash/ui/metacubexd/assets/fira-sans-greek-400-normal-BFCFncbp.woff2",
+      "git_mode": "100644",
+      "git_blob": "5202d1806664537fab9e36f86b0dd3ae183f4763",
+      "bytes": 12780,
+      "sha256": "d4801a135e38149febbfeb805496e60f5734ef2e62df82a48d258e4e3da33b6c"
+    },
+    {
+      "path": "root/usr/share/openclash/ui/metacubexd/assets/fira-sans-greek-400-normal-DQ8sF22y.woff",
+      "git_mode": "100644",
+      "git_blob": "eb3a72cc0ae44b5500d66acf99aeb5a2e9bf9953",
+      "bytes": 10896,
+      "sha256": "9961f91e18b6578d41f6ac4d42578c74c33722c35b1b4d915b13fc0d21aaf31b"
+    },
+    {
+      "path": "root/usr/share/openclash/ui/metacubexd/assets/fira-sans-greek-ext-400-normal-ByG7UNQ2.woff2",
+      "git_mode": "100644",
+      "git_blob": "e3e1d23e35be0266256010e4275ff67a960ab3a5",
+      "bytes": 7964,
+      "sha256": "a7d3e976d604e8ea78878062dc551e1c0c440f1def89086560b891b1f9a4850f"
+    },
+    {
+      "path": "root/usr/share/openclash/ui/metacubexd/assets/fira-sans-greek-ext-400-normal-ClCfNE6D.woff",
+      "git_mode": "100644",
+      "git_blob": "6cd47a6a2bb4b10bf278916f661326208fbb7745",
+      "bytes": 6972,
+      "sha256": "4274da64701e750463d317ce0aea846a13e6d5cc992bb04135ec6a6efdce5622"
+    },
+    {
+      "path": "root/usr/share/openclash/ui/metacubexd/assets/fira-sans-latin-400-normal-66xCkunx.woff",
+      "git_mode": "100644",
+      "git_blob": "f3aa423476290f87b2f0e58d4c989039880ce27e",
+      "bytes": 21876,
+      "sha256": "6c9caf93cb76eab79ae2ae224fb7ba25ef66ca649858635dfb3de9c678b41b4b"
+    },
+    {
+      "path": "root/usr/share/openclash/ui/metacubexd/assets/fira-sans-latin-400-normal-a0AnQzuD.woff2",
+      "git_mode": "100644",
+      "git_blob": "7d7a864dd38091eb8cf2da1212688f1c2f64bc41",
+      "bytes": 23872,
+      "sha256": "3e38d8c01fe97529fbf0a086bf958d724b723ca7fc8be77b4ba5745f6259b6ca"
+    },
+    {
+      "path": "root/usr/share/openclash/ui/metacubexd/assets/fira-sans-latin-ext-400-normal-BCUwhuGB.woff",
+      "git_mode": "100644",
+      "git_blob": "e55a3321de701d73129be24dbdafe20b27ba7535",
+      "bytes": 41388,
+      "sha256": "9d0845461f9d9c81cc00d4e636a0a0c0b9f92ebeeec6b5dbdc576f9f66008a71"
+    },
+    {
+      "path": "root/usr/share/openclash/ui/metacubexd/assets/fira-sans-latin-ext-400-normal-BLG_mAEf.woff2",
+      "git_mode": "100644",
+      "git_blob": "98ecc9f3037de50591c0008dc6d62d6baf263f1f",
+      "bytes": 46400,
+      "sha256": "ed4d0b738d93612b44310bf3f2993d2ce220da28f064c2cdda37b2fcbc23662c"
+    },
+    {
+      "path": "root/usr/share/openclash/ui/metacubexd/assets/fira-sans-vietnamese-400-normal-DUVG35gE.woff",
+      "git_mode": "100644",
+      "git_blob": "e7b611ae5272641ee94848df5701c367159e81aa",
+      "bytes": 6812,
+      "sha256": "b6a5a9f7e0021c43b605fea19aa13e9d42b81ea6344ae51e6d1507c7cb75bce0"
+    },
+    {
+      "path": "root/usr/share/openclash/ui/metacubexd/assets/fira-sans-vietnamese-400-normal-ljDTQFsx.woff2",
+      "git_mode": "100644",
+      "git_blob": "9f70dd15f7800bd0b57692ee70f50f84a1b0d17d",
+      "bytes": 8500,
+      "sha256": "bce982a23325eeb056cae1deafa4d7da8b3cda739658738f3cd23a67662b2178"
+    },
+    {
+      "path": "root/usr/share/openclash/ui/metacubexd/assets/index-BaCG7ya-.css",
+      "git_mode": "100644",
+      "git_blob": "8092205e05272f6e5ed33e4c80a44746b8d8a242",
+      "bytes": 200543,
+      "sha256": "15e54fcac4ebbef56c5b7770a90ce4dfdeed2449273c0dec4f240634c57c040c"
+    },
+    {
+      "path": "root/usr/share/openclash/ui/metacubexd/assets/index-CBBLUqwt.js",
+      "git_mode": "100644",
+      "git_blob": "b7674a75306501df55ba123618ee6bb6f2cc4dee",
+      "bytes": 61833,
+      "sha256": "8f647fcf25e055245e7196ff0b883a06c35b1a665a716c83c9208f104d7d6317"
+    },
+    {
+      "path": "root/usr/share/openclash/ui/metacubexd/assets/index-Csmv4Fkv.js",
+      "git_mode": "100644",
+      "git_blob": "a02493df97c92687bc7aeb58f072018c15cfd0e1",
+      "bytes": 369623,
+      "sha256": "6f90cca0357c6dc1a1b99d6e874c75dd3ee12f27504dd63f4f91b36c977cdf90"
+    },
+    {
+      "path": "root/usr/share/openclash/ui/metacubexd/assets/index-DIwJcTz_.js",
+      "git_mode": "100644",
+      "git_blob": "7a7bbf91efb1b1994024888751afb1f4ec5a53f3",
+      "bytes": 471668,
+      "sha256": "b81892451d1c9b6e3fea18ea47e4d29e93af7e26d03ceb1589a2142b669dfe94"
+    },
+    {
+      "path": "root/usr/share/openclash/ui/metacubexd/assets/index-M06kPDrB.css",
+      "git_mode": "100644",
+      "git_blob": "7d49f41b85abc07f10f0e3acb9d159e6f03dbdca",
+      "bytes": 127382,
+      "sha256": "04632d723a8276308f4a6c14ab7d0c24a1fd877d0b37b40368b3981aa6cb00ea"
+    },
+    {
+      "path": "root/usr/share/openclash/ui/metacubexd/assets/lib-BxRDUvxo.js",
+      "git_mode": "100644",
+      "git_blob": "983130f08ea56d5a700b4dd4b7108922315b272f",
+      "bytes": 56701,
+      "sha256": "e7236bb5edf87059fa63710ebe293da479c5491be3e5158101b5b7be3d0ab04c"
+    },
+    {
+      "path": "root/usr/share/openclash/ui/metacubexd/assets/time-CHbJgbks.js",
+      "git_mode": "100644",
+      "git_blob": "f3f77aa70051123c50f7fa4faef0ae4274a775af",
+      "bytes": 102,
+      "sha256": "24cc28b4f2e4e5d35e38b512709a2219f37b81da7ce11d39880f8424da3c4ed4"
+    },
+    {
+      "path": "root/usr/share/openclash/ui/metacubexd/favicon.ico",
+      "git_mode": "100644",
+      "git_blob": "baeb55b7650a5b2149de45c2ea69e20cfe7d216a",
+      "bytes": 900,
+      "sha256": "311cd1c7f9cf4e64f27fe1269a2661f8db5ad745807106ceede3d86cf2a205df"
+    },
+    {
+      "path": "root/usr/share/openclash/ui/metacubexd/favicon.svg",
+      "git_mode": "100644",
+      "git_blob": "f8b5c3af5e27cfca78990c1a68f0550647fc0075",
+      "bytes": 8067,
+      "sha256": "ca85e0c5bf0c74f00f04946ab8b2e61621836c4b2659ea370104f2ee9d2f5371"
+    },
+    {
+      "path": "root/usr/share/openclash/ui/metacubexd/index.html",
+      "git_mode": "100644",
+      "git_blob": "554a1870f0da726681416f4e9f6c156d1e4df95e",
+      "bytes": 859,
+      "sha256": "7e887459bf4dd70fe17283236d982cf756cca0dde991835914eebb01a04eef08"
+    },
+    {
+      "path": "root/usr/share/openclash/ui/metacubexd/manifest.webmanifest",
+      "git_mode": "100644",
+      "git_blob": "8fe853c8737ed1942f1907c591859ef03cf6faaa",
+      "bytes": 446,
+      "sha256": "6c2012ae704e5a4f2e8efeea3ad6437dcd9de7b325ab553f42a0f179dd8e1edb"
+    },
+    {
+      "path": "root/usr/share/openclash/ui/metacubexd/maskable-icon-512x512.png",
+      "git_mode": "100644",
+      "git_blob": "fb3fa148fbfc053a5ccee469e71ae495c7eaa245",
+      "bytes": 3523,
+      "sha256": "a39792d445dd419b1834e577577f19a2098a712b79e2a99fb8d00b2ede8f25ae"
+    },
+    {
+      "path": "root/usr/share/openclash/ui/metacubexd/pwa-192x192.png",
+      "git_mode": "100644",
+      "git_blob": "e82979b58dd48c1425b66df165c5619b5081e623",
+      "bytes": 1620,
+      "sha256": "184c61ca19ce32d5a66a24e633764ffbc65478eb105136e10433b4e096c35938"
+    },
+    {
+      "path": "root/usr/share/openclash/ui/metacubexd/pwa-512x512.png",
+      "git_mode": "100644",
+      "git_blob": "74d4f4ea20799fddda5863b3008e33ec2b23598f",
+      "bytes": 4307,
+      "sha256": "e0693d58b85c645480b5d32d7e1c4fba5a72ff2adeb04bfd7be332cf3cbee5db"
+    },
+    {
+      "path": "root/usr/share/openclash/ui/metacubexd/pwa-64x64.png",
+      "git_mode": "100644",
+      "git_blob": "5d7491c87e36e9f730ab37a8895d96e64734dcd8",
+      "bytes": 622,
+      "sha256": "700aba166f9a611ca32cbf6391e6ed14a19ec9d3c0c157bbcc4abb972b3479e2"
+    },
+    {
+      "path": "root/usr/share/openclash/ui/metacubexd/registerSW.js",
+      "git_mode": "100644",
+      "git_blob": "179c13c06ca402440d18733a5185cf49ed9d63cd",
+      "bytes": 136,
+      "sha256": "e12c8db54e3cc247034427f2b661b305a78fea7e7cdec1eac179fecec3da0fc7"
+    },
+    {
+      "path": "root/usr/share/openclash/ui/metacubexd/sw.js",
+      "git_mode": "100644",
+      "git_blob": "80c6406d8888c2aefd7ed79125bafc4de791ff1c",
+      "bytes": 1844,
+      "sha256": "6839a3ae9a213b6721f7dec5aecbb85f47a2e84ca4ed954fd21591ae76c6477b"
+    },
+    {
+      "path": "root/usr/share/openclash/ui/metacubexd/workbox-3e8df8c8.js",
+      "git_mode": "100644",
+      "git_blob": "91e45206641bffcc94b24ffdc26a67760f4ee46f",
+      "bytes": 15030,
+      "sha256": "5d6d993b663efd8a90b17a86aba1a2addea4bb20a682f8f8de97ac57b7bd28c7"
+    },
+    {
+      "path": "root/usr/share/openclash/ui/zashboard/CNAME",
+      "git_mode": "100644",
+      "git_blob": "d1eb3c393f9f791b33434b3119599e7bd5f9acc8",
+      "bytes": 20,
+      "sha256": "2a4c0524c1c7abd245195bba0bc98d05243737484b9f117a2a22e597f898381d"
+    },
+    {
+      "path": "root/usr/share/openclash/ui/zashboard/apple-touch-icon.png",
+      "git_mode": "100644",
+      "git_blob": "3c01d30a423ceb4cb46145cc7d1be20211a47a05",
+      "bytes": 1556,
+      "sha256": "1eb59e46390931b43abdb0746de0cc497f0022ec667dc513ef49a0c5f1bea228"
+    },
+    {
+      "path": "root/usr/share/openclash/ui/zashboard/assets/NotoColorEmoji-flagsonly-CWWDk9km.ttf",
+      "git_mode": "100644",
+      "git_blob": "6e1642ecc7de48d5da75506ce5295a53c1812e8c",
+      "bytes": 913564,
+      "sha256": "bccb829e97ca446771231993cf5bff3449974851201c497be6d6d52e906aae7b"
+    },
+    {
+      "path": "root/usr/share/openclash/ui/zashboard/assets/TwemojiMozilla-flags-B12sb_Bp.woff2",
+      "git_mode": "100644",
+      "git_blob": "b87c4ce0f71489db054b99a7a2f7a2c8a6ba526d",
+      "bytes": 78308,
+      "sha256": "c030920068cc493d59cc8c21ff29000b7a3676c40414cba7e7a5780d02f41cbf"
+    },
+    {
+      "path": "root/usr/share/openclash/ui/zashboard/assets/index-B-U6Un3o.css",
+      "git_mode": "100644",
+      "git_blob": "494c63d2c969287c2a96034e86aae82ba3676526",
+      "bytes": 561765,
+      "sha256": "a73631359b9f5dbf4ee8af4e4bfbd04bd3d7bf006464c38a7d22ec744c6793ba"
+    },
+    {
+      "path": "root/usr/share/openclash/ui/zashboard/assets/index-CcFj958A.js",
+      "git_mode": "100644",
+      "git_blob": "6079d8e5173fb34849bd6e87d09e001abe12ac05",
+      "bytes": 1484388,
+      "sha256": "843a62e2aaf312b82eda133d367754e1ba7015a59e03af2b53e3b488fd534f45"
+    },
+    {
+      "path": "root/usr/share/openclash/ui/zashboard/assets/index-DnsHUhFc.js",
+      "git_mode": "100644",
+      "git_blob": "5b5a2a845b1757632975b1f1fe629d940912ebb1",
+      "bytes": 1286271,
+      "sha256": "074a65bd9491ac007e9dabfc2e6f942a0b568983021f40bea4fae730eeac770f"
+    },
+    {
+      "path": "root/usr/share/openclash/ui/zashboard/assets/index-DrFVUP5k.css",
+      "git_mode": "100644",
+      "git_blob": "36035e1612b28c5c25b3a9d746fb19fc9b5a2dd7",
+      "bytes": 176466,
+      "sha256": "0e372bea62ed0f276b614d4fb65a79ec720ef63b0ea37ce8f4f72756415408bf"
+    },
+    {
+      "path": "root/usr/share/openclash/ui/zashboard/assets/metacubex-BlQkOUXT.jpg",
+      "git_mode": "100644",
+      "git_blob": "817789257f4f9054031f7d21831018950e206070",
+      "bytes": 14267,
+      "sha256": "93c2062fb4b5047a40d23696e4a21b123fde84a00c733c3b6a9ce813a3442983"
+    },
+    {
+      "path": "root/usr/share/openclash/ui/zashboard/favicon.ico",
+      "git_mode": "100644",
+      "git_blob": "10c79b82f2f8495b8ace16915dc3018d073a4288",
+      "bytes": 1823,
+      "sha256": "492e8cf10b21b4484ad96c16285d2bf7bb8f8b372c1502878ba1b1f6c3873173"
+    },
+    {
+      "path": "root/usr/share/openclash/ui/zashboard/favicon.svg",
+      "git_mode": "100644",
+      "git_blob": "c40ef3cdacf42bdbfabaeec843298df06e155029",
+      "bytes": 1211,
+      "sha256": "303f0bf729e33967667ddcd66b718dc3ba2f54abe387fe2b6f63e806e589ec52"
+    },
+    {
+      "path": "root/usr/share/openclash/ui/zashboard/icon.svg",
+      "git_mode": "100644",
+      "git_blob": "10736748182083465c91f662d90a13192985b616",
+      "bytes": 1217,
+      "sha256": "fbf65ed03158c62c2e7bfb70b875a850063786a9421915aa8bb6ad54ba70e53e"
+    },
+    {
+      "path": "root/usr/share/openclash/ui/zashboard/index.html",
+      "git_mode": "100644",
+      "git_blob": "0cd810660bd48dccd83f956f318548d942e5821f",
+      "bytes": 1006,
+      "sha256": "1e75bb320066f3b54dbf05c92a5a14cf22880a150ea72d15e546f5e00fcdfc26"
+    },
+    {
+      "path": "root/usr/share/openclash/ui/zashboard/manifest.webmanifest",
+      "git_mode": "100644",
+      "git_blob": "0e36a02cdcc1d23c6da46d19ce0995e17959d91e",
+      "bytes": 570,
+      "sha256": "e63808fecedb0b1787ac6103ba24c16cccc57a774e060d9517e4447ba9237a82"
+    },
+    {
+      "path": "root/usr/share/openclash/ui/zashboard/pwa-192x192.png",
+      "git_mode": "100644",
+      "git_blob": "474f8875d0c8e35da2a49fde38f45c49d0523521",
+      "bytes": 2580,
+      "sha256": "7ab62d63f1a033733f81ff5f5ef0fc12a694a566623e8060d2107bcc561441f6"
+    },
+    {
+      "path": "root/usr/share/openclash/ui/zashboard/pwa-512x512.png",
+      "git_mode": "100644",
+      "git_blob": "ce3505d5072716af4735ec6c4de03f84844ae449",
+      "bytes": 7404,
+      "sha256": "ceb00eb50e8bf9bb3d23826f69f8f937ed8f7eaec6ca2ee67cc1d9f04d03422e"
+    },
+    {
+      "path": "root/usr/share/openclash/ui/zashboard/pwa-maskable-192x192.png",
+      "git_mode": "100644",
+      "git_blob": "ea041e09d37424153ffa395e481d32f0bebc629e",
+      "bytes": 1451,
+      "sha256": "09faa994a626e9b1c42f6c05001f1e0bf8c083f90f77ca6e2a9e03a4861e21b2"
+    },
+    {
+      "path": "root/usr/share/openclash/ui/zashboard/pwa-maskable-512x512.png",
+      "git_mode": "100644",
+      "git_blob": "5a0e51c0b20252470d63d79fd762cf3680b15a13",
+      "bytes": 4711,
+      "sha256": "44517d6237a7cb80664b4d8b9f7ba6d9333e1a1a987f7ceb99f58634d9218e31"
+    },
+    {
+      "path": "root/usr/share/openclash/ui/zashboard/registerSW.js",
+      "git_mode": "100644",
+      "git_blob": "179c13c06ca402440d18733a5185cf49ed9d63cd",
+      "bytes": 136,
+      "sha256": "e12c8db54e3cc247034427f2b661b305a78fea7e7cdec1eac179fecec3da0fc7"
+    },
+    {
+      "path": "root/usr/share/openclash/ui/zashboard/sw.js",
+      "git_mode": "100644",
+      "git_blob": "94a556baf9f4e6e7828f8db3d5816de4a92c0847",
+      "bytes": 1458,
+      "sha256": "309826e18aa712dcf28ce55a17ef081798c2f1eae9703ee285934c707869a384"
+    },
+    {
+      "path": "root/usr/share/openclash/ui/zashboard/workbox-3e8df8c8.js",
+      "git_mode": "100644",
+      "git_blob": "25226f754432a169300d5c0bd3616a8da7db08f0",
+      "bytes": 15074,
+      "sha256": "a6d8881682a3c0ed9dc6d7e4d590e20e244f1800d35048938f250eb82f1608e6"
+    },
+    {
+      "path": "root/usr/share/openclash/yml_change.sh",
+      "git_mode": "100644",
+      "git_blob": "abbce9f50b25f5459611f7d32940a018caf40ecd",
+      "bytes": 41240,
+      "sha256": "963fed9a0b571513c8eb8da1fb38f394d1b19438957e5daede851709cd38c18d"
+    },
+    {
+      "path": "root/usr/share/openclash/yml_groups_get.sh",
+      "git_mode": "100644",
+      "git_blob": "4dbb58f06bb991baccc310cd56c38f43e0f84fdf",
+      "bytes": 1716,
+      "sha256": "c69310d3863333b69cce89e5f457aa1b377cd2803438ed90648e2a45a89f5678"
+    },
+    {
+      "path": "root/usr/share/openclash/yml_groups_set.sh",
+      "git_mode": "100644",
+      "git_blob": "9ea8def91d55f97282dab5a23724dff24b015479",
+      "bytes": 1796,
+      "sha256": "e521be246c409e2c89664bbe92a3bb1c2dd3871100a1d6dabe92f03ef17e6ae1"
+    },
+    {
+      "path": "root/usr/share/openclash/yml_proxys_get.sh",
+      "git_mode": "100644",
+      "git_blob": "adde1f27b4fa8f145c25bc253b464b419a6a0f85",
+      "bytes": 1626,
+      "sha256": "0785c498531f9287e349c410321cf3cce3b58673d0de8593a15b062344188059"
+    },
+    {
+      "path": "root/usr/share/openclash/yml_proxys_set.sh",
+      "git_mode": "100644",
+      "git_blob": "ed0d2787f9fa8cfb75860e0ac9fc5092ca1b7b0d",
+      "bytes": 1784,
+      "sha256": "16605051fe94e3d8ea7f820e95166a6b50ef1e37b2ffdea9152267554184ef58"
+    },
+    {
+      "path": "root/usr/share/openclash/yml_rules_change.sh",
+      "git_mode": "100644",
+      "git_blob": "06c5e3d32e8d5df559f12eb38d8891e415175039",
+      "bytes": 21914,
+      "sha256": "8f6db5260934e980f3b244fee79e5e871e7dcc2bd839a4d1651b206cc63bd6b9"
+    },
+    {
+      "path": "root/usr/share/openclash/yml_stats_get.sh",
+      "git_mode": "100644",
+      "git_blob": "95c34f3f53e454b7d5243591ea0bc7f6dab88833",
+      "bytes": 6201,
+      "sha256": "7349bf63c6bc1135e191c2098a068d5c63c07add392cbd4bd966e2959e73e018"
+    },
+    {
+      "path": "root/usr/share/rpcd/acl.d/luci-app-openclash.json",
+      "git_mode": "100644",
+      "git_blob": "8214de21013a4c8660b09aeebb0b389e75dc57de",
+      "bytes": 177,
+      "sha256": "9ace321c68aa74eb8c2c66f494b0f60c7ec15f8927ef9fd590f337b456652714"
+    },
+    {
+      "path": "root/usr/share/ucitrack/luci-app-openclash.json",
+      "git_mode": "100644",
+      "git_blob": "841eddb87bd1944e9d976657d1a8e4ddce3abecf",
+      "bytes": 49,
+      "sha256": "0096861814711e2e9e5d2159e259a395ef1169eb22d40b7fc430e331a56ca70b"
+    },
+    {
+      "path": "root/www/luci-static/resources/openclash/css/oc-client.css",
+      "git_mode": "100644",
+      "git_blob": "cebf015b21825b06162c7b7a74b010e1be4b0cb7",
+      "bytes": 91475,
+      "sha256": "610956837530650e5b63bdaa0ef29a3512bfb67a3c6d69477c8f6069a8578bff"
+    },
+    {
+      "path": "root/www/luci-static/resources/openclash/css/oc-cm6.css",
+      "git_mode": "100644",
+      "git_blob": "016e91babd38f4e9e79814e3beba11de344e282a",
+      "bytes": 5395,
+      "sha256": "95d756544878c250e82bfc4215a72895ec12b2554a0f51ae0b30be2a9f0e8d9b"
+    },
+    {
+      "path": "root/www/luci-static/resources/openclash/css/oc-common.css",
+      "git_mode": "100644",
+      "git_blob": "08af855c4a0e383b62fd961b7c4c9871ea289aad",
+      "bytes": 69273,
+      "sha256": "9e32db5e6fec211c3c2c21f9e341759e37887a224212cf575c851bc67fcfd3e1"
+    },
+    {
+      "path": "root/www/luci-static/resources/openclash/css/oc-config-edit.css",
+      "git_mode": "100644",
+      "git_blob": "53a33b9db660f45b2b8c0aa514872af3475bcf70",
+      "bytes": 16106,
+      "sha256": "a5ca0ece3c3cceaa41196048d1fcd713563d4a20d49c3000e4e671caa03f6db0"
+    },
+    {
+      "path": "root/www/luci-static/resources/openclash/css/oc-config.css",
+      "git_mode": "100644",
+      "git_blob": "66e91c697b2b7324e883857f8983ccc1193c880e",
+      "bytes": 14053,
+      "sha256": "7fc5e9fb0144694706cfb5940ea9a7458fe6502c602a103263c9d08fa13027e2"
+    },
+    {
+      "path": "root/www/luci-static/resources/openclash/css/oc-guide.css",
+      "git_mode": "100644",
+      "git_blob": "ebf647fc9865f3fd7e986be288d01695aebd2b64",
+      "bytes": 26080,
+      "sha256": "78f533e9a02cda088a54c077b1b6af539cef73f6a91360771fe7baf024f2f2a9"
+    },
+    {
+      "path": "root/www/luci-static/resources/openclash/css/oc-log.css",
+      "git_mode": "100644",
+      "git_blob": "363aa4453825e0f0d4c3001251abbc1dc5bbbe57",
+      "bytes": 16879,
+      "sha256": "8b86cc3c2a57272dd8caac50fe21c844d159bd70105c9cbf5224a91c98983c58"
+    },
+    {
+      "path": "root/www/luci-static/resources/openclash/css/oc-settings.css",
+      "git_mode": "100644",
+      "git_blob": "d00008aa875063ced9cf7fba7eb0d0ac3dba76bf",
+      "bytes": 18164,
+      "sha256": "9ce212946c21dc79e45dc537f1e2f9c414e133637c1d6bd9771cb4cb2aa1c44b"
+    },
+    {
+      "path": "root/www/luci-static/resources/openclash/css/oc-update.css",
+      "git_mode": "100644",
+      "git_blob": "d04f2d8990da98a82322c97ce386d873287ebcd4",
+      "bytes": 30069,
+      "sha256": "542d676161ffb5a777fbe208da99120b9e8a01c0d3f0003267e99cb46c9e46d7"
+    },
+    {
+      "path": "root/www/luci-static/resources/openclash/css/oc-upload.css",
+      "git_mode": "100644",
+      "git_blob": "617ae288399c0b2d6f472ce934c60028e3cb0d76",
+      "bytes": 34519,
+      "sha256": "994a4b3d27560f5b449bfbbe86238d5f8d012b6ea7f41eeec0795c7d0c625fe6"
+    },
+    {
+      "path": "root/www/luci-static/resources/openclash/fonts/TwemojiMozilla-flags.woff2",
+      "git_mode": "100644",
+      "git_blob": "b87c4ce0f71489db054b99a7a2f7a2c8a6ba526d",
+      "bytes": 78308,
+      "sha256": "c030920068cc493d59cc8c21ff29000b7a3676c40414cba7e7a5780d02f41cbf"
+    },
+    {
+      "path": "root/www/luci-static/resources/openclash/img/logo.png",
+      "git_mode": "100644",
+      "git_blob": "776ff94fa9f9f2b44e962e0e911e95efea0174e1",
+      "bytes": 12699,
+      "sha256": "92c21625090bf6fb64b9866802b4e4c32d3aa16aca33f98469ea259afe85a7fc"
+    },
+    {
+      "path": "root/www/luci-static/resources/openclash/img/oixcloud.png",
+      "git_mode": "100644",
+      "git_blob": "9b48e3328df3278b44e88103ff724ea788011514",
+      "bytes": 8044,
+      "sha256": "247d163cc298af5f179f6d75324ab4caebd8a8d029ee8f058089ae618c496d13"
+    },
+    {
+      "path": "root/www/luci-static/resources/openclash/js/chart.umd.min.js",
+      "git_mode": "100644",
+      "git_blob": "a6caf62addde1a070fe3f90df8870fdfeb53383f",
+      "bytes": 208521,
+      "sha256": "339abfe88a7c9434c1250646e0de3824cd1ea529c0d148cd1665308f42e90381"
+    },
+    {
+      "path": "root/www/luci-static/resources/openclash/js/cm6.min.js",
+      "git_mode": "100644",
+      "git_blob": "90db2ebd900b37e0ab7bc349012fbd9e7204d2ae",
+      "bytes": 510362,
+      "sha256": "d035bbcbf51e4f1c31f23630d5575436a583715abda0300332815570f2bf8226"
+    },
+    {
+      "path": "root/www/luci-static/resources/openclash/js/common.js",
+      "git_mode": "100644",
+      "git_blob": "79edc56e16a144f28568c0ad4aa1c49600468a6d",
+      "bytes": 58965,
+      "sha256": "b757470c71dcd3b17e40405a055658c7525780bea8e49c34b935738140b358fc"
+    },
+    {
+      "path": "root/www/luci-static/resources/openclash/js/config_edit.js",
+      "git_mode": "100644",
+      "git_blob": "07b04ca809cfbd4b3a14eaa1c639b31eb6131a3c",
+      "bytes": 126764,
+      "sha256": "4644ec75e3da4dc465a2d5fc94a696b186063ce5370e1057a30d90d5d0172570"
+    },
+    {
+      "path": "root/www/luci-static/resources/openclash/js/config_upload.js",
+      "git_mode": "100644",
+      "git_blob": "bcd331d7ae72cc63d47e13b7e92f1d60549109b5",
+      "bytes": 181466,
+      "sha256": "58b49f3985ee42e20371be78cc87f2c38606d292f4ca0a78f7d3b9bd94553682"
+    },
+    {
+      "path": "root/www/luci-static/resources/openclash/js/editors.js",
+      "git_mode": "100644",
+      "git_blob": "07ab4496bf29afe796f95f7ff4b6ec150b3e732e",
+      "bytes": 10798,
+      "sha256": "a8bde317bc1a5bb00c4a420e4c54dbce4a9d30e14222de86c2ee9dca5b9f391e"
+    },
+    {
+      "path": "root/www/luci-static/resources/openclash/js/guide.js",
+      "git_mode": "100644",
+      "git_blob": "248354648f6a977191ba9865f68975312b0f38b3",
+      "bytes": 123260,
+      "sha256": "8408fb2d5c35a78f36a45912147dd8920e72c001cdcf92ca99a2ddba7ea57dfb"
+    },
+    {
+      "path": "root/www/luci-static/resources/openclash/js/lint-worker.min.js",
+      "git_mode": "100644",
+      "git_blob": "085e8989e27cc6b91feb36117c308becce19f703",
+      "bytes": 42712,
+      "sha256": "f9fa285ce91ef78b5db2b519a12f30c86427f2e1e80fd6528a54f319b92046b3"
+    },
+    {
+      "path": "root/www/luci-static/resources/openclash/js/log.js",
+      "git_mode": "100644",
+      "git_blob": "96d89a4ff2cb69b8ff0e63a344abc4729474d578",
+      "bytes": 34880,
+      "sha256": "9db16a4226f4296c8622121395813fe42fc86b98ab56c94ea63bf119b02b835b"
+    },
+    {
+      "path": "root/www/luci-static/resources/openclash/js/md-render.min.js",
+      "git_mode": "100644",
+      "git_blob": "41a2a4f229631e7ee863abe96b3ebee373287dab",
+      "bytes": 74754,
+      "sha256": "fb251a2d856e65a9935887265ebfb61906a56fbef1ae725164ad357b801e47c8"
+    },
+    {
+      "path": "root/www/luci-static/resources/openclash/js/merge_editor.js",
+      "git_mode": "100644",
+      "git_blob": "929c627c1d061ef6b0c4774805de967f91fdfc50",
+      "bytes": 15894,
+      "sha256": "5af330b0d672a9c39debae30333fcef089b7417a08a1a21ebef62f8370655475"
+    },
+    {
+      "path": "root/www/luci-static/resources/openclash/js/myip.js",
+      "git_mode": "100644",
+      "git_blob": "bd88c26ed0349c1ffa8ee0cf6cf76ee4cee79e92",
+      "bytes": 78755,
+      "sha256": "34fc515406b2b573486e88dca70e59750745c4e6425aed9c01c0684d67d06be2"
+    },
+    {
+      "path": "root/www/luci-static/resources/openclash/js/oc-icons.js",
+      "git_mode": "100644",
+      "git_blob": "c4b9793e02c84c822052473cf46b8b12bc476ffa",
+      "bytes": 60176,
+      "sha256": "4efd06c9d9e9948199b9f58925d2691e273375be3679f4eea99bf16becaeecda"
+    },
+    {
+      "path": "root/www/luci-static/resources/openclash/js/oix_login.js",
+      "git_mode": "100644",
+      "git_blob": "cb11eb7851e0c46d074d834b40ed961944147dc6",
+      "bytes": 24858,
+      "sha256": "8f8d519819de6f5398fe5076ced334d2977716ff89a3d45878215d0112ca21ab"
+    },
+    {
+      "path": "root/www/luci-static/resources/openclash/js/other_stream_option.js",
+      "git_mode": "100644",
+      "git_blob": "5df8340669fdb6d2b50a5087d2ae6221da1fa6aa",
+      "bytes": 3673,
+      "sha256": "d128cf03fd2c7b6a1eb08521069f4586b78314212843c42d2ab1eb01bb8dba5d"
+    },
+    {
+      "path": "root/www/luci-static/resources/openclash/js/server_url.js",
+      "git_mode": "100644",
+      "git_blob": "d4cc58349e6e695741f49123207b33b51f33202d",
+      "bytes": 87741,
+      "sha256": "421ccaf2f2b15120af2c67833cd1a8eda22f5bce2df9b6d7fc291564ef61f9e4"
+    },
+    {
+      "path": "root/www/luci-static/resources/openclash/js/status.js",
+      "git_mode": "100644",
+      "git_blob": "1b98a461989b981bec3a81e9940246d71939fb9a",
+      "bytes": 206529,
+      "sha256": "682fe2017fb7d8e1a7a3be3d588a21ceffe11599d7cdc704703e76f8f1dc12ff"
+    },
+    {
+      "path": "root/www/luci-static/resources/openclash/js/subconverter-version.js",
+      "git_mode": "100644",
+      "git_blob": "a9508cc49c4b51cb7797073645a3cb29689075bb",
+      "bytes": 11672,
+      "sha256": "f82a19bf4c5f0819cc51c8cdd9cfeade5cd293b128e11901a17a428ad0ce4a10"
+    },
+    {
+      "path": "root/www/luci-static/resources/openclash/js/update.js",
+      "git_mode": "100644",
+      "git_blob": "91ff7c11d33442d06f59f76288d87f63c685d466",
+      "bytes": 63248,
+      "sha256": "ff2a9527dda2ce434469a2aaa6903c69dd7551732bed9655f76c51c1b075371e"
+    },
+    {
+      "path": "tools/codemirror/entry-lint-worker.js",
+      "git_mode": "100644",
+      "git_blob": "db4556f21e7e687304a8ae349d447cf2d138b62a",
+      "bytes": 993,
+      "sha256": "7085e99899fd645d8aeaf7351ad156702f34c2e11bd050de2a3865d6583ad6db"
+    },
+    {
+      "path": "tools/codemirror/entry-md-render.js",
+      "git_mode": "100644",
+      "git_blob": "0a10614b45b00308b93241594c793ee58deb23a7",
+      "bytes": 3078,
+      "sha256": "890cdabdce299c0451124b5b2def9cdd54966461ddb300a95b68c6f02dd2794e"
+    },
+    {
+      "path": "tools/codemirror/entry.js",
+      "git_mode": "100644",
+      "git_blob": "63ea7a87f992321468bc8967933785e0aded36b9",
+      "bytes": 62296,
+      "sha256": "baed304d194b1d6b0660bb333bf432437cc3326d1a4eb2fca6f41fcdb17f534f"
+    },
+    {
+      "path": "tools/codemirror/package.json",
+      "git_mode": "100644",
+      "git_blob": "581ec81921fa0366a6c061adca0b511afda8021b",
+      "bytes": 1084,
+      "sha256": "93bfd756ce1b86c32a599f28172c6762fabfcba3c2bc23c8bdab86830e7a4422"
+    },
+    {
+      "path": "tools/po2lmo/Makefile",
+      "git_mode": "100644",
+      "git_blob": "ad2c133207f163aeeadac1aacfcb593c1a469798",
+      "bytes": 227,
+      "sha256": "3c0cfdbb944097c5ea95d3c67a0fe2dd873c0d4542a1abbdda5489ba4219fdd9"
+    },
+    {
+      "path": "tools/po2lmo/src/po2lmo",
+      "git_mode": "100644",
+      "git_blob": "68d4c13aca2d2894ac62de3c5f4425cf99ed84fd",
+      "bytes": 19272,
+      "sha256": "d9a32f7e9e36cc6ecaebe1bfe1e27b429ef06a2938c7a1ea038b8ee61f2bb6a9"
+    },
+    {
+      "path": "tools/po2lmo/src/po2lmo.c",
+      "git_mode": "100644",
+      "git_blob": "0da792b680fa672d2821caebf3255ef099fbcdf2",
+      "bytes": 4715,
+      "sha256": "01427851b286270520f59426e253291cde67b798a0e890d53ee7eb963ac72914"
+    },
+    {
+      "path": "tools/po2lmo/src/template_lmo.c",
+      "git_mode": "100644",
+      "git_blob": "27205a72288f8d42c85c63d0cfb55eb0eed16ba9",
+      "bytes": 5884,
+      "sha256": "6f6be2b39d72e0db664a7bd9201ec8e05cb65442a454f4ba85fc875082f25a66"
+    },
+    {
+      "path": "tools/po2lmo/src/template_lmo.h",
+      "git_mode": "100644",
+      "git_blob": "57f59aa56b2f587e87058f7a572f89fbb674f71b",
+      "bytes": 2243,
+      "sha256": "b4ed73bb2f6b0e9734423326c129730a180bbfcf8638fa7080208f2c1f7a50e6"
+    }
+  ]
+}

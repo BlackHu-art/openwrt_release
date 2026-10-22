@@ -1,0 +1,483 @@
+{
+  "started_at_utc": "2026-10-22T15:55:20.531150+00:00",
+  "project_commit": "6d76ce124426086bbc5f90a9fcb9fcc0ba3b0a41",
+  "target_commit": "45893d778767f3bdb2fcb6e873cf8f9a667d94d4",
+  "failures": [],
+  "upstream": {
+    "file_count": 962,
+    "total_bytes": 14357069,
+    "mode_counts": {
+      "100644": 925,
+      "120000": 1,
+      "100755": 36
+    },
+    "error_count": 0,
+    "coverage_equal": true
+  },
+  "baseline_package": {
+    "file_count": 59,
+    "total_bytes": 2147071,
+    "mode_counts": {
+      "100644": 45,
+      "120000": 1,
+      "100755": 13
+    },
+    "error_count": 0,
+    "coverage_equal": true
+  },
+  "derived_current": {
+    "file_count": 61,
+    "total_bytes": 2179146,
+    "mode_counts": {
+      "100644": 46,
+      "120000": 1,
+      "100755": 14
+    },
+    "error_count": 0,
+    "coverage_equal": true,
+    "matches_reconstruction_output": true
+  },
+  "patches": {
+    "count": 25,
+    "frozen_head_sha256_equal": true,
+    "working_copy_different": [],
+    "reconstruction_input_worktree_differences_outside_frozen_evidence": [
+      "wrt_core/modules/plugin_compat.sh"
+    ]
+  },
+  "comparison_recalculation": [
+    {
+      "from_snapshot": "base190",
+      "to_snapshot": "current190",
+      "added": 2,
+      "removed": 0,
+      "changed": 10,
+      "unchanged_count": 49
+    },
+    {
+      "from_snapshot": "base190",
+      "to_snapshot": "v1982",
+      "added": 30,
+      "removed": 5,
+      "changed": 32,
+      "unchanged_count": 22
+    },
+    {
+      "from_snapshot": "current190",
+      "to_snapshot": "v1982",
+      "added": 30,
+      "removed": 7,
+      "changed": 32,
+      "unchanged_count": 22
+    }
+  ],
+  "source_lock": {
+    "record_count": 1,
+    "manifest_sha256": "274d46eadf5b1314b22cc0623491053c15737485fbdc2cd16097fdc4fbfd5beb",
+    "original_tree": "fe37ff9ab420e178544ff2c7402b34c387f32b44"
+  },
+  "independent_patch_checks": [
+    {
+      "patch": "ssrplus-startup-lock.patch",
+      "forward_exit": 1,
+      "reverse_exit": 1
+    },
+    {
+      "patch": "ssrplus-dns-transaction.patch",
+      "forward_exit": 1,
+      "reverse_exit": 1
+    },
+    {
+      "patch": "ssrplus-updater-validation.patch",
+      "forward_exit": 1,
+      "reverse_exit": 1
+    },
+    {
+      "patch": "ssrplus-persistence.patch",
+      "forward_exit": 1,
+      "reverse_exit": 1
+    },
+    {
+      "patch": "ssrplus-availability.patch",
+      "forward_exit": 1,
+      "reverse_exit": 1
+    },
+    {
+      "patch": "ssrplus-subscription.patch",
+      "forward_exit": 1,
+      "reverse_exit": 1
+    },
+    {
+      "patch": "ssrplus-monitor-scheduler.patch",
+      "forward_exit": 1,
+      "reverse_exit": 1
+    },
+    {
+      "patch": "ssrplus-persistence-lifecycle.patch",
+      "forward_exit": 1,
+      "reverse_exit": 1
+    },
+    {
+      "patch": "ssrplus-package.patch",
+      "forward_exit": 1,
+      "reverse_exit": 1
+    },
+    {
+      "patch": "ssrplus-dns-forwarding.patch",
+      "forward_exit": 1,
+      "reverse_exit": 1
+    },
+    {
+      "patch": "ssrplus-custom-ports.patch",
+      "forward_exit": 1,
+      "reverse_exit": 1
+    },
+    {
+      "patch": "ssrplus-release-r5.patch",
+      "forward_exit": 1,
+      "reverse_exit": 1
+    },
+    {
+      "patch": "ssrplus-firstboot.patch",
+      "forward_exit": 1,
+      "reverse_exit": 1
+    },
+    {
+      "patch": "ssrplus-release-r6.patch",
+      "forward_exit": 1,
+      "reverse_exit": 1
+    },
+    {
+      "patch": "ssrplus-initialization-order.patch",
+      "forward_exit": 1,
+      "reverse_exit": 1
+    },
+    {
+      "patch": "ssrplus-release-r7.patch",
+      "forward_exit": 1,
+      "reverse_exit": 1
+    },
+    {
+      "patch": "ssrplus-subscription-auto.patch",
+      "forward_exit": 1,
+      "reverse_exit": 1
+    },
+    {
+      "patch": "ssrplus-ss-parser.patch",
+      "forward_exit": 1,
+      "reverse_exit": 1
+    },
+    {
+      "patch": "ssrplus-release-r8.patch",
+      "forward_exit": 1,
+      "reverse_exit": 1
+    },
+    {
+      "patch": "ssrplus-transport-config.patch",
+      "forward_exit": 1,
+      "reverse_exit": 1
+    },
+    {
+      "patch": "ssrplus-release-r9.patch",
+      "forward_exit": 1,
+      "reverse_exit": 1
+    },
+    {
+      "patch": "ssrplus-ss-password.patch",
+      "forward_exit": 0,
+      "reverse_exit": 1
+    },
+    {
+      "patch": "ssrplus-release-r10.patch",
+      "forward_exit": 1,
+      "reverse_exit": 1
+    },
+    {
+      "patch": "ssrplus-node-references.patch",
+      "forward_exit": 1,
+      "reverse_exit": 1
+    },
+    {
+      "patch": "ssrplus-release-r11.patch",
+      "forward_exit": 1,
+      "reverse_exit": 1
+    }
+  ],
+  "real_index": {
+    "before_sha256": "66f286f41f3ae8aaab04712f4f089c13340a1db508f8849e91ed6d200af38a4a",
+    "after_sha256": "66f286f41f3ae8aaab04712f4f089c13340a1db508f8849e91ed6d200af38a4a",
+    "byte_identical": true
+  },
+  "temporary_index": {
+    "staged_changed_path_count": 1032,
+    "snapshot_file_count": 1023,
+    "snapshot_blob_mismatches": [],
+    "natural_windows_index_mode_mismatches": [
+      {
+        "path": "maintenance/plugins/ssrplus/upstream-v198.2/luci-app-ssr-plus/po/zh-cn",
+        "original_or_manifest_mode": "120000",
+        "index_mode": "100644"
+      },
+      {
+        "path": "maintenance/plugins/ssrplus/upstream-v198.2/luci-app-ssr-plus/root/etc/init.d/shadowsocksr",
+        "original_or_manifest_mode": "100755",
+        "index_mode": "100644"
+      },
+      {
+        "path": "maintenance/plugins/ssrplus/upstream-v198.2/luci-app-ssr-plus/root/etc/uci-defaults/luci-ssr-plus",
+        "original_or_manifest_mode": "100755",
+        "index_mode": "100644"
+      },
+      {
+        "path": "maintenance/plugins/ssrplus/upstream-v198.2/luci-app-ssr-plus/root/usr/bin/ssr-monitor",
+        "original_or_manifest_mode": "100755",
+        "index_mode": "100644"
+      },
+      {
+        "path": "maintenance/plugins/ssrplus/upstream-v198.2/luci-app-ssr-plus/root/usr/bin/ssr-rules",
+        "original_or_manifest_mode": "100755",
+        "index_mode": "100644"
+      },
+      {
+        "path": "maintenance/plugins/ssrplus/upstream-v198.2/luci-app-ssr-plus/root/usr/bin/ssr-switch",
+        "original_or_manifest_mode": "100755",
+        "index_mode": "100644"
+      },
+      {
+        "path": "maintenance/plugins/ssrplus/upstream-v198.2/luci-app-ssr-plus/root/usr/share/shadowsocksr/chinaipset.sh",
+        "original_or_manifest_mode": "100755",
+        "index_mode": "100644"
+      },
+      {
+        "path": "maintenance/plugins/ssrplus/upstream-v198.2/luci-app-ssr-plus/root/usr/share/shadowsocksr/gen_config.lua",
+        "original_or_manifest_mode": "100755",
+        "index_mode": "100644"
+      },
+      {
+        "path": "maintenance/plugins/ssrplus/upstream-v198.2/luci-app-ssr-plus/root/usr/share/shadowsocksr/gfw2ipset.sh",
+        "original_or_manifest_mode": "100755",
+        "index_mode": "100644"
+      },
+      {
+        "path": "maintenance/plugins/ssrplus/upstream-v198.2/luci-app-ssr-plus/root/usr/share/shadowsocksr/ipv6.sh",
+        "original_or_manifest_mode": "100755",
+        "index_mode": "100644"
+      },
+      {
+        "path": "maintenance/plugins/ssrplus/upstream-v198.2/luci-app-ssr-plus/root/usr/share/shadowsocksr/ssrplusupdate.sh",
+        "original_or_manifest_mode": "100755",
+        "index_mode": "100644"
+      },
+      {
+        "path": "maintenance/plugins/ssrplus/upstream-v198.2/luci-app-ssr-plus/root/usr/share/shadowsocksr/subscribe.lua",
+        "original_or_manifest_mode": "100755",
+        "index_mode": "100644"
+      },
+      {
+        "path": "maintenance/plugins/ssrplus/upstream-v198.2/luci-app-ssr-plus/root/usr/share/shadowsocksr/update.lua",
+        "original_or_manifest_mode": "100755",
+        "index_mode": "100644"
+      },
+      {
+        "path": "maintenance/plugins/ssrplus/upstream-v198.2/luci-app-ssr-plus/tests/ipv6-nft.sh",
+        "original_or_manifest_mode": "100755",
+        "index_mode": "100644"
+      },
+      {
+        "path": "maintenance/plugins/ssrplus/upstream-v198.2/shadowsocksr-libev/src/auto/ar-lib",
+        "original_or_manifest_mode": "100755",
+        "index_mode": "100644"
+      },
+      {
+        "path": "maintenance/plugins/ssrplus/upstream-v198.2/shadowsocksr-libev/src/auto/compile",
+        "original_or_manifest_mode": "100755",
+        "index_mode": "100644"
+      },
+      {
+        "path": "maintenance/plugins/ssrplus/upstream-v198.2/shadowsocksr-libev/src/auto/config.guess",
+        "original_or_manifest_mode": "100755",
+        "index_mode": "100644"
+      },
+      {
+        "path": "maintenance/plugins/ssrplus/upstream-v198.2/shadowsocksr-libev/src/auto/config.sub",
+        "original_or_manifest_mode": "100755",
+        "index_mode": "100644"
+      },
+      {
+        "path": "maintenance/plugins/ssrplus/upstream-v198.2/shadowsocksr-libev/src/auto/depcomp",
+        "original_or_manifest_mode": "100755",
+        "index_mode": "100644"
+      },
+      {
+        "path": "maintenance/plugins/ssrplus/upstream-v198.2/shadowsocksr-libev/src/auto/install-sh",
+        "original_or_manifest_mode": "100755",
+        "index_mode": "100644"
+      },
+      {
+        "path": "maintenance/plugins/ssrplus/upstream-v198.2/shadowsocksr-libev/src/auto/missing",
+        "original_or_manifest_mode": "100755",
+        "index_mode": "100644"
+      },
+      {
+        "path": "maintenance/plugins/ssrplus/upstream-v198.2/shadowsocksr-libev/src/autogen.sh",
+        "original_or_manifest_mode": "100755",
+        "index_mode": "100644"
+      },
+      {
+        "path": "maintenance/plugins/ssrplus/upstream-v198.2/shadowsocksr-libev/src/configure",
+        "original_or_manifest_mode": "100755",
+        "index_mode": "100644"
+      },
+      {
+        "path": "maintenance/plugins/ssrplus/upstream-v198.2/shadowsocksr-libev/src/configure.ac",
+        "original_or_manifest_mode": "100755",
+        "index_mode": "100644"
+      },
+      {
+        "path": "maintenance/plugins/ssrplus/upstream-v198.2/shadowsocksr-libev/src/debian/rules",
+        "original_or_manifest_mode": "100755",
+        "index_mode": "100644"
+      },
+      {
+        "path": "maintenance/plugins/ssrplus/upstream-v198.2/shadowsocksr-libev/src/debian/shadowsocks-libev.postinst",
+        "original_or_manifest_mode": "100755",
+        "index_mode": "100644"
+      },
+      {
+        "path": "maintenance/plugins/ssrplus/upstream-v198.2/shadowsocksr-libev/src/docker/ubuntu/entrypoint",
+        "original_or_manifest_mode": "100755",
+        "index_mode": "100644"
+      },
+      {
+        "path": "maintenance/plugins/ssrplus/upstream-v198.2/shadowsocksr-libev/src/libsodium/autogen.sh",
+        "original_or_manifest_mode": "100755",
+        "index_mode": "100644"
+      },
+      {
+        "path": "maintenance/plugins/ssrplus/upstream-v198.2/shadowsocksr-libev/src/libsodium/build-aux/config.guess",
+        "original_or_manifest_mode": "100755",
+        "index_mode": "100644"
+      },
+      {
+        "path": "maintenance/plugins/ssrplus/upstream-v198.2/shadowsocksr-libev/src/libsodium/build-aux/config.sub",
+        "original_or_manifest_mode": "100755",
+        "index_mode": "100644"
+      },
+      {
+        "path": "maintenance/plugins/ssrplus/upstream-v198.2/shadowsocksr-libev/src/libsodium/build-aux/depcomp",
+        "original_or_manifest_mode": "100755",
+        "index_mode": "100644"
+      },
+      {
+        "path": "maintenance/plugins/ssrplus/upstream-v198.2/shadowsocksr-libev/src/libsodium/build-aux/install-sh",
+        "original_or_manifest_mode": "100755",
+        "index_mode": "100644"
+      },
+      {
+        "path": "maintenance/plugins/ssrplus/upstream-v198.2/shadowsocksr-libev/src/libsodium/build-aux/missing",
+        "original_or_manifest_mode": "100755",
+        "index_mode": "100644"
+      },
+      {
+        "path": "maintenance/plugins/ssrplus/upstream-v198.2/shadowsocksr-libev/src/libsodium/configure",
+        "original_or_manifest_mode": "100755",
+        "index_mode": "100644"
+      },
+      {
+        "path": "maintenance/plugins/ssrplus/upstream-v198.2/shadowsocksr-libev/src/rpm/genrpm.sh",
+        "original_or_manifest_mode": "100755",
+        "index_mode": "100644"
+      },
+      {
+        "path": "maintenance/plugins/ssrplus/upstream-v198.2/shadowsocksr-libev/src/src/ss-nat",
+        "original_or_manifest_mode": "100755",
+        "index_mode": "100644"
+      },
+      {
+        "path": "maintenance/plugins/ssrplus/upstream-v198.2/v2raya/files/v2raya.init",
+        "original_or_manifest_mode": "100755",
+        "index_mode": "100644"
+      },
+      {
+        "path": "maintenance/plugins/ssrplus/current-190-r11/po/zh-cn",
+        "original_or_manifest_mode": "120000",
+        "index_mode": "100644"
+      },
+      {
+        "path": "maintenance/plugins/ssrplus/current-190-r11/root/etc/init.d/shadowsocksr",
+        "original_or_manifest_mode": "100755",
+        "index_mode": "100644"
+      },
+      {
+        "path": "maintenance/plugins/ssrplus/current-190-r11/root/etc/uci-defaults/luci-ssr-plus",
+        "original_or_manifest_mode": "100755",
+        "index_mode": "100644"
+      },
+      {
+        "path": "maintenance/plugins/ssrplus/current-190-r11/root/usr/bin/ssr-monitor",
+        "original_or_manifest_mode": "100755",
+        "index_mode": "100644"
+      },
+      {
+        "path": "maintenance/plugins/ssrplus/current-190-r11/root/usr/bin/ssr-rules",
+        "original_or_manifest_mode": "100755",
+        "index_mode": "100644"
+      },
+      {
+        "path": "maintenance/plugins/ssrplus/current-190-r11/root/usr/bin/ssr-switch",
+        "original_or_manifest_mode": "100755",
+        "index_mode": "100644"
+      },
+      {
+        "path": "maintenance/plugins/ssrplus/current-190-r11/root/usr/share/shadowsocksr/chinaipset.sh",
+        "original_or_manifest_mode": "100755",
+        "index_mode": "100644"
+      },
+      {
+        "path": "maintenance/plugins/ssrplus/current-190-r11/root/usr/share/shadowsocksr/gen_config.lua",
+        "original_or_manifest_mode": "100755",
+        "index_mode": "100644"
+      },
+      {
+        "path": "maintenance/plugins/ssrplus/current-190-r11/root/usr/share/shadowsocksr/genred2config.sh",
+        "original_or_manifest_mode": "100755",
+        "index_mode": "100644"
+      },
+      {
+        "path": "maintenance/plugins/ssrplus/current-190-r11/root/usr/share/shadowsocksr/gfw2ipset.sh",
+        "original_or_manifest_mode": "100755",
+        "index_mode": "100644"
+      },
+      {
+        "path": "maintenance/plugins/ssrplus/current-190-r11/root/usr/share/shadowsocksr/hy2_test.sh",
+        "original_or_manifest_mode": "100755",
+        "index_mode": "100644"
+      },
+      {
+        "path": "maintenance/plugins/ssrplus/current-190-r11/root/usr/share/shadowsocksr/ssrp-runtime.sh",
+        "original_or_manifest_mode": "100755",
+        "index_mode": "100644"
+      },
+      {
+        "path": "maintenance/plugins/ssrplus/current-190-r11/root/usr/share/shadowsocksr/ssrplusupdate.sh",
+        "original_or_manifest_mode": "100755",
+        "index_mode": "100644"
+      },
+      {
+        "path": "maintenance/plugins/ssrplus/current-190-r11/root/usr/share/shadowsocksr/subscribe.lua",
+        "original_or_manifest_mode": "100755",
+        "index_mode": "100644"
+      },
+      {
+        "path": "maintenance/plugins/ssrplus/current-190-r11/root/usr/share/shadowsocksr/update.lua",
+        "original_or_manifest_mode": "100755",
+        "index_mode": "100644"
+      }
+    ],
+    "forced_exact_path": "maintenance/plugins/ssrplus/upstream-v198.2/.github/copilot-instructions.md",
+    "diff_check_exit": 0,
+    "scope_only_requested": true,
+    "note": "Mode differences are recorded, not silently treated as preservation. Manifest modes were checked against original Git. Real index untouched.",
+    "upstream_tree_after_manifest_modes_restored_in_temp_index": "fe37ff9ab420e178544ff2c7402b34c387f32b44"
+  }
+}

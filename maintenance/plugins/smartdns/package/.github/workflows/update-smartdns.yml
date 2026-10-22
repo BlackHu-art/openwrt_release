@@ -1,0 +1,99 @@
+name: Update SmartDNS
+
+on:
+  workflow_dispatch:
+    inputs:
+      sdk_type:
+        description: 'SDK type to use'
+        required: true
+        default: 'immortalwrt'
+        type: choice
+        options:
+          - immortalwrt
+          - openwrt
+      force_update:
+        description: 'Force update even if no version changes'
+        required: false
+        default: false
+        type: boolean
+  schedule:
+    - cron: '0 0 * * *'
+  push:
+    branches:
+      - master
+
+env:
+  SCRIPTS_DIR: .github/scripts
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y zstd wget
+
+      - name: Set up Git user
+        run: |
+          git config --global user.name 'github-actions[bot]'
+          git config --global user.email 'github-actions[bot]@users.noreply.github.com'
+
+      - name: Sync with upstream
+        id: sync
+        run: |
+          chmod +x ${{ env.SCRIPTS_DIR }}/*.sh
+          ${{ env.SCRIPTS_DIR }}/sync-upstream.sh
+
+      - name: Setup SDK
+        if: steps.sync.outputs.changed == 'true' || github.event.inputs.force_update == 'true' || github.event_name == 'workflow_dispatch'
+        run: |
+          ${{ env.SCRIPTS_DIR }}/setup-sdk.sh "${{ github.event.inputs.sdk_type || 'immortalwrt' }}"
+
+      - name: Extract Makefile variables
+        if: steps.sync.outputs.changed == 'true' || github.event.inputs.force_update == 'true' || github.event_name == 'workflow_dispatch'
+        run: |
+          ${{ env.SCRIPTS_DIR }}/extract-makefile-vars.sh Makefile >> $GITHUB_ENV
+
+      - name: Download and package SmartDNS
+        if: steps.sync.outputs.changed == 'true' || github.event.inputs.force_update == 'true' || github.event_name == 'workflow_dispatch'
+        run: |
+          export LC_ALL=C
+          mkdir -p dl
+          ${{ env.SCRIPTS_DIR }}/download-and-package.sh \
+            "${{ env.PKG_NAME }}" \
+            "${{ env.PKG_VERSION }}" \
+            "${{ env.PKG_SOURCE_URL }}" \
+            "${{ env.PKG_SOURCE_VERSION }}" \
+            ".tar.zst" \
+            "dl"
+
+      - name: Download and package SmartDNS WebUI
+        if: steps.sync.outputs.changed == 'true' || github.event.inputs.force_update == 'true' || github.event_name == 'workflow_dispatch'
+        run: |
+          export LC_ALL=C
+          ${{ env.SCRIPTS_DIR }}/download-and-package.sh \
+            "smartdns-webui" \
+            "${{ env.SMARTDNS_WEBUI_VERSION }}" \
+            "${{ env.SMARTDNS_WEBUI_SOURCE_URL }}" \
+            "${{ env.SMARTDNS_WEBUI_SOURCE_VERSION }}" \
+            ".tar.gz" \
+            "dl"
+
+      - name: Update Makefile hashes
+        if: steps.sync.outputs.changed == 'true' || github.event.inputs.force_update == 'true' || github.event_name == 'workflow_dispatch'
+        run: |
+          ${{ env.SCRIPTS_DIR }}/update-makefile-hashes.sh dl Makefile
+
+      - name: Commit and push changes
+        if: steps.sync.outputs.changed == 'true' || github.event.inputs.force_update == 'true' || github.event_name == 'workflow_dispatch'
+        uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          commit_message: "chore: update SmartDNS to ${{ env.PKG_VERSION }}"
+          file_pattern: Makefile
+          push_options: '--force'

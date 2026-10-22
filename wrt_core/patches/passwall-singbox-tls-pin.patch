@@ -1,0 +1,14 @@
+--- a/luasrc/passwall/util_sing-box.lua
++++ b/luasrc/passwall/util_sing-box.lua
+@@ -300,8 +300,9 @@
+ 				if node.tls_pinSHA256 and node.tls_pinSHA256 ~= "" then
+ 					tls.certificate_sha256 = { api.sha256_xray_sb(node.tls_pinSHA256) }
+ 				end
+-			else
+-				tls.insecure = node.tls_allowInsecure == "1" or (node.tls_pinSHA256 and node.tls_pinSHA256 ~= "")
++			elseif node.tls_pinSHA256 and node.tls_pinSHA256 ~= "" then
++				-- A certificate fingerprint cannot be substituted with an SPKI hash.
++				error("TLS certificate fingerprint requires sing-box >= 1.15.0; use a supported core or explicitly reconfigure certificate verification.")
+ 			end
+ 		end
+ 

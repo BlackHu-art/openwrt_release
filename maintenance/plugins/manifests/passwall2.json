@@ -1,0 +1,788 @@
+{
+  "source_id": "passwall2",
+  "commit": "896c586a27c9a7c0b9e3d75b631965dea86b9945",
+  "tree": "f4f597102e1b61c93858f2f1677cb1bd5f9586ee",
+  "files": [
+    {
+      "path": "Makefile",
+      "git_mode": "100644",
+      "git_blob": "1f74872a089c677fefd4782ee71b84566db73fcd",
+      "bytes": 3995,
+      "sha256": "7bd956b70cf6569c8d5244a9cbcac5b346a8c195547aa47b835560bcff428c40"
+    },
+    {
+      "path": "htdocs/luci-static/resources/view/passwall2/Sortable.min.js",
+      "git_mode": "100644",
+      "git_blob": "8148b9dda22424c300191fcd3fcff1648de41e2e",
+      "bytes": 45478,
+      "sha256": "bf4241bc73fef7f11c59a283a69fe8051cdd31c6d8ff5a2b9ba219e7831fcf76"
+    },
+    {
+      "path": "htdocs/luci-static/resources/view/passwall2/cbi.js",
+      "git_mode": "100644",
+      "git_blob": "61224808f2dc9b6ab54ddd63a83578f288145107",
+      "bytes": 1328,
+      "sha256": "75105ab8a491d77ab6d0800ccf6918b179dd87ddff7d4c6f6582d209a170a870"
+    },
+    {
+      "path": "htdocs/luci-static/resources/view/passwall2/func.js",
+      "git_mode": "100644",
+      "git_blob": "3b5a43bceea43b5b3ad8932621531753b65c9412",
+      "bytes": 1925,
+      "sha256": "8e08f722a863f14ab01155b05cbc85c09894f76d1b64fba263b08a24f28bdc86"
+    },
+    {
+      "path": "htdocs/luci-static/resources/view/passwall2/qrcode.min.js",
+      "git_mode": "100644",
+      "git_blob": "94d9fac567d9cd2d87a8df7384036acad7b3a82e",
+      "bytes": 19807,
+      "sha256": "c52b4a620732ad253b5f8efc7f0c14c641eff6ca9a900aa733d78a251d45923a"
+    },
+    {
+      "path": "luasrc/controller/passwall2.lua",
+      "git_mode": "100644",
+      "git_blob": "977e7fdfc5683cbec1e39fc345971a68bcc014df",
+      "bytes": 38155,
+      "sha256": "3cb3dac40fe1e77f2e398ec62a13e030e42c89a5ec4cba424c5e6aa8b99af90b"
+    },
+    {
+      "path": "luasrc/model/cbi/passwall2/client/acl.lua",
+      "git_mode": "100644",
+      "git_blob": "2c00525da1ebb06a6bc543930deec2f001de57b5",
+      "bytes": 1793,
+      "sha256": "cade930c3f952fc4a9d34ac6d08ce567e37837c21276db62756e5bf57c65dffd"
+    },
+    {
+      "path": "luasrc/model/cbi/passwall2/client/acl_config.lua",
+      "git_mode": "100644",
+      "git_blob": "d8493dafb2b2653e9f11724af609c4292f2a816c",
+      "bytes": 12791,
+      "sha256": "076d28bac098326f50e538c6150e3c4073003d4c344f147e0e7ce49999e59f05"
+    },
+    {
+      "path": "luasrc/model/cbi/passwall2/client/app_update.lua",
+      "git_mode": "100644",
+      "git_blob": "7963c03754aa7c547376ec89a8c37c4f5c8dbe5e",
+      "bytes": 1254,
+      "sha256": "b3b3e0de410651e3f3fceee2f130f7bcbb9ce6b7e37d4f9723a32f8537fc2a6f"
+    },
+    {
+      "path": "luasrc/model/cbi/passwall2/client/geoview.lua",
+      "git_mode": "100644",
+      "git_blob": "e2b5f7d3790dfafa1dc2a67238c64dd19e734767",
+      "bytes": 487,
+      "sha256": "9eb7c83e87ecfe92e7bcdbd0ee6ff79ebfff37c4489d6b85df751bcd7bbddf26"
+    },
+    {
+      "path": "luasrc/model/cbi/passwall2/client/global.lua",
+      "git_mode": "100644",
+      "git_blob": "8e69f34c4240988dd5750272e195c79742de2ac0",
+      "bytes": 13993,
+      "sha256": "a397ad8bc7a1460e1ebfc023da3749d80492794788336e2bb89d5cf902813062"
+    },
+    {
+      "path": "luasrc/model/cbi/passwall2/client/haproxy.lua",
+      "git_mode": "100644",
+      "git_blob": "dbaf3965fb21ab90f2ede9eb6313c7e8cbec33a4",
+      "bytes": 6021,
+      "sha256": "b3d1192cf3b14dc0d1e43e774920ceda6f1f67a7f354071f73077103dba04ac3"
+    },
+    {
+      "path": "luasrc/model/cbi/passwall2/client/include/shunt_options.lua",
+      "git_mode": "100644",
+      "git_blob": "ef527b2728507e7ea76e21c2bfe9f8b4997c0f12",
+      "bytes": 9320,
+      "sha256": "be9e0829a3b44a416fb1eda74b7ebf773bf14ea5c61fb874a797556aca5d49a6"
+    },
+    {
+      "path": "luasrc/model/cbi/passwall2/client/node_config.lua",
+      "git_mode": "100644",
+      "git_blob": "efa89e472f76ad6f648d754a0d340b983bb61e7c",
+      "bytes": 2115,
+      "sha256": "9a2b5badd6c55f3d243bfbcc21536363cf0ae8a6e4986c6cf9a0cb054cefbc0b"
+    },
+    {
+      "path": "luasrc/model/cbi/passwall2/client/node_list.lua",
+      "git_mode": "100644",
+      "git_blob": "8c8382ce86539f8b5f0cd2802d946f75c06884c4",
+      "bytes": 1522,
+      "sha256": "7b1fea44c9cdd080ed9228a24048baa91e8ee088d9c5b253cb4adfe3ecf8e842"
+    },
+    {
+      "path": "luasrc/model/cbi/passwall2/client/node_subscribe.lua",
+      "git_mode": "100644",
+      "git_blob": "18b568ecee3e647da2bac46f96151e3a32859d73",
+      "bytes": 6973,
+      "sha256": "877c0a96846eefe365b515b455969e21346123b0c0a0cc617203e28c4c65bf11"
+    },
+    {
+      "path": "luasrc/model/cbi/passwall2/client/node_subscribe_config.lua",
+      "git_mode": "100644",
+      "git_blob": "e6fc4c9bce796be137b477565892d914a3822ae1",
+      "bytes": 10829,
+      "sha256": "5fddb990c00085a1bd11d9976fca2617aa2d78e06aabf809524c8418421a9d5a"
+    },
+    {
+      "path": "luasrc/model/cbi/passwall2/client/other.lua",
+      "git_mode": "100644",
+      "git_blob": "f622f076c27eec00e195bfdb113089f181f4720f",
+      "bytes": 10825,
+      "sha256": "7b7249e9d24b7e21298505b176a66e7a9a196947caf02a0a1cf32168b213cfe6"
+    },
+    {
+      "path": "luasrc/model/cbi/passwall2/client/rule.lua",
+      "git_mode": "100644",
+      "git_blob": "cc4ec8d78408a4ed23de1bbe9560cefa57e09447",
+      "bytes": 4767,
+      "sha256": "df2b23b1b52c80220afdddc905fba9bf83699a329c457eda316a2a6d2664aeaa"
+    },
+    {
+      "path": "luasrc/model/cbi/passwall2/client/shunt_rules.lua",
+      "git_mode": "100644",
+      "git_blob": "657b5b07889c17a1976c929d1ad21108be52bd04",
+      "bytes": 9157,
+      "sha256": "a0916bf93321848066ea6b6980424f362ef9b3f5156858ab2bdfb085763b3d02"
+    },
+    {
+      "path": "luasrc/model/cbi/passwall2/client/socks_config.lua",
+      "git_mode": "100644",
+      "git_blob": "65dd0ed838811195e8f11c317219186152346280",
+      "bytes": 6230,
+      "sha256": "0c9aad54fc976d4e278d891c334e903299d56f433d2809109ba1d3f330751e80"
+    },
+    {
+      "path": "luasrc/model/cbi/passwall2/client/type/1_sing-box.lua",
+      "git_mode": "100644",
+      "git_blob": "86c4f086e6bdd9a64a378b299a738bb9ac24e963",
+      "bytes": 37708,
+      "sha256": "91a5d50a0c67626c83915871b3da56ec1f1b8cb5b2b9b492d38da365464b3e7a"
+    },
+    {
+      "path": "luasrc/model/cbi/passwall2/client/type/2_xray.lua",
+      "git_mode": "100644",
+      "git_blob": "88840957eaf3fdd3e3e2eada40cf20c7361b3779",
+      "bytes": 33773,
+      "sha256": "16b733af464d46c22a204666de5695ac6ea23ee16fe2d0f91b7baf0db0f2a200"
+    },
+    {
+      "path": "luasrc/model/cbi/passwall2/client/type/3_ss-rust.lua",
+      "git_mode": "100644",
+      "git_blob": "54e5baaddda8619b286bdc44f1480f0e6983a807",
+      "bytes": 2108,
+      "sha256": "33e770fb929a9df5774bdb7c761797d69e004b2cc0248be02a34bea0fcdc9af7"
+    },
+    {
+      "path": "luasrc/model/cbi/passwall2/client/type/4_ssr.lua",
+      "git_mode": "100644",
+      "git_blob": "0fa58a560a2bf3416ba0ed39781977649b5862ff",
+      "bytes": 2100,
+      "sha256": "a753047dc926d3277e3438a4fa2fd03e3a568a02d0b4733a83d7bd73d5333719"
+    },
+    {
+      "path": "luasrc/model/cbi/passwall2/server/index.lua",
+      "git_mode": "100644",
+      "git_blob": "d1e7dedb43ea49da8623e184e486dcd545ac5ecd",
+      "bytes": 3838,
+      "sha256": "4325c472f4b9da89b1418229be856edc68f0aa1bc3be23ce525e97f25dc73eac"
+    },
+    {
+      "path": "luasrc/model/cbi/passwall2/server/server_config.lua",
+      "git_mode": "100644",
+      "git_blob": "4b5a9c5c99d3e1c3f769669028dbfa977fa9777a",
+      "bytes": 1229,
+      "sha256": "796b24866a7a95b40cbe1f32c57d5824a3d6c4828b2a2b39679e07a67d8c4853"
+    },
+    {
+      "path": "luasrc/model/cbi/passwall2/server/type/1_sing-box.lua",
+      "git_mode": "100644",
+      "git_blob": "7d94532a768535461022a849d21edd591b5af192",
+      "bytes": 20803,
+      "sha256": "675610f93ea6a167e7fb5fd8e74752a6f9650cd067e2327c0f3022a30b9fd2a9"
+    },
+    {
+      "path": "luasrc/model/cbi/passwall2/server/type/2_xray.lua",
+      "git_mode": "100644",
+      "git_blob": "35fca626ad1cde436688600c47cf586d458689c9",
+      "bytes": 20621,
+      "sha256": "1d27fdf8fd23990244965554d7d12bef08a6f6ece05e4bf57d3a1306b78e99f9"
+    },
+    {
+      "path": "luasrc/model/cbi/passwall2/server/type/3_ss-rust.lua",
+      "git_mode": "100644",
+      "git_blob": "11f8ded124d844e51b20e36d644c5f76c0c84cd3",
+      "bytes": 2520,
+      "sha256": "fdf75c599746910e48c0a8871d8f946f3c19774126f4dd4245a2e3344a6d6e90"
+    },
+    {
+      "path": "luasrc/model/cbi/passwall2/server/type/4_ssr.lua",
+      "git_mode": "100644",
+      "git_blob": "898dedd919a617b4814f52d03a02901668317908",
+      "bytes": 3608,
+      "sha256": "f1c309bd143efae3c77b7ecc8ade9b17ed4235838cfb7e533568fa27c2628ed8"
+    },
+    {
+      "path": "luasrc/model/cbi/passwall2/server/user_config.lua",
+      "git_mode": "100644",
+      "git_blob": "f2f1b7e3ef16afba1f9b475bd3fced7e1e5449e9",
+      "bytes": 1432,
+      "sha256": "c06eb84a81ab5c52d5f02eb42b42f89ce7fbb16dd38dc6d2cd02ba56e33e74eb"
+    },
+    {
+      "path": "luasrc/passwall2/api.lua",
+      "git_mode": "100644",
+      "git_blob": "ce424249674ddfd4436f5b0d1f0eefee4b81b54e",
+      "bytes": 66323,
+      "sha256": "e438faec09e1ffac43d9b50fc10ae12ac3284f18a69a06e30c27e7b417486b88"
+    },
+    {
+      "path": "luasrc/passwall2/com.lua",
+      "git_mode": "100644",
+      "git_blob": "9714240208253a3b7f41f3696cb7503431794d87",
+      "bytes": 2046,
+      "sha256": "748b45c130f2984e09e180425210358db7b4248080923d0b71249d80c72c0216"
+    },
+    {
+      "path": "luasrc/passwall2/server_app.lua",
+      "git_mode": "100644",
+      "git_blob": "04005d633d2539332942cb7f326cb0ae2d9fa756",
+      "bytes": 5044,
+      "sha256": "148efb7e2b142326fd090e5c8681b2c6b2d71c086678d65697f1e46c7b02ae65"
+    },
+    {
+      "path": "luasrc/passwall2/util_shadowsocks.lua",
+      "git_mode": "100644",
+      "git_blob": "83bafd917a50c39c27d3ab5c19e2de3fed747684",
+      "bytes": 4009,
+      "sha256": "7d0e9d89417a1b96f51b677099c93d4a3a5c6cc2e1f211c31bc1d6a4297a09e9"
+    },
+    {
+      "path": "luasrc/passwall2/util_sing-box.lua",
+      "git_mode": "100644",
+      "git_blob": "5f6e8b27d42ad6bb2ba4259c79e0c8ec76429f12",
+      "bytes": 78802,
+      "sha256": "b1c2f4edf32943a7967a459734d58ba75758fd958e2381459edf455bbbad21ff"
+    },
+    {
+      "path": "luasrc/passwall2/util_xray.lua",
+      "git_mode": "100644",
+      "git_blob": "11d8eb839b2839e9f4f2b30875de9b0817ca5a8d",
+      "bytes": 73635,
+      "sha256": "a30dad3cc3f7b7f63314efb2aa29ad39bef4a62d2baaa5791ca13323f6356078"
+    },
+    {
+      "path": "luasrc/view/passwall2/app_update/app_version.htm",
+      "git_mode": "100644",
+      "git_blob": "531879f69dd3d6c478f901a2078083fed22537c3",
+      "bytes": 11045,
+      "sha256": "c5423eaae3a915fb3c35043a3a74c9f417d656007a9715a5c92c750939cf0a05"
+    },
+    {
+      "path": "luasrc/view/passwall2/cbi/footer.htm",
+      "git_mode": "100644",
+      "git_blob": "21667b2b99da112ccb53cc603046a8fd055eeafc",
+      "bytes": 1949,
+      "sha256": "cbe5f316d0be838ff06f31dfd4476d9b5a001e9f7e15b8656e33d3ecb4ef3e45"
+    },
+    {
+      "path": "luasrc/view/passwall2/cbi/header.htm",
+      "git_mode": "100644",
+      "git_blob": "d7e3ff60c55ffd20b0c46322ab62ab50e3c7c52c",
+      "bytes": 610,
+      "sha256": "12de1e3e6d79132fad3c7d86a5d89afc069896437644c41a33fb06a37b10b063"
+    },
+    {
+      "path": "luasrc/view/passwall2/cbi/hidevalue.htm",
+      "git_mode": "100644",
+      "git_blob": "c007e399a876a4cac81b2ffebc1ffe417436085a",
+      "bytes": 311,
+      "sha256": "8c19570e804a9a87a8de81534e4f3365e9643e47d743a35512fe584b1b13e27f"
+    },
+    {
+      "path": "luasrc/view/passwall2/cbi/nodes_dynamiclist.htm",
+      "git_mode": "100644",
+      "git_blob": "6d588dc3700b67f2f3a132df57c21f315144c991",
+      "bytes": 4184,
+      "sha256": "2a486a4f1d0f71c953409df9b08561c692ae8d606692cbb7807ffd38a1fd97ff"
+    },
+    {
+      "path": "luasrc/view/passwall2/cbi/nodes_dynamiclist_com.htm",
+      "git_mode": "100644",
+      "git_blob": "4f932a2151e308071bdfee1d9c056262be639753",
+      "bytes": 20267,
+      "sha256": "e1465e0a758199d5da0f7d9c4a50a11aad1a1e4b1fe57066afb6c2846d054888"
+    },
+    {
+      "path": "luasrc/view/passwall2/cbi/nodes_listvalue.htm",
+      "git_mode": "100644",
+      "git_blob": "295f9ad119b622d90756ca4ebbfff40c1c119102",
+      "bytes": 5786,
+      "sha256": "64ad4c08c86f2ef5c0e0e4ae3d7ba8c86ab58d22064c727eb4a6992e224e44d8"
+    },
+    {
+      "path": "luasrc/view/passwall2/cbi/nodes_listvalue_com.htm",
+      "git_mode": "100644",
+      "git_blob": "2a066287b01dea5945b4cec63be735ffb77ab22b",
+      "bytes": 24281,
+      "sha256": "91f832d10ec60efe5cf262fa0122d58cb5c519c7c9f8d7fbfdfb88465ced2955"
+    },
+    {
+      "path": "luasrc/view/passwall2/cbi/nodes_multivalue.htm",
+      "git_mode": "100644",
+      "git_blob": "fabcf77e930d2a2736960631039055bab64cd1c3",
+      "bytes": 3910,
+      "sha256": "152451b64a836bd4399352588781ed9160addaeff4bcb4b8e30feb3a7a469a80"
+    },
+    {
+      "path": "luasrc/view/passwall2/cbi/nodes_multivalue_com.htm",
+      "git_mode": "100644",
+      "git_blob": "646f691b482b8fc22a1a51a23dccbe2b039607af",
+      "bytes": 14178,
+      "sha256": "c5ad7544ac30ca675383e547ccc796600eda5e6568911a9f6352969b3974d2dd"
+    },
+    {
+      "path": "luasrc/view/passwall2/cbi/nodes_value.htm",
+      "git_mode": "100644",
+      "git_blob": "7fe732073963d05bc0991db459bee54978bfc6e3",
+      "bytes": 6538,
+      "sha256": "de569b8a979d2e2b8e9fbb09f06ea0b9936f49f93550bf5fdf4d6537f7af2822"
+    },
+    {
+      "path": "luasrc/view/passwall2/cbi/nodes_value_com.htm",
+      "git_mode": "100644",
+      "git_blob": "0c5f5c02cfaf64657b1da347396b88b56840567d",
+      "bytes": 25520,
+      "sha256": "e01b0aa89aca2ae8d941c2b51390c2bfb20800b6a4e90694c1008d4394940a6a"
+    },
+    {
+      "path": "luasrc/view/passwall2/cbi/sortable.htm",
+      "git_mode": "100644",
+      "git_blob": "2f90bf8c79539697dafc100a8bdbcd0c4c42a02d",
+      "bytes": 4598,
+      "sha256": "eed570963acbdbdb39bc5205ca6b8676cbd8e300328b5466b6e2aba0606f5e95"
+    },
+    {
+      "path": "luasrc/view/passwall2/cbi/tvalue.htm",
+      "git_mode": "100644",
+      "git_blob": "8037b3d280263360b30bd6430f4cdad6cf83313f",
+      "bytes": 467,
+      "sha256": "0ea81e13ec051db800ea69ceece753da3e5c1705506c9566b6d8ee1938e49a90"
+    },
+    {
+      "path": "luasrc/view/passwall2/global/backup.htm",
+      "git_mode": "100644",
+      "git_blob": "dc13e726d54c37614130223225e06a06b3f376b5",
+      "bytes": 7000,
+      "sha256": "38b5c5ac88b3875872e8e91706c0a6c974a5cbcc97490825f25cdd1ce17c2a94"
+    },
+    {
+      "path": "luasrc/view/passwall2/global/faq.htm",
+      "git_mode": "100644",
+      "git_blob": "60044c8a0b6fcb6fb289c4c40160b8587077a7ef",
+      "bytes": 2586,
+      "sha256": "d34501f5ff897dfacd333cf3eda0a2a5cd876439de4a47e4cef6cd43e8c07882"
+    },
+    {
+      "path": "luasrc/view/passwall2/global/footer.htm",
+      "git_mode": "100644",
+      "git_blob": "0696f3aabba2659dc0e969a0a164566917a76515",
+      "bytes": 6452,
+      "sha256": "e690f47d66a7e4274fedcd73ef39e023a68aea499b433b28fc22de6e9e5aaf35"
+    },
+    {
+      "path": "luasrc/view/passwall2/global/status.htm",
+      "git_mode": "100644",
+      "git_blob": "93e5fe5f8e221e893ff27a63ea8d87d1e11ed0f7",
+      "bytes": 133982,
+      "sha256": "209882784d66c666bfe05855bcf12cd639f38b4dedc85674d586d9ceaaa3451b"
+    },
+    {
+      "path": "luasrc/view/passwall2/haproxy/js.htm",
+      "git_mode": "100644",
+      "git_blob": "e943a20537245b7085eb18c2170ac5701cd3db4f",
+      "bytes": 2312,
+      "sha256": "c25b17ef649a62330519d1fe25343ec59afdd300dafaa678ea5af0ceeb076372"
+    },
+    {
+      "path": "luasrc/view/passwall2/haproxy/status.htm",
+      "git_mode": "100644",
+      "git_blob": "23d7ee46e09057f10399a7a874521d943b4b8d51",
+      "bytes": 933,
+      "sha256": "bb68374cbb7f358b982e9cbd44ef1cca1a8726bc92de325a01194e8697562f38"
+    },
+    {
+      "path": "luasrc/view/passwall2/include/node_change.htm",
+      "git_mode": "100644",
+      "git_blob": "862649de64e96d689193e962b4c0776860a29a9b",
+      "bytes": 2012,
+      "sha256": "a791ea5461275a011cb19bf304c9bcef18e4c3dfc4a12980cd854b69da0d092f"
+    },
+    {
+      "path": "luasrc/view/passwall2/include/shunt_options.htm",
+      "git_mode": "100644",
+      "git_blob": "53e9a5f98a654f1996d6d0080277a41eb96df011",
+      "bytes": 5379,
+      "sha256": "f0edf77cc2a9d2c95d939f15bd30632c7da4c68a9b0e25fbc451771cf1b1fee7"
+    },
+    {
+      "path": "luasrc/view/passwall2/log/log.htm",
+      "git_mode": "100644",
+      "git_blob": "bfc2078b82363a0ee27291697c3936dd42f63bb1",
+      "bytes": 1319,
+      "sha256": "0d931757c8ae99b8f148f5bf7925bb4aa344bfa922bf63ddbdcd2a94f96def17"
+    },
+    {
+      "path": "luasrc/view/passwall2/node_config/footer.htm",
+      "git_mode": "100644",
+      "git_blob": "d2d98b86d3f2cb783542c68ed18a6af87f79cfd6",
+      "bytes": 2354,
+      "sha256": "8419eabf195f1954fd52adeb5c8e6c7d78c24f293abb702eedbd79a081756c5e"
+    },
+    {
+      "path": "luasrc/view/passwall2/node_config/header.htm",
+      "git_mode": "100644",
+      "git_blob": "33a5da3dacd4f9436a5bda5aab999124cd3fa4c8",
+      "bytes": 860,
+      "sha256": "fc94fc4ad27b16e703627aca83167be181cf5d076cbab4abf0141a99e56912d9"
+    },
+    {
+      "path": "luasrc/view/passwall2/node_config/link_share_man.htm",
+      "git_mode": "100644",
+      "git_blob": "56160ecfd41f097d523f7da0d9437ab0b1d68f2a",
+      "bytes": 78239,
+      "sha256": "959dd75ef336f629711bcd3d2b97434354427b3767bac343691e880cdf557585"
+    },
+    {
+      "path": "luasrc/view/passwall2/node_list/node_list.htm",
+      "git_mode": "100644",
+      "git_blob": "b1f8fbd52ae690a85423f6206fadb7a8131d69e6",
+      "bytes": 51274,
+      "sha256": "12d79e4028a19286ed502b9f8629e720a363eb53715156c266a0c4b50bedcbe6"
+    },
+    {
+      "path": "luasrc/view/passwall2/node_subscribe/js.htm",
+      "git_mode": "100644",
+      "git_blob": "c6f41cbb1063ea0fd3a1f107b4bd062aed15f8a0",
+      "bytes": 2787,
+      "sha256": "28c00d2190a6e73ad5ef750ddeec8aca5f137f2fbc56903568e6108793182dc8"
+    },
+    {
+      "path": "luasrc/view/passwall2/rule/geoview.htm",
+      "git_mode": "100644",
+      "git_blob": "d41abb8d499cace7661719d3eafa417f0c15e865",
+      "bytes": 3749,
+      "sha256": "1ea2a2b7f806f72e0b2abbc712558d60ba2db187545b294a4978cc52e2a763b0"
+    },
+    {
+      "path": "luasrc/view/passwall2/rule/rule_version.htm",
+      "git_mode": "100644",
+      "git_blob": "eab67fa3c481e4c0224995515e91c45dac54302b",
+      "bytes": 3963,
+      "sha256": "2244c1c32456395043645401b8760caeca1361cf0367f21eafab4d7e54c8fbff"
+    },
+    {
+      "path": "luasrc/view/passwall2/rule/shunt_rule_list.htm",
+      "git_mode": "100644",
+      "git_blob": "bfbbdf1a1d56271b73ddebf7d2841e352612e435",
+      "bytes": 12728,
+      "sha256": "901ffbb49906ae42194ad7778679aac53ae30656a6b42cbf4fe168d63f18a0df"
+    },
+    {
+      "path": "luasrc/view/passwall2/server/config_footer.htm",
+      "git_mode": "100644",
+      "git_blob": "df87f974db812be5fffd813c21b86b5a755d1c16",
+      "bytes": 934,
+      "sha256": "eccdbf7ff8da7c02050f7b75f55abc8ad6b3ab2e19c5482fa0559ad2f60d61eb"
+    },
+    {
+      "path": "luasrc/view/passwall2/server/config_header.htm",
+      "git_mode": "100644",
+      "git_blob": "742b71514d613ddf7fcb20b676b444ce6290e18c",
+      "bytes": 497,
+      "sha256": "a8ec05b038f995df9448db67ac5da58f6448344e594001c30bbfe6c276d57eaa"
+    },
+    {
+      "path": "luasrc/view/passwall2/server/gen_wireguard_key.htm",
+      "git_mode": "100644",
+      "git_blob": "1283e6f7d82959088795328e768dacf4d51d7b62",
+      "bytes": 1017,
+      "sha256": "9b0eac831b0465b98768ee6720d33ca8fa17661048f888b43f798cebd2c1967d"
+    },
+    {
+      "path": "luasrc/view/passwall2/server/log.htm",
+      "git_mode": "100644",
+      "git_blob": "8f22791718d005be1c0bbdcb5c2cd547e03288ea",
+      "bytes": 1344,
+      "sha256": "a95c72826aa0bca16f95f22c0cf1b40f81681685ffc8d8c7176116d4cbdd38c3"
+    },
+    {
+      "path": "luasrc/view/passwall2/server/server_list_status.htm",
+      "git_mode": "100644",
+      "git_blob": "abacf7ea389ccaef14ee22f3276da632bcf59bd7",
+      "bytes": 1476,
+      "sha256": "88b1daf44832f822f077fce1b58b470ced17d5a95bad4bf84601bd5e852864fd"
+    },
+    {
+      "path": "luasrc/view/passwall2/socks_auto_switch/btn.htm",
+      "git_mode": "100644",
+      "git_blob": "657cc85a07c0801cd2fad77180623f547b8eab1b",
+      "bytes": 1620,
+      "sha256": "d0970b4be304f958a1ed1007c8c76e51effb4846181b09acafba7777f0e7f71f"
+    },
+    {
+      "path": "po/fa/passwall2.po",
+      "git_mode": "100644",
+      "git_blob": "1d13cd92ebdf56342767627f08099baaf8021345",
+      "bytes": 101204,
+      "sha256": "cf28fefecf25b8d0203f1c0c0eed6d570700cf3a2411fbafd63d5f58b6f6bc00"
+    },
+    {
+      "path": "po/ru/passwall2.po",
+      "git_mode": "100644",
+      "git_blob": "f2d11753bf2111b0aadc53b4c719b6e19b229516",
+      "bytes": 106892,
+      "sha256": "0d91d6c21baa086ba669f59cfd1aca66aae36d272f6afc1c99f5c5a6e3ef4c7a"
+    },
+    {
+      "path": "po/zh-cn/passwall2.po",
+      "git_mode": "100644",
+      "git_blob": "8e65d2aa2758443aa35f268bc925cf27be9b015a",
+      "bytes": 74640,
+      "sha256": "51e95137a4ae1dfec59e41bb411f7f874f400ba1386eca377a09f15033605bcd"
+    },
+    {
+      "path": "po/zh-tw/passwall2.po",
+      "git_mode": "100644",
+      "git_blob": "544bc8db95ec4a7d1cc4f23aa96a8b3a97df2496",
+      "bytes": 74853,
+      "sha256": "f2ff6fafcf6413db4f2c8766ec7fbde63cfd5331be2df510bfbf33d2f535a829"
+    },
+    {
+      "path": "po/zh_Hans",
+      "git_mode": "120000",
+      "git_blob": "41451e4a19c465672ff675371a2bc27cf25a3083",
+      "bytes": 5,
+      "sha256": "a482105e5860f3ad7e8f19a4bb34fddddaee2d2f449e023f5aedff5847119548",
+      "symlink_target": "zh-cn",
+      "storage": "git-link-text"
+    },
+    {
+      "path": "po/zh_Hant",
+      "git_mode": "120000",
+      "git_blob": "f6e591fd8a34587335561fc08c6564d5bcd46593",
+      "bytes": 5,
+      "sha256": "5ed77140c1a379ed193b1f2a75c6c14e2e87df01a3f1fdbe00cff2f0ddf97cfb",
+      "symlink_target": "zh-tw",
+      "storage": "git-link-text"
+    },
+    {
+      "path": "root/etc/config/passwall2_server",
+      "git_mode": "100644",
+      "git_blob": "c9526cb2851ac7cb36d4678899438a7fc6704540",
+      "bytes": 44,
+      "sha256": "c8b59c39f471e4d8e5d242805a08cf8138cfa363b623ba982880e0617a4bcbf4"
+    },
+    {
+      "path": "root/etc/hotplug.d/iface/98-passwall2",
+      "git_mode": "100644",
+      "git_blob": "81883bfd1566c746c368b715d18fbfe7b896a132",
+      "bytes": 1434,
+      "sha256": "dd533b07ccccec6b8cc9a593669a6550049bea33174a0aba789ad8a9d2f60835"
+    },
+    {
+      "path": "root/etc/hotplug.d/ntp/30-passwall2-resync",
+      "git_mode": "100644",
+      "git_blob": "8d7c6424b63c42389daacbf2423c54a55f3177c2",
+      "bytes": 624,
+      "sha256": "6cd77e8e542c393c59a51b71cba45ddd9b70e87c9ed9f9e383d7ea340e1812d6"
+    },
+    {
+      "path": "root/etc/init.d/passwall2",
+      "git_mode": "100755",
+      "git_blob": "e9322422c60a0fbdc89fca2b83fe680c08d9f210",
+      "bytes": 2253,
+      "sha256": "187d4167fe87dfeb23894abfa2c942b8f5519197a993e05939eceafa0ed0646e"
+    },
+    {
+      "path": "root/etc/init.d/passwall2_server",
+      "git_mode": "100755",
+      "git_blob": "1374563f405f313227ed2c5d0da6ffa78da183c9",
+      "bytes": 409,
+      "sha256": "dea127fc3219cfd0cf0fcfd91fabd8589b8cb13f51ef3268b0ea6ba88298f4c7"
+    },
+    {
+      "path": "root/etc/uci-defaults/luci-app-passwall2",
+      "git_mode": "100644",
+      "git_blob": "fb3efa0216d0d97ae78688d407dcc0b7fbc4e7df",
+      "bytes": 964,
+      "sha256": "de3a9e0c117d1182c884b19ea99e7c1f8ec25f0cf03dfc2af8c4b3dfd5bce8dc"
+    },
+    {
+      "path": "root/etc/uci-defaults/luci-app-passwall2_server",
+      "git_mode": "100644",
+      "git_blob": "02e4f20b4264e1c444368732419be6ad6d95924e",
+      "bytes": 346,
+      "sha256": "0090dc8eca17c41b9d74a3e8693bcb0976d5bfe0f6b14d57a29a249a95dfbd98"
+    },
+    {
+      "path": "root/usr/share/passwall2/0_default_config",
+      "git_mode": "100644",
+      "git_blob": "a4c4f54a917082f6eb4f8f5e20802bdcf10dc359",
+      "bytes": 6352,
+      "sha256": "5751ddc9bab7a7b32234ce8288166e3de57a9f205c3545af94b4ef5eb4cabdf1"
+    },
+    {
+      "path": "root/usr/share/passwall2/app.sh",
+      "git_mode": "100755",
+      "git_blob": "c00e32b309ec8129e324acd76d620721baa4ca90",
+      "bytes": 46329,
+      "sha256": "682d610e8e99abe4ad2062a5d51f4d5d1df033bf3ec57c0ba3cb97d7a2d20deb"
+    },
+    {
+      "path": "root/usr/share/passwall2/app_acl.lua",
+      "git_mode": "100644",
+      "git_blob": "e4ece480c4eea1a4494a11765dd0b6f331918ee4",
+      "bytes": 7841,
+      "sha256": "e7623dee2890f7dbe5eb28e8032e1f89c0c3fc7f3ee90975c5483fc41423e131"
+    },
+    {
+      "path": "root/usr/share/passwall2/direct_ip",
+      "git_mode": "100644",
+      "git_blob": "fb08bf79ad5dbbec8ecb9fbb43c0a9d0e0b2aecf",
+      "bytes": 149,
+      "sha256": "ec3ea25c21f53bc42fc26b1570f46362a38aaf246d693db1fd1762a554eee396"
+    },
+    {
+      "path": "root/usr/share/passwall2/domains_excluded",
+      "git_mode": "100644",
+      "git_blob": "f2def6f260312efb14858065d283dfa8a4f38fe3",
+      "bytes": 529,
+      "sha256": "f55fa460dfe7dbfa89897de59c140ed8a0a4b25f11615f9032f5adce1ed8d22c"
+    },
+    {
+      "path": "root/usr/share/passwall2/haproxy.lua",
+      "git_mode": "100644",
+      "git_blob": "1f2468ca6ab41dd69941f80c445e9b7330e7a078",
+      "bytes": 9337,
+      "sha256": "face096b44c70b9340d888da80b6f8983da3a4a52151bba912a67a6169f798e5"
+    },
+    {
+      "path": "root/usr/share/passwall2/haproxy_check.sh",
+      "git_mode": "100755",
+      "git_blob": "8fc30434a92242ae4a4e6343cf4f9171a379f045",
+      "bytes": 868,
+      "sha256": "21c18304373425c2ecad9e5eb58418c3f443781f7e47cc82102b72ae4c378d34"
+    },
+    {
+      "path": "root/usr/share/passwall2/helper_dnsmasq.lua",
+      "git_mode": "100644",
+      "git_blob": "8520ea0098319dcb432bad896cedd91a064c390a",
+      "bytes": 10093,
+      "sha256": "204ac1202b83ef571579ed21960a85ed5971a12a013c3da7159756eee96726bc"
+    },
+    {
+      "path": "root/usr/share/passwall2/i18n.lua",
+      "git_mode": "100644",
+      "git_blob": "d33efaaf197db34b1ebe7644c3f08f09212b090c",
+      "bytes": 151,
+      "sha256": "d24dffc48e746619c6801a072d955d35341cf8526242fa46990d68a1d4cedc27"
+    },
+    {
+      "path": "root/usr/share/passwall2/iptables.sh",
+      "git_mode": "100755",
+      "git_blob": "1723f24a970e0f7559445e9c26a969cda3250608",
+      "bytes": 38278,
+      "sha256": "e5756037a229a6c92bc7431a39633063b767cbe4b484123491d2b6ee74752fe0"
+    },
+    {
+      "path": "root/usr/share/passwall2/lease2hosts.sh",
+      "git_mode": "100755",
+      "git_blob": "41da3ba6c7783d2deb8e2d6ea4edbac88c0f4571",
+      "bytes": 2524,
+      "sha256": "1537c34d23b3e38f75b0559c7e6419c2157191a5629ca9d0bb6a66e9c104f8cc"
+    },
+    {
+      "path": "root/usr/share/passwall2/luci_update.sh",
+      "git_mode": "100644",
+      "git_blob": "1b2b818b5e8449f3849b44d30a4c9864506dfb73",
+      "bytes": 977,
+      "sha256": "c048b686fd2a245d47eff832e70703590b941988b25eb56a430fce3a0468e75d"
+    },
+    {
+      "path": "root/usr/share/passwall2/monitor.sh",
+      "git_mode": "100755",
+      "git_blob": "216ae8603efa4e3e4d68d644de314a5de30d337e",
+      "bytes": 866,
+      "sha256": "210ad244a0e67c5b7810e3ff108b0f0904504b5aeaf6752f99e45c47b05aeebf"
+    },
+    {
+      "path": "root/usr/share/passwall2/nftables.sh",
+      "git_mode": "100755",
+      "git_blob": "2a110c0d42a4499ca0e8601be7cf3fd2972529b6",
+      "bytes": 43123,
+      "sha256": "18a8dff2a763e1893094c693cc9bdbf26b1dc7f47198dd909e17a3c7baa4a2ed"
+    },
+    {
+      "path": "root/usr/share/passwall2/rule_update.lua",
+      "git_mode": "100755",
+      "git_blob": "d854c95cbcc7a6066ce3751ea058f44c264b6c9b",
+      "bytes": 8220,
+      "sha256": "3dc4accd757d82e5716f03def1083c9d4b976f8ff798f26f3c8da29a1fb36bb9"
+    },
+    {
+      "path": "root/usr/share/passwall2/socks_auto_switch.sh",
+      "git_mode": "100755",
+      "git_blob": "409ab9562c18c82231bbab633d50663495fdc9e6",
+      "bytes": 7741,
+      "sha256": "0ad84c7b038c6bcc9b82967683163b17842d8080a3a5158bc8c5dadf48759296"
+    },
+    {
+      "path": "root/usr/share/passwall2/subscribe.lua",
+      "git_mode": "100755",
+      "git_blob": "afcb4a73abe401638f5ec842ccc98e17c6773794",
+      "bytes": 96660,
+      "sha256": "c3df0c1ff1c97ffb37b13bc1d029f89a83f381172c2a52634be0f69eb5864ff9"
+    },
+    {
+      "path": "root/usr/share/passwall2/tasks.sh",
+      "git_mode": "100755",
+      "git_blob": "c4188227429f17036a1cff0517ba86e93c0a6294",
+      "bytes": 2343,
+      "sha256": "e735f8afc12c2fee3680613eeed8c812642cb42af6e1add9af33da5a1d82236a"
+    },
+    {
+      "path": "root/usr/share/passwall2/test.sh",
+      "git_mode": "100755",
+      "git_blob": "375a11d0d57e92fdc37336cfc1abce3927e8428e",
+      "bytes": 2011,
+      "sha256": "d464d6733a8f0d363f0bfc25bd45ba6a58f0afadaaf2f7ea6e902f5b54deaf8c"
+    },
+    {
+      "path": "root/usr/share/passwall2/utils.sh",
+      "git_mode": "100755",
+      "git_blob": "d159826d4896a6734f27fb306d3031f267c49f30",
+      "bytes": 12307,
+      "sha256": "548603ff4b8880e390e584099e68648c0f5b649129451fad9e9b339456f9f678"
+    },
+    {
+      "path": "root/usr/share/rpcd/acl.d/luci-app-passwall2.json",
+      "git_mode": "100644",
+      "git_blob": "ec872412aada2891c046a3ec2e8c8825986efd72",
+      "bytes": 218,
+      "sha256": "c19f9703739921f2f9b39ff8ee3a9d710610044aa0a31cd88e4309f2d0e91e0c"
+    },
+    {
+      "path": "root/usr/share/ucitrack/luci-app-passwall2-server.json",
+      "git_mode": "100644",
+      "git_blob": "d73b5d1094dc23b3b77acdb526dd1a2a9c412f4a",
+      "bytes": 63,
+      "sha256": "3b63aa1d0890f290eb2d115e1e455350c32b51f6514bdf140f6fa10c5b343efd"
+    },
+    {
+      "path": "root/usr/share/ucitrack/luci-app-passwall2.json",
+      "git_mode": "100644",
+      "git_blob": "2ff857b0d18af3d062e40430f1240cb398bfaf71",
+      "bytes": 49,
+      "sha256": "2ec77d45eaa78421d854a81df596203391b05554e98f5257831df6385ba9070a"
+    }
+  ]
+}

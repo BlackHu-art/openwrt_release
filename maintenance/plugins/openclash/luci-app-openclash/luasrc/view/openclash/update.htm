@@ -1,0 +1,220 @@
+<%
+    local version_tab = (self and self.version_tab) or false
+%>
+<script src="/cgi-bin/luci/admin/services/openclash/translate_js?f=common&v=@OPENCLASH_VERSION@&l=<%=luci.i18n.context.lang%>"></script>
+<link rel="stylesheet" href="/luci-static/resources/openclash/css/oc-common.css?v=@OPENCLASH_VERSION@">
+<%
+    -- update popup CSS rides along with update.js; on the settings version tab the popup
+    -- is visible right away, so keep a static link there to avoid an unstyled flash
+    if version_tab then
+%>
+<link rel="stylesheet" href="/luci-static/resources/openclash/css/oc-update.css?v=@OPENCLASH_VERSION@">
+<% end %>
+    <div class="oc">
+        <div id="selectPopup" class="select-popup<%= version_tab and ' select-popup-tab' or ' hidden' %>">
+            <div class="select-popup-header">
+                <div class="config-editor-title">
+                    <%:Check Update%>
+                </div>
+                <div class="config-editor-actions">
+                    <button type="button" class="icon-btn" onclick="refreshAllData()" title="<%:Refresh%>">
+                        <svg width="14" height="14"><use href="#oc-icon-refresh"/></svg>
+                    </button>
+                    <button type="button" class="icon-btn<%= version_tab and ' oc-hidden' or '' %>" onclick="closeSelectPopup()" title="<%:Close%>">
+                        <svg width="14" height="14"><use href="#oc-icon-close"/></svg>
+                    </button>
+                </div>
+            </div>
+            <div class="select-config-section">
+                <div class="config-grid">
+                    <div class="config-item">
+                        <div class="oc-option-title">
+                            <span class="oc-option-text"><%:CPU Arch%></span>
+                        </div>
+                        <span class="ver-value" id="CPU_ARCH_VALUE"><span class="oc-sk"></span></span>
+                    </div>
+                    <div class="config-item">
+                        <div class="oc-option-title"><span class="oc-option-text"><%:Compiled Version%><b> *</b></span></div>
+                        <div class="form-select-wrapper">
+                            <select class="select-class oc-arch-select" id="CORE_VERSION" onchange="onArchChange()">
+                                <option value="linux-386"><%:linux-386%></option>
+                                <option value="linux-amd64-v1"><%:linux-amd64-v1(x86-64)%></option>
+                                <option value="linux-amd64-v2"><%:linux-amd64-v2(x86-64)%></option>
+                                <option value="linux-amd64-v3"><%:linux-amd64-v3(x86-64)%></option>
+                                <option value="linux-armv5"><%:linux-armv5%></option>
+                                <option value="linux-armv6"><%:linux-armv6%></option>
+                                <option value="linux-armv7"><%:linux-armv7%></option>
+                                <option value="linux-arm64"><%:linux-arm64(armv8)%></option>
+                                <option value="linux-loong64-abi1"><%:linux-loong64-abi1%></option>
+                                <option value="linux-loong64-abi2"><%:linux-loong64-abi2%></option>
+                                <option value="linux-riscv64"><%:linux-riscv64%></option>
+                                <option value="linux-s390x"><%:linux-s390x%></option>
+                                <option value="linux-mips-hardfloat"><%:linux-mips-hardfloat%></option>
+                                <option value="linux-mips-softfloat"><%:linux-mips-softfloat%></option>
+                                <option value="linux-mips64"><%:linux-mips64%></option>
+                                <option value="linux-mips64le"><%:linux-mips64le%></option>
+                                <option value="linux-mipsle-softfloat"><%:linux-mipsle-softfloat%></option>
+                                <option value="linux-mipsle-hardfloat"><%:linux-mipsle-hardfloat%></option>
+                                <option value="0"><%:Not Set%></option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="config-item">
+                        <div class="oc-option-title"><span class="oc-option-text"><%:Release Branch%></span></div>
+                        <div class="form-select-wrapper">
+                            <select class="select-class" id="RELEASE_BRANCH" onchange="onBranchChange()">
+                                <option value="master">Master</option>
+                                <option value="dev">Developer</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="config-item">
+                        <div class="oc-option-title">
+                            <span class="oc-option-text"><%:Smart Core%></span>
+                            <a href="javascript:void(0);" onclick="window.open('https://github.com/vernesong/mihomo/releases', '_blank');" class="help-link" title="<%:View core infos that support smart group%>">
+                                <svg width="12" height="12"><use href="#oc-icon-help"/></svg>
+                            </a>
+                        </div>
+                        <div class="form-select-wrapper">
+                            <select class="select-class" id="SMART_ENABLE" onchange="onSmartChange()">
+                                <option value="0"><%:Disabled%></option>
+                                <option value="1"><%:Enabled%></option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                <div class="version-card">
+                    <div class="version-row">
+                        <div class="config-item">
+                            <span class="oc-option-title"><span class="oc-option-text"><%:Plugin Version%></span></span>
+                            <span class="ver-value" id="installed-plugin"><span class="oc-sk"></span></span>
+                        </div>
+                        <div class="config-item">
+                            <span class="oc-option-title"><span class="oc-option-text"><%:Select Version%></span></span>
+                            <div class="form-select-wrapper">
+                                <select class="select-class" id="select-plugin-ver" onchange="forceRefresh=true;refreshAddrInfo({cancel:true,user:true})">
+                                    <option value="__latest__"><%:Latest%></option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="config-item">
+                            <span class="oc-option-title"><span class="oc-option-text"><%:Core Version%></span></span>
+                            <span class="ver-value" id="installed-core"><span class="oc-sk"></span></span>
+                        </div>
+                        <div class="config-item">
+                            <span class="oc-option-title"><span class="oc-option-text"><%:Select Version%></span></span>
+                            <div class="form-select-wrapper">
+                                <select class="select-class" id="select-core-ver" onchange="forceRefresh=true;refreshAddrInfo({cancel:true,user:true})">
+                                    <option value="__latest__"><%:Latest%></option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="ver-hint" id="version-hint"></div>
+
+            <div class="select-popup-body" id="addr-list-body">
+                <div class="addr-list-scroll">
+                <div class="select-option addr-header">
+                    <span class="addr-header-label"><span class="addr-header-index">#</span></span>
+                    <span class="addr-header-label"><span class="addr-header-icon"><svg><use href="#oc-icon-link-tabler"/></svg></span><span><%:Address%></span></span>
+                    <span class="addr-header-label"><span class="addr-header-icon"><svg><use href="#oc-icon-speedtest"/></svg></span><span><%:Latency%></span></span>
+                    <span class="addr-header-label"><span class="addr-header-icon"><svg><use href="#oc-icon-package"/></svg></span><span><%:Plugin%></span></span>
+                    <span class="addr-header-label"><span class="addr-header-icon"><svg><use href="#oc-icon-cpu"/></svg></span><span><%:Core%></span>
+                        <div class="help-link" title="<%:Core path:%>/etc/openclash/core/clash_meta">
+                            <svg width="12" height="12"><use href="#oc-icon-help"/></svg>
+                        </div>
+                    </span>
+                    <span class="addr-header-label"><span class="addr-header-icon"><svg><use href="#oc-icon-zap"/></svg></span><span><%:Proxy%></span>
+                        <div class="help-link" title="<%:Proxy The GitHub Address In The Config And OpenClash With Proxy(CDN) To Prevent File Download Failed.%>">
+                            <svg width="12" height="12"><use href="#oc-icon-help"/></svg>
+                        </div>
+                    </span>
+                </div>
+                    <div class="addr-empty oc-hidden" id="addr-list-empty">
+                        <span class="addr-empty-icon"><svg width="22" height="22"><use href="#oc-icon-alert-circle"/></svg></span>
+                        <span class="addr-empty-title" id="addr-empty-title"></span>
+                        <span class="addr-empty-text" id="addr-empty-text"></span>
+                        <button type="button" class="addr-empty-btn" onclick="return refreshAllData()">
+                            <svg width="13" height="13"><use href="#oc-icon-refresh"/></svg>
+                            <span><%:Retry%></span>
+                        </button>
+                    </div>
+                    <div class="select-option addr-row" data-value="https://raw.githubusercontent.com/">
+                        <span class="addr-row-index"></span>
+                        <span class="addr-row-url">https://raw.githubusercontent.com/</span>
+                        <span class="addr-status">--</span>
+                        <span class="ver-text ver-plugin">--</span>
+                        <span class="ver-text ver-core">--</span>
+                        <span class="addr-proxy-static"><svg width="12" height="12"><use href="#oc-icon-brand-github"/></svg><%:RAW%></span>
+                    </div>
+                    <div class="select-option addr-row" data-value="https://fastly.jsdelivr.net/">
+                        <span class="addr-row-index"></span>
+                        <span class="addr-row-url">https://fastly.jsdelivr.net/</span>
+                        <span class="addr-status">--</span>
+                        <span class="ver-text ver-plugin">--</span>
+                        <span class="ver-text ver-core">--</span>
+                    </div>
+                    <div class="select-option addr-row" data-value="https://testingcf.jsdelivr.net/">
+                        <span class="addr-row-index"></span>
+                        <span class="addr-row-url">https://testingcf.jsdelivr.net/</span>
+                        <span class="addr-status">--</span>
+                        <span class="ver-text ver-plugin">--</span>
+                        <span class="ver-text ver-core">--</span>
+                    </div>
+                    <div class="select-option addr-row" data-value="https://cdn.jsdelivr.net/">
+                        <span class="addr-row-index"></span>
+                        <span class="addr-row-url">https://cdn.jsdelivr.net/</span>
+                        <span class="addr-status">--</span>
+                        <span class="ver-text ver-plugin">--</span>
+                        <span class="ver-text ver-core">--</span>
+                    </div>
+                    <div class="select-option" data-value="custom" id="custom-addr-option">
+                        <span><%:Custom Your CDN URL%></span>
+                        <span class="oc-flex-center" style="height:100%;">
+                            <svg width="18" height="18"><use href="#oc-icon-chevron-down"/></svg>
+                        </span>
+                    </div>
+                    <input type="text" id="customOptionInput" class="custom-option-input oc-hidden" value="" placeholder="<%:Type CDN URL, Format Like%> https://ghfast.top/">
+                    <div class="select-option oc-hidden" id="addCustomOption"><%:Add%></div>
+                </div>
+                <div class="addr-list-loading oc-hidden" id="addr-list-loading">
+                    <div class="loading-spinner"></div>
+                </div>
+            </div>
+            <div class="select-popup-footer" id="select-popup-footer">
+                <div class="form-select-wrapper">
+                    <select class="select-class" id="BACKUP_SELECT">
+                        <option value="backup"><%:Backup File%></option>
+                        <option value="backup_ex_core"><%:Backup Exclude Cores%></option>
+                        <option value="backup_only_core"><%:Backup Core%></option>
+                        <option value="backup_only_config"><%:Backup Config%></option>
+                        <option value="backup_only_rule"><%:Backup Rule Provider%></option>
+                        <option value="backup_only_proxy"><%:Backup Proxy Provider%></option>
+                    </select>
+                </div>
+                <button type="button" class="footer-btn" onclick="return backup_file(this)">
+                    <svg width="14" height="14"><use href="#oc-icon-download"/></svg>
+                    <span><%:Backup File%></span>
+                </button>
+                <button type="button" class="footer-btn" onclick="return restore_config(this)">
+                    <svg width="14" height="14"><use href="#oc-icon-history"/></svg>
+                    <span><%:Restore Default%></span>
+                </button>
+                <button type="button" class="footer-btn" onclick="return remove_all_core(this)">
+                    <svg width="14" height="14"><use href="#oc-icon-trash"/></svg>
+                    <span><%:Remove Core%></span>
+                </button>
+            </div>
+            <div class="select-popup-status-bar">
+                <div class="select-popup-status" id="addr-list-status"><%:Fetching data...%></div>
+                <div class="select-popup-tip"><%:Click%> <b><%:link%></b> <%:to update all, click%> <b><%:version%></b> <%:to update individually%></div>
+            </div>
+        </div>
+    </div>
+
+<script src="/luci-static/resources/openclash/js/oc-icons.js?v=@OPENCLASH_VERSION@"></script>
+<script>
+ocLazyScriptOnView(document.getElementById('selectPopup'), '/cgi-bin/luci/admin/services/openclash/translate_js?f=update&v=@OPENCLASH_VERSION@&l=<%=luci.i18n.context.lang%>', '/luci-static/resources/openclash/css/oc-update.css?v=@OPENCLASH_VERSION@');
+</script>

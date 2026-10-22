@@ -1,0 +1,65 @@
+{
+  "collected_utc": "2026-10-22T15:49:06.3900567Z",
+  "reference_resolution": "git ls-remote exact refs",
+  "files": [
+    {
+      "repository": "https://github.com/XTLS/Xray-core.git",
+      "ref": "v26.10.21",
+      "commit": "1b1647cd9ddf0abc34b981d4611fc03bcac1ca74",
+      "source_path": "go.mod",
+      "url": "https://raw.githubusercontent.com/XTLS/Xray-core/1b1647cd9ddf0abc34b981d4611fc03bcac1ca74/go.mod",
+      "sha256": "7034fa6ca85b9919e634c06c69bde4e181818d8423f7c8d0e44f68ea5c6f5e60",
+      "evidence": [
+        {
+          "text": "go 1.27",
+          "line": 3
+        }
+      ]
+    },
+    {
+      "repository": "https://github.com/sbwml/packages_lang_golang.git",
+      "ref": "26.x",
+      "commit": "14667de14cbe22e0ed379de8b373dce4f04a4cab",
+      "source_path": "golang/Makefile",
+      "url": "https://raw.githubusercontent.com/sbwml/packages_lang_golang/14667de14cbe22e0ed379de8b373dce4f04a4cab/golang/Makefile",
+      "sha256": "4a43deb7f657b89398c084a32b05bd9fb630332b5258617fd0a5ebb37d284d78",
+      "evidence": [
+        {
+          "text": "GO_VERSION_MAJOR_MINOR:=1.26",
+          "line": 10
+        },
+        {
+          "text": "GO_VERSION_PATCH:=10",
+          "line": 11
+        },
+        {
+          "text": "\tGOENV=off \\",
+          "line": 216
+        },
+        {
+          "text": "\tGOENV=off \\",
+          "line": 282
+        }
+      ]
+    },
+    {
+      "repository": "https://github.com/sbwml/packages_lang_golang.git",
+      "ref": "26.x",
+      "commit": "14667de14cbe22e0ed379de8b373dce4f04a4cab",
+      "source_path": "golang-package.mk",
+      "url": "https://raw.githubusercontent.com/sbwml/packages_lang_golang/14667de14cbe22e0ed379de8b373dce4f04a4cab/golang-package.mk",
+      "sha256": "e65dd807c90c1b273ba1dab65f8442ecddedbc814ea3cb3c4fda7b17410beffd",
+      "evidence": [
+        {
+          "text": "\tGOENV=off \\",
+          "line": 218
+        },
+        {
+          "text": "\tGOTOOLCHAIN=local",
+          "line": 219
+        }
+      ]
+    }
+  ],
+  "purpose": "Fixed external source references and checked excerpts; full external projects are not vendored."
+}

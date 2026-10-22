@@ -1,0 +1,60 @@
+{
+  "schema_version": 1,
+  "reviewed_on": "2026-10-22",
+  "package": "xray-core",
+  "reason": "Both reviewed Passwall generators require Xray >= 26.7.11; the current small-package recipe supplies 26.3.27.",
+  "recipe_source": {
+    "repository": "https://github.com/kenzok8/small-package.git",
+    "commit": "3d5609257639ed76aaacdeffe242343d51265fea",
+    "path": "xray-core/Makefile",
+    "before_git_blob": "481e0342987bde364588e00ec716c1f23a250512",
+    "after_git_blob": "db6c4e40dfab436721c23e93f9b65d744d0636b3",
+    "before_version": "26.3.27",
+    "before_source_sha256": "992a4997e6bb846d11469435d687f99ef812fcde1e0a009bb8e95189ea20331d",
+    "patch": "xray-core-26.7.11.patch",
+    "source_url_template_unchanged": "https://codeload.github.com/XTLS/Xray-core/tar.gz/v$(PKG_VERSION)?"
+  },
+  "core_source": {
+    "repository": "https://github.com/XTLS/Xray-core.git",
+    "version": "26.7.11",
+    "tag": "v26.7.11",
+    "commit": "50231eaff98ccc31b5cbd247a721c16e97fe5ec1",
+    "release_api": "https://api.github.com/repos/XTLS/Xray-core/releases/tags/v26.7.11",
+    "release_url": "https://github.com/XTLS/Xray-core/releases/tag/v26.7.11",
+    "published_at": "2026-07-11T15:56:30Z",
+    "official_prerelease": true,
+    "selection_note": "Minimum version required by the generators. At review time no official non-prerelease release at or above this minimum existed; this is not described as a stable release.",
+    "archive_url": "https://codeload.github.com/XTLS/Xray-core/tar.gz/v26.7.11?",
+    "archive_sha256": "7c191254c0d8cc8be7673904739fc7329b601947da5377ef85900a0cd0a85e23",
+    "go_mod_requirement": "1.26",
+    "go_mod_sha256": "ff041ce82452fcd6c41fb7c3df31439842a7c4d15e94fcd668e3f59e64d99ac8"
+  },
+  "reviewed_generators": [
+    {
+      "repository": "https://github.com/Openwrt-Passwall/openwrt-passwall.git",
+      "commit": "7cdb8379d42866af93d996d5afb7d5b2b18eb061",
+      "path": "luci-app-passwall/luasrc/passwall/util_xray.lua",
+      "minimum_xray_version": "26.7.11"
+    },
+    {
+      "repository": "https://github.com/Openwrt-Passwall/openwrt-passwall2.git",
+      "commit": "896c586a27c9a7c0b9e3d75b631965dea86b9945",
+      "path": "luci-app-passwall2/luasrc/passwall2/util_xray.lua",
+      "minimum_xray_version": "26.7.11"
+    }
+  ],
+  "reviewed_go_recipe": {
+    "repository": "https://github.com/sbwml/packages_lang_golang.git",
+    "branch": "26.x",
+    "commit": "14667de14cbe22e0ed379de8b373dce4f04a4cab",
+    "path": "golang/Makefile",
+    "version": "1.26.10",
+    "sha256": "4a43deb7f657b89398c084a32b05bd9fb630332b5258617fd0a5ebb37d284d78"
+  },
+  "validation_scope": [
+    "Official tag, release metadata, archive SHA256 and archive go.mod inspected.",
+    "Original recipe source URL, dependencies, flags and install rules preserved.",
+    "Build helper rechecks fetched generator minimums and fetched Go major/minor before publishing the recipe.",
+    "No firmware cross-compilation or live router traffic is established by this receipt."
+  ]
+}

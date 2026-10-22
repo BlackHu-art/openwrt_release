@@ -1,0 +1,82 @@
+<div class="oc">
+    <div class="config-editor-model-overlay" id="config-editor-overlay">
+        <div class="config-editor-model" id="config-editor-model" role="dialog" aria-modal="true" aria-labelledby="editTitle">
+            <div class="config-editor-header">
+                <div class="config-editor-title">
+                    <span id="editTitle"><%:File Edit%>: </span>
+                    <span class="config-file-name" id="config-file-name"><%:Loading...%></span>
+                </div>
+                <div class="config-editor-actions">
+                    <button type="button" class="icon-btn oc-hidden" id="config-editor-layout" title="<%:Compare%>" aria-label="<%:Compare%>">
+                        <svg width="14" height="14"><use href="#oc-icon-compare"/></svg>
+                    </button>
+                    <button type="button" class="icon-btn" id="config-editor-download" title="<%:Download%>" aria-label="<%:Download%>">
+                        <svg width="14" height="14"><use href="#oc-icon-download"/></svg>
+                    </button>
+                    <button type="button" class="icon-btn" id="config-editor-save" title="<%:Save%>" aria-label="<%:Save%>">
+                        <svg width="14" height="14"><use href="#oc-icon-save"/></svg>
+                    </button>
+                    <button type="button" class="icon-btn" id="config-editor-close" title="<%:Close%>" aria-label="<%:Close%>">
+                        <svg width="14" height="14"><use href="#oc-icon-close"/></svg>
+                    </button>
+                </div>
+            </div>
+
+            <div id="overwrite-banner" class="overwrite-banner oc-hidden">
+                <svg class="oc-svg-inline" width="20" height="20"><use href="#oc-icon-alert-circle"/></svg>
+                <span>
+                    <%:You are editing the overwrite script, please note that some settings may cause the abnormal, be careful with the modification!%>
+                </span>
+            </div>
+
+            <div id="config-mode-tabs" class="oc-hidden">
+                <div class="mode-tabs">
+                    <button type="button" class="mode-tab active" id="tab-original-config" data-mode="original">
+                        <svg width="16" height="16"><use href="#oc-icon-list"/></svg>
+                        <span><%:Original Config%></span>
+                    </button>
+                    <button type="button" class="mode-tab" id="tab-runtime-config" data-mode="runtime">
+                        <svg width="16" height="16"><use href="#oc-icon-zap"/></svg>
+                        <span><%:Runtime Config%></span>
+                    </button>
+                </div>
+            </div>
+
+            <div class="config-editor-body" id="config-editor-body">
+                <aside class="overwrite-side oc-hidden" id="overwrite-side-panel">
+                    <div class="overwrite-side-head">
+                        <span class="overwrite-side-title"><%:Modules%></span>
+                        <span class="overwrite-side-count" id="overwrite-side-count"></span>
+                        <button type="button" class="icon-btn" id="overwrite-side-toggle" title="<%:Collapse%>">
+                            <svg width="14" height="14"><use href="#oc-icon-sidebar"/></svg>
+                        </button>
+                    </div>
+                    <div class="overwrite-side-body" id="overwrite-side-list"></div>
+                    <div class="overwrite-side-foot">
+                        <button type="button" class="footer-btn" id="overwrite-new-file">
+                            <svg width="14" height="14"><use href="#oc-icon-add"/></svg>
+                            <span><%:New Module%></span>
+                        </button>
+                    </div>
+                </aside>
+                <div class="config-editor-content">
+                    <textarea id="config-editor-textarea" class="oc-hidden"></textarea>
+                    <div id="config-mergeview-container" class="oc-hidden" style="width:100%;height:100%;"></div>
+                </div>
+            </div>
+
+            <div class="config-editor-footer">
+                <div class="config-editor-status">
+                    <span id="config-editor-status-text"><%:Ready%></span>
+                </div>
+                <div class="config-editor-help">
+                    <span id="config-editor-help"></span>
+                </div>
+                <div class="config-editor-resize-handle" id="config-editor-resize-handle"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="/cgi-bin/luci/admin/services/openclash/translate_js?f=common&v=@OPENCLASH_VERSION@&l=<%=luci.i18n.context.lang%>"></script>
+<script src="/luci-static/resources/openclash/js/oc-icons.js?v=@OPENCLASH_VERSION@"></script>
