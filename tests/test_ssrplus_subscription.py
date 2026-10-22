@@ -17,7 +17,7 @@ import shutil
 import subprocess
 import tempfile
 import unittest
-from urllib.parse import quote_plus
+from urllib.parse import parse_qsl, quote_plus, urlsplit
 
 try:
     from lupa.lua51 import LuaRuntime
@@ -88,6 +88,7 @@ class SubscriptionRegressions(unittest.TestCase):
         self.scratch = []
         self.fail_add = False
         self.identifier = 0
+        self.installed_cores = {"sslocal"}
 
     def to_python(self, value):
         if hasattr(value, "items"):
@@ -103,7 +104,10 @@ class SubscriptionRegressions(unittest.TestCase):
     def shell_exec(self, command):
         self.commands.append(command)
         if command.startswith("type -t -p "):
-            return "/usr/bin/sslocal\n" if "sslocal" in command else ""
+            for binary in re.findall(r"type -t -p ([\w-]+)", command):
+                if binary in self.installed_cores:
+                    return "/usr/bin/" + binary + "\n"
+            return ""
         if command == "mktemp -d /tmp/ssr-subscribe.XXXXXX":
             path = f"/tmp/ssr-subscribe.T{len(self.scratch) + 1:05d}"
             self.scratch.append(path)
@@ -247,7 +251,17 @@ class SubscriptionRegressions(unittest.TestCase):
         def exit_script(code=0):
             raise ScriptExit(code)
 
+        def parse_url(value):
+            # URL is an unavailable module boundary, not subscriber logic.
+            # Preserve ordinary URL components and decoded query parameters.
+            parsed = urlsplit(value)
+            return lua_value({"scheme": parsed.scheme, "host": parsed.hostname,
+                              "port": parsed.port, "user": parsed.username,
+                              "password": parsed.password, "fragment": parsed.fragment,
+                              "query": dict(parse_qsl(parsed.query, keep_blank_values=True))})
+
         g.py_exec, g.py_call = self.shell_exec, self.shell_call
+        g.py_url_parse = parse_url
         g.py_json_parse = json_parse
         g.py_json_stringify = lambda value: json.dumps(self.to_python(value), sort_keys=True, separators=(",", ":"))
         g.py_b64decode, g.py_b64encode = decode, lambda value: base64.b64encode(value.encode()).decode()
@@ -295,7 +309,7 @@ for _, module in ipairs({"luci.sys", "luci.jsonc", "luci.model.uci", "nixio"}) d
         (module == "luci.sys" and luci.sys or (module == "luci.jsonc" and luci.jsonc or luci.model.uci)) end
 end
 package.preload["luci.util"] = function() return {} end
-package.preload["url"] = function() return {parse=function() error("unexpected URL parser path") end} end
+package.preload["url"] = function() return {parse=function(s) return py_url_parse(s) end} end
 os.exit = function(code) py_exit(code or 0) end
 print = function(value) py_log(value) end
 ''')

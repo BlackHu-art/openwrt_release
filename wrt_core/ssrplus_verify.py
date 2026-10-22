@@ -161,7 +161,7 @@ def ar_entries(data):
 def package_identity(name, version, expected_version):
     if name != PACKAGE_NAME:
         raise VerificationError("wrong compiled package name: " + str(name))
-    # opkg uses 190-6 while apk uses 190-r6 for the same recipe release.
+    # opkg uses 190-7 while apk uses 190-r7 for the same recipe release.
     normalize = lambda value: re.sub(r"-r([0-9]+)$", r"-\1", str(value))
     if normalize(version) != normalize(expected_version):
         raise VerificationError(f"compiled package version mismatch: expected {expected_version}, got {version}")

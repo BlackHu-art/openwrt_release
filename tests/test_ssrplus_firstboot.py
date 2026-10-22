@@ -5,14 +5,19 @@ All ordered patches are applied to blob-checked upstream fixtures. Only fixed
 system paths and unavailable UCI/service OS boundaries are substituted. Linux
 executes real /bin/sh and flock; Windows uses Git sh and optional native flock.
 """
+import base64
 import hashlib
 import os
 from pathlib import Path
 import re
 import shutil
 import subprocess
+import sys
 import tempfile
 import unittest
+
+from ssrplus_firstboot_uci import read_config
+import test_ssrplus_subscription as subscriptions
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -54,6 +59,8 @@ class FirstbootTests(unittest.TestCase):
         self.environment = os.environ.copy()
         self.environment["MSYS_NO_PATHCONV"] = "1"
         self.environment["TEST_ROOT"] = self.base.as_posix()
+        self.environment["TEST_HOST_ROOT"] = str(self.base)
+        self.environment["TEST_PYTHON"] = sys.executable
         if os.name == "nt":
             self.environment["TEST_ROOT"] = subprocess.check_output(
                 [SHELL, "--noprofile", "--norc", "-c", 'cygpath -u "$1"', "path", str(self.base)],
@@ -90,62 +97,11 @@ nft() { forbidden nft; }; iptables() { forbidden iptables; }
 ip() { forbidden ip; }; killall() { forbidden killall; }
 curl() { forbidden curl; }; ssh() { forbidden ssh; }
 ''')
-        # UCI itself is an OS dependency unavailable on the test host. This
-        # boundary checks section-bearing syntax and records migration calls.
-        # Named package lookup models UCI's runtime overrides/saved deltas;
-        # absolute lookup reads the exact candidate and bypasses those paths.
-        # It does not implement installation, locking, or failure handling.
-        self.write("bin/uci", r'''#!/bin/sh
-printf '%s\n' "$*" >> "$TEST_ROOT/uci-calls"
-directory=
-while [ "$#" -gt 0 ]; do
-    case "$1" in
-        -q) shift ;;
-        -c) directory=$2; shift 2 ;;
-        *) break ;;
-    esac
-done
-case "$1" in
-    batch) cat >> "$TEST_ROOT/uci-batch"; exit 0 ;;
-    get)
-        [ "${FAIL_UCI:-0}" != 1 ] || exit 1
-        case "$2" in
-            /*)
-                candidate=${2%'.@global[0]'}
-                [ "$candidate" != "$2" ] || exit 1
-                relative=${candidate#"$TEST_ROOT/fs/etc/config/"}
-                [ "$relative" != "$candidate" ] || exit 1
-                # UCI splits tuples at dots. Check the production stage path
-                # after removing the relocated host prefix, which may have dots.
-                case "$relative" in ssrplus-init-*/shadowsocksr) :;; *) exit 1;; esac
-                stage_name=${relative%/shadowsocksr}
-                case "$stage_name" in *.*|*/*) exit 1;; esac
-                printf '%s\n' "$candidate" >> "$TEST_ROOT/uci-validation-files"
-                ;;
-            'shadowsocksr.@global[0]')
-                [ -n "$directory" ] || exit 1
-                candidate="$directory/shadowsocksr"
-                if [ -f "$TEST_ROOT/fs/var/run/uci/shadowsocksr" ]; then
-                    candidate="$TEST_ROOT/fs/var/run/uci/shadowsocksr"
-                fi
-                # A saved delta can add a global section to a named package.
-                if [ -s "$TEST_ROOT/fs/tmp/.uci/shadowsocksr" ]; then
-                    printf 'global\n'; exit 0
-                fi
-                ;;
-            *) exit 1 ;;
-        esac
-        awk '
-            /^[ \t]*($|#)/ { next }
-            $1 == "config" && NF >= 2 && NF <= 3 { if ($2 == "global") global=1; next }
-            ($1 == "option" || $1 == "list") && NF >= 3 { next }
-            { bad=1 }
-            END { exit !(global && !bad) }
-        ' "$candidate" || exit 1
-        printf 'global\n' ;;
-    *) exit 0 ;;
-esac
-''', executable=True)
+        # Only the unavailable UCI executable is substituted. Its migrations
+        # mutate pending state and commit the actual file read by sed and Lua.
+        self.write("uci-boundary.py", (ROOT / "tests/ssrplus_firstboot_uci.py").read_text(encoding="utf-8"))
+        self.write("bin/uci", '#!/bin/sh\nexec "$TEST_PYTHON" "$TEST_HOST_ROOT/uci-boundary.py" "$@"\n',
+                   executable=True)
 
     def write(self, relative, text, executable=False):
         path = self.base / relative
@@ -312,39 +268,177 @@ test "$(wc -l < "$TEST_ROOT/copies")" = 1
                 self.assertEqual(self.config.stat().st_ino, before.st_ino)
                 self.assert_clean()
 
-    def test_real_defaults_hook_initializes_before_migrations_and_never_resets(self):
-        self.shell('"$TEST_ROOT/defaults.sh"')
-        self.assert_factory()
-        self.assertEqual(self.entries(), ["entry:initialize"])
-        calls = (self.base / "uci-calls").read_text()
-        self.assertIn("/shadowsocksr.@global[0]", calls)
-        self.assertIn("get shadowsocksr.@server_subscribe[0].auto_update_time", calls)
-        self.assertIn("commit shadowsocksr", calls)
+    def config_sections(self):
+        return read_config(self.config)
 
-    def test_real_defaults_hook_failure_exits_before_migrations_and_later_sed(self):
+    def first_section(self, section_type):
+        return next(values for values in self.config_sections().values() if values[".type"] == section_type)
+
+    def test_real_defaults_hook_fresh_missing_and_empty_keep_auto_core_values(self):
+        for empty in (False, True):
+            with self.subTest(empty=empty):
+                self.config.unlink(missing_ok=True)
+                if empty:
+                    self.shell('touch "$TEST_ROOT/fs/etc/config/shadowsocksr"; '
+                               'test ! -s "$TEST_ROOT/fs/etc/config/shadowsocksr"')
+                self.shell('"$TEST_ROOT/defaults.sh"')
+                values = self.first_section("server_subscribe")
+                self.assertNotIn("ss_type", values)
+                self.assertNotIn("xray_hy2_type", values)
+                self.assert_factory()
+        self.assertEqual(self.entries(), ["entry:initialize", "entry:initialize"])
+
+    def subscriber_from_hook(self, cores, query=""):
+        self.shell('"$TEST_ROOT/defaults.sh"')
+        case = subscriptions.SubscriptionRegressions()
+        case.setUp()
+        self.addCleanup(case.doCleanups)
+        # This is the actual post-hook file, not a template or hand-picked core
+        # preference. Keep every configuration value produced by the real hook.
+        case.sections = {("global" if values[".type"] == "global" else sid):
+                         {key: value for key, value in values.items() if key != ".anonymous"}
+                         for sid, values in self.config_sections().items()}
+        subscribe = next(values for values in case.sections.values() if values[".type"] == "server_subscribe")
+        subscribe.update(subscribe_url=[subscriptions.URL_A], filter_words="", proxy="0")
+        case.installed_cores = set(cores)
+        link = "ss://YWVzLTEyOC1nY206c2VjcmV0@subscription.example:443" + query + "#Order"
+        case.downloads[subscriptions.URL_A] = base64.b64encode(link.encode()).decode()
+        self.assertEqual(case.run_subscriber(), 0, case.logs)
+        return next(node for node in case.server_nodes().values() if node.get("server") == "subscription.example")
+
+    @unittest.skipUnless(subscriptions.LuaRuntime, "lupa.lua51 required for real subscriber")
+    def test_hook_values_select_available_libev_for_plain_ss(self):
+        node = self.subscriber_from_hook({"ss-redir"})
+        self.assertEqual(node["type"], "ss-libev")
+        self.assertEqual(node["encrypt_method_ss"], "aes-128-gcm")
+        self.assertEqual(node["password"], "secret")
+
+    @unittest.skipUnless(subscriptions.LuaRuntime, "lupa.lua51 required for real subscriber")
+    def test_hook_values_preserve_ss_websocket_transport_with_rust_and_xray(self):
+        node = self.subscriber_from_hook({"sslocal", "xray"},
+                                         "?type=ws&host=front.example&path=%2Fproxy")
+        self.assertEqual(node["type"], "v2ray")
+        self.assertEqual(node["v2ray_protocol"], "shadowsocks")
+        self.assertEqual(node["transport"], "ws")
+        self.assertEqual(node["ws_host"], "front.example")
+        self.assertEqual(node["ws_path"], "/proxy")
+        self.assertEqual(node["encrypt_method_ss"], "aes-128-gcm")
+        self.assertEqual(node["password"], "secret")
+
+    def test_real_defaults_hook_failure_stops_before_sed_and_can_retry(self):
         self.template.unlink()
         self.write("bin/sed", '#!/bin/sh\necho sed >> "$TEST_ROOT/later"\n', executable=True)
         result = self.shell('"$TEST_ROOT/defaults.sh"', check=False)
         self.assertNotEqual(result.returncode, 0)
         self.assertIn("SSR Plus: configuration initialization failed", result.stderr)
         self.assertEqual(self.entries(), ["entry:initialize"])
-        calls = (self.base / "uci-calls").read_text()
-        self.assertNotIn("get shadowsocksr.@server_subscribe", calls)
         self.assertFalse((self.base / "later").exists())
         self.assertEqual(self.config.read_bytes(), b"")
         self.assert_clean()
+        (self.base / "bin/sed").unlink()
+        self.template.write_bytes((FIXTURE / "shadowsocksr.config").read_bytes())
+        self.shell('"$TEST_ROOT/defaults.sh"')
+        self.assert_factory()
+        self.assertEqual(self.entries(), ["entry:initialize", "entry:initialize"])
 
-    def test_real_defaults_hook_preserves_existing_config_with_missing_template(self):
-        existing = b"config global\n option global_server 'user-node'\nconfig servers 'user-node'\n"
-        self.config.write_bytes(existing)
+    def test_real_defaults_hook_preserves_retained_values_and_rule_files_without_template(self):
+        self.config.write_text("""config global
+ option global_server 'user_node'
+config server_subscribe
+ option ss_type 'v2ray'
+ option xray_hy2_type 'v2ray'
+ option user_agent 'company-client'
+ option auto_update_week_time '3'
+config servers 'user_node'
+ option type 'v2ray'
+ option v2ray_protocol 'shadowsocks'
+ option server 'company.example'
+ option transport 'ws'
+ option ws_host 'front.company.example'
+ option ws_path '/custom'
+config access_control
+ list wan_fw_ips '192.0.2.0/24'
+ list wan_bp_ips '198.51.100.17'
+ option company_domain 'intranet.company.example'
+config global_xray_fragment
+ option fragment '1'
+ option noise '1'
+""", encoding="utf-8")
+        original = self.config_sections()
+        rules = {"white.list": b"intranet.company.example\n192.0.2.0/24\n",
+                 "black.list": b"proxy.company.example\n198.51.100.17\n"}
+        for name, data in rules.items():
+            (self.base / "fs/etc/ssrplus" / name).write_bytes(data)
         self.template.unlink()
         self.shell('"$TEST_ROOT/defaults.sh"')
-        self.assertEqual(self.config.read_bytes(), existing)
+        self.assertEqual(self.config_sections(), original)
+        for name, data in rules.items():
+            self.assertEqual((self.base / "fs/etc/ssrplus" / name).read_bytes(), data)
         self.assertEqual(self.entries(), ["entry:initialize"])
         self.assert_clean()
 
+    def test_real_defaults_hook_keeps_original_legacy_migrations_and_sed_conversions(self):
+        self.config.write_text("""config global
+ option global_server 'legacy_node'
+config server_subscribe
+ option auto_update_time '4'
+config servers 'legacy_node'
+ option type 'vmess'
+ option encrypt_method_v2ray_ss 'aes-128-gcm'
+ option xtls '1'
+ option vless_flow 'obsolete'
+ option fingerprint 'disable'
+ option server 'legacy.company.example'
+config servers 'legacy_vless'
+ option type 'vless'
+ option server 'vless.company.example'
+config access_control
+ list wan_fw_ips '192.0.2.0/24'
+""", encoding="utf-8")
+        self.template.unlink()
+        self.shell('"$TEST_ROOT/defaults.sh"')
+        subscribe = self.first_section("server_subscribe")
+        self.assertNotIn("auto_update_time", subscribe)
+        self.assertEqual({key: value for key, value in subscribe.items() if not key.startswith(".")},
+                         {"auto_update_week_time": "*", "auto_update_day_time": "2",
+                          "auto_update_min_time": "0", "ss_type": "ss-rust",
+                          "user_agent": "v2rayN/9.99", "xray_hy2_type": "hysteria2"})
+        sections = self.config_sections()
+        self.assertEqual(sections["legacy_node"], {".type": "servers", ".anonymous": False,
+                         "type": "v2ray", "v2ray_protocol": "vmess", "encrypt_method_ss": "aes-128-gcm",
+                         "tls": "1", "server": "legacy.company.example"})
+        self.assertEqual(sections["legacy_vless"]["type"], "v2ray")
+        self.assertEqual(sections["legacy_vless"]["v2ray_protocol"], "vless")
+        self.assertEqual(self.first_section("global_xray_fragment")["fragment"], "0")
+        self.assertEqual(self.first_section("global_xray_fragment")["noise"], "0")
+        self.assertEqual(self.first_section("access_control")["wan_fw_ips"], ["192.0.2.0/24"])
+        self.assertEqual(self.first_section("global")["global_server"], "legacy_node")
+        self.assert_clean()
+
+    def test_retained_empty_auto_and_custom_preferences_are_not_missing_options(self):
+        for preference in ("", "auto", "company-core"):
+            with self.subTest(preference=preference):
+                self.config.write_text("config global\n option global_server 'nil'\n"
+                                       "config server_subscribe\n option ss_type '" + preference + "'\n"
+                                       " option xray_hy2_type '" + preference + "'\n", encoding="utf-8")
+                self.shell('"$TEST_ROOT/defaults.sh"')
+                subscribe = self.first_section("server_subscribe")
+                self.assertEqual(subscribe["ss_type"], preference)
+                self.assertEqual(subscribe["xray_hy2_type"], preference)
+                self.assertEqual(len([value for value in self.config_sections().values()
+                                      if value[".type"] == "global_xray_fragment"]), 1)
+        self.assert_clean()
+
+    def test_real_defaults_hook_does_not_factory_replace_malformed_nonempty_configuration(self):
+        original = b"user-owned malformed configuration\n"
+        self.config.write_bytes(original)
+        self.template.unlink()
+        self.shell('"$TEST_ROOT/defaults.sh"')
+        self.assertEqual(self.config.read_bytes(), original)
+        self.assert_clean()
+
     def test_explicit_reset_keeps_stop_failure_protection(self):
-        original = b"config global\n option global_server 'user-node'\n"
+        original = b"config global\n option global_server 'user_node'\n"
         self.config.write_bytes(original)
         result = self.shell("reset", check=False)
         self.assertNotEqual(result.returncode, 0)

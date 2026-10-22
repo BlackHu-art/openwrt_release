@@ -30,8 +30,10 @@ semantics require the separate runtime harness.
 
 All eight subsets of the three legacy startup/DNS/persistence patches and the
 complete dependent repair set must converge to the same package, versioned
-`190-r6`. Complete r4/r5 sources with their original nine-target manifests
-also upgrade to the eleven-target r6 manifest. The build gate reverses complete patches only in
+`190-r7`. Complete r4/r5 sources retain their original nine-target manifests;
+r6 sources retain fourteen patch hashes and eleven targets, including the
+0644 template. All upgrade to the eleven-target r7 manifest and prepare twice
+without drift. The build gate reverses complete patches only in
 an isolated copy, then compares the original Git blobs before writing any feed
 source. Unknown changes outside patch context, incomplete patches, a missing
 runtime source, and a changed installed runtime helper are rejected. Tests also
@@ -40,7 +42,7 @@ The installed `root/usr/share/shadowsocksr/ssrp-runtime.sh` must be byte-identic
 to `wrt_core/compat/ssrplus/runtime.sh`.
 
 The full eleven-file baseline is recorded in
-`wrt_core/compat/ssrplus/source-files.tsv`; the ordered fourteen-patch repair set is
+`wrt_core/compat/ssrplus/source-files.tsv`; the ordered sixteen-patch repair set is
 `wrt_core/compat/ssrplus/patches.list`. Additional unchanged fixtures cover
 `subscribe.lua`, `ssr-monitor`, `ssr-switch`, and `ssrplusupdate.sh`; the reviewed
 `ssr-rules` fixture is in the adjacent `ssrplus-persistence/` directory.
@@ -48,7 +50,16 @@ The full eleven-file baseline is recorded in
 The new firstboot harness executes the actual patched init and uci-defaults in
 an isolated filesystem. Missing/empty configurations must receive the reviewed
 default CBI sections without invoking service cleanup; nonempty configurations
-skip default installation. The initializer and immutable template are protected
+skip default installation while receiving the original upstream migrations.
+The focused UCI executable boundary implements the hook's get/set/delete/add
+and commit effects on the actual config file, followed by the real sed commands.
+Final hook values feed the actual subscriber in Lua 5.1 with isolated downloads,
+installed-core discovery and a normal URL-parser boundary. Fresh preferences
+remain unset; libev-only ordinary SS selects libev, while Rust+Xray WebSocket SS
+keeps its Xray transport, host and path. Retained nodes, preferences, domain/IP
+rules and rule-file bytes survive; failed initialization can retry. These checks
+do not execute native target UCI or its package manager.
+The initializer and immutable template are protected
 in source and artifact checks, with installed modes0755 and0644 respectively.
 The mutable active configuration is deliberately not hashed as an artifact.
 

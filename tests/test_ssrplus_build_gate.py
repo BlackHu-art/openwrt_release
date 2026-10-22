@@ -37,7 +37,7 @@ class BuildGate(unittest.TestCase):
         (self.base / ".config").write_text("\n".join(lines) + "\n", encoding="utf-8")
 
     def prepare_artifacts(self):
-        target = self.base / "bin/packages/test/luci/luci-app-ssr-plus_190-6_all.ipk"
+        target = self.base / "bin/packages/test/luci/luci-app-ssr-plus_190-7_all.ipk"
         target.parent.mkdir(parents=True)
         self.case.make_package().replace(target)
         expected = self.base / "feeds/custom_feed/luci-app-ssr-plus/root" / artifacts.MANIFEST_TARGET
@@ -72,7 +72,7 @@ class BuildGate(unittest.TestCase):
 
     def test_compiled_module_package_verified_without_requiring_rootfs_install(self):
         self.config()
-        target = self.base / "bin/packages/test/luci/luci-app-ssr-plus_190-6_all.ipk"
+        target = self.base / "bin/packages/test/luci/luci-app-ssr-plus_190-7_all.ipk"
         target.parent.mkdir(parents=True)
         self.case.make_package().replace(target)
         expected = self.base / "feeds/custom_feed/luci-app-ssr-plus/root" / artifacts.MANIFEST_TARGET
@@ -83,7 +83,7 @@ class BuildGate(unittest.TestCase):
 
     def test_selected_rootfs_package_cannot_pass_without_final_rootfs(self):
         self.config(selected="y")
-        target = self.base / "bin/packages/test/luci/luci-app-ssr-plus_190-6_all.ipk"
+        target = self.base / "bin/packages/test/luci/luci-app-ssr-plus_190-7_all.ipk"
         target.parent.mkdir(parents=True)
         self.case.make_package().replace(target)
         expected = self.base / "feeds/custom_feed/luci-app-ssr-plus/root" / artifacts.MANIFEST_TARGET
@@ -180,7 +180,7 @@ class BuildGate(unittest.TestCase):
         root = self.base / "build_dir/target-fixture/linux-qualcommax_ipq60xx/target-dir-deadbeef"
         status = root / "usr/lib/opkg/status"
         status.parent.mkdir(parents=True)
-        status.write_text("Package: luci-app-ssr-plus\nVersion: 190-6\n", encoding="utf-8")
+        status.write_text("Package: luci-app-ssr-plus\nVersion: 190-7\n", encoding="utf-8")
         result = self.shell("verify_ssrplus_built_artifacts")
         self.assertNotEqual(result.returncode, 0, result.stdout + result.stderr)
 

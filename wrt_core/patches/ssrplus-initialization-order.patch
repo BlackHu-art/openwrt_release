@@ -1,0 +1,33 @@
+Subject: SSR Plus: initialize defaults outside existing-config migrations
+
+Run the checked initializer at the former reset position. Fresh defaults keep
+automatic subscription core selection; retained configuration keeps upstream
+migrations before initialization and the existing sed conversions afterwards.
+
+diff --git a/root/etc/uci-defaults/luci-ssr-plus b/root/etc/uci-defaults/luci-ssr-plus
+--- a/root/etc/uci-defaults/luci-ssr-plus
++++ b/root/etc/uci-defaults/luci-ssr-plus
+@@ -31,11 +31,6 @@ touch /etc/ssrplus/oversea_list.conf
+ touch /etc/ssrplus/ad.conf
+ touch /etc/config/shadowsocksr
+ 
+-/etc/init.d/shadowsocksr initialize || {
+-    echo 'SSR Plus: configuration initialization failed' >&2
+-    exit 1
+-}
+-
+ if [ -s "/etc/config/shadowsocksr" ]; then
+     if uci -q get shadowsocksr.@server_subscribe[0].auto_update_time > /dev/null; then
+         uci -q delete shadowsocksr.@server_subscribe[0].auto_update_time
+@@ -68,6 +63,11 @@ if [ -s "/etc/config/shadowsocksr" ]; then
+     uci -q commit shadowsocksr
+ fi
+ 
++/etc/init.d/shadowsocksr initialize || {
++    echo 'SSR Plus: configuration initialization failed' >&2
++    exit 1
++}
++
+ sed -i "s/option type 'vmess'/option type 'v2ray'\n\toption v2ray_protocol 'vmess'/g" /etc/config/shadowsocksr
+ sed -i "s/option type 'vless'/option type 'v2ray'\n\toption v2ray_protocol 'vless'/g" /etc/config/shadowsocksr
+ sed -i "s/option encrypt_method_v2ray_ss/option encrypt_method_ss/g" /etc/config/shadowsocksr

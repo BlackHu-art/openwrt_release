@@ -12,9 +12,9 @@
 
 `wrt_core/modules/custom_feed.sh` 从 `fw876/helloworld` 的 **master** 获取包。
 `wrt_core/update.sh` 的 `stage_pre_install_source_fixes` 在 feeds install 前调用
-`fix_ssrplus_compat`，按 `wrt_core/compat/ssrplus/patches.list` 应用十四份补丁。
-原有十二份保持不变，随后追加首次初始化修复及单独的版本标记补丁。
-完整旧 `190-r4`/`190-r5` 源码及其原始构建清单也会重新验证并升级。
+`fix_ssrplus_compat`，按 `wrt_core/compat/ssrplus/patches.list` 应用十六份补丁。
+原有十四份保持不变，随后追加初始化顺序修复及单独的版本标记补丁。
+完整旧 `190-r4`/`190-r5`/`190-r6` 源码及其原始构建清单也会重新验证并升级。
 
 - 回移 [b791299](https://github.com/fw876/helloworld/commit/b791299f2859c0bbd9ebea48af17dea8a30fdae9)：
   nft GFW 模式下将 DNS 上游 IPv4 地址加入已有 `inet ss_spec gfwlist`，
@@ -23,7 +23,8 @@
 - 回移 [356dd51](https://github.com/fw876/helloworld/commit/356dd51f880da55544e7601a0a3773acaf6fd76f)：
   自定义代理端口从 global 配置读取。
 - 首次配置生成与运行时 reset 分离，空配置不再依赖停服务及规则清理；已有非空配置跳过默认值安装，保留上游兼容迁移。
-- 包版本为 `190-6`，内嵌修复标识为 `190-r6`。构建清单包含全部补丁和
+- 初始化在旧配置迁移之后、原有 sed 转换之前执行；新配置保留自动核心选择，SS WebSocket 链接保留 Xray 传输参数。
+- 包版本为 `190-7`，内嵌修复标识为 `190-r7`。构建清单包含全部补丁和
   受保护程序哈希；现有包与 rootfs 门禁继续校验实际成品。
 
 细节见 [SSR 兼容性说明](ssrplus-compatibility.md)。
@@ -63,6 +64,8 @@ feeds install 后，`wrt_core/modules/service_fixes.sh` 的 `update_adguardhome`
 标准固件构建及发布工作流继续依赖测试门禁。
 
 测试执行实际打补丁后的程序，下载、服务和外部网络边界在测试中替换。
+首次初始化测试通过限定的 UCI 边界提交实际配置，再由真实 sed 和 Lua 5.1
+订阅器处理，覆盖最终核心选择和 WebSocket 参数；这不替代目标 UCI 的验收。
 源码补丁支持重复执行，补丁或 SSR 源码校验不匹配时在写入前拒绝。Windows 本地验证不能
 替代 Linux 可执行权限及 nft/dnsmasq 检查；这些由 Linux CI 完成。
 以上不代表已完成完整固件交叉编译或路由器实机验收。

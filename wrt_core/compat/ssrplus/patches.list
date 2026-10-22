@@ -12,3 +12,5 @@ ssrplus-custom-ports.patch
 ssrplus-release-r5.patch
 ssrplus-firstboot.patch
 ssrplus-release-r6.patch
+ssrplus-initialization-order.patch
+ssrplus-release-r7.patch
