@@ -12,9 +12,9 @@
 
 `wrt_core/modules/custom_feed.sh` 从 `fw876/helloworld` 的 **master** 获取包。
 `wrt_core/update.sh` 的 `stage_pre_install_source_fixes` 在 feeds install 前调用
-`fix_ssrplus_compat`，按 `wrt_core/compat/ssrplus/patches.list` 应用十六份补丁。
-原有十四份保持不变，随后追加初始化顺序修复及单独的版本标记补丁。
-完整旧 `190-r4`/`190-r5`/`190-r6` 源码及其原始构建清单也会重新验证并升级。
+`fix_ssrplus_compat`，按 `wrt_core/compat/ssrplus/patches.list` 应用十九份补丁。
+原有十六份保持不变，随后追加 SS 自动选择迁移、订阅解析及单独的版本标记补丁。
+完整旧 `190-r4`/`190-r5`/`190-r6`/`190-r7` 源码及其原始构建清单也会重新验证并升级。
 
 - 回移 [b791299](https://github.com/fw876/helloworld/commit/b791299f2859c0bbd9ebea48af17dea8a30fdae9)：
   nft GFW 模式下将 DNS 上游 IPv4 地址加入已有 `inet ss_spec gfwlist`，
@@ -24,7 +24,10 @@
   自定义代理端口从 global 配置读取。
 - 首次配置生成与运行时 reset 分离，空配置不再依赖停服务及规则清理；已有非空配置跳过默认值安装，保留上游兼容迁移。
 - 初始化在旧配置迁移之后、原有 sed 转换之前执行；新配置保留自动核心选择，SS WebSocket 链接保留 Xray 传输参数。
-- 包版本为 `190-7`，内嵌修复标识为 `190-r7`。构建清单包含全部补丁和
+- 保留配置升级时，缺失的 SS 订阅核心偏好继续表示自动；已有显式偏好不改写，包括旧版本保存的 Rust。
+- 回移 [16617be](https://github.com/fw876/helloworld/commit/16617bee81157f68965994125b88ee74a822faa5) 的 SS 凭据解析修复，适配当前 master 的辅助函数；支持整串 Base64、SIP002 和明文凭据。
+- 已解码的 URL 查询参数直接写入传输字段，避免路径中的加号、百分号等被再次转换。
+- 包版本为 `190-8`，内嵌修复标识为 `190-r8`。构建清单包含全部补丁和
   受保护程序哈希；现有包与 rootfs 门禁继续校验实际成品。
 
 细节见 [SSR 兼容性说明](ssrplus-compatibility.md)。

@@ -14,3 +14,6 @@ ssrplus-firstboot.patch
 ssrplus-release-r6.patch
 ssrplus-initialization-order.patch
 ssrplus-release-r7.patch
+ssrplus-subscription-auto.patch
+ssrplus-ss-parser.patch
+ssrplus-release-r8.patch

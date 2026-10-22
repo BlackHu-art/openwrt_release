@@ -1,0 +1,20 @@
+Subject: SSR Plus: keep retained missing SS core preferences automatic
+
+Remove only the legacy migration that inserts Rust when ss_type is absent.
+An explicit empty/auto/Rust/libev/Xray/custom preference remains user-owned;
+all unrelated retained configuration migrations continue unchanged.
+
+diff --git a/root/etc/uci-defaults/luci-ssr-plus b/root/etc/uci-defaults/luci-ssr-plus
+--- a/root/etc/uci-defaults/luci-ssr-plus
++++ b/root/etc/uci-defaults/luci-ssr-plus
+@@ -42,10 +42,6 @@ if [ -s "/etc/config/shadowsocksr" ]; then
+         uci -q set shadowsocksr.@server_subscribe[0].auto_update_min_time='0'
+     fi
+ 
+-    if ! uci -q get shadowsocksr.@server_subscribe[0].ss_type > /dev/null; then
+-        uci -q set shadowsocksr.@server_subscribe[0].ss_type='ss-rust'
+-    fi
+-
+     if ! uci -q get shadowsocksr.@server_subscribe[0].user_agent > /dev/null; then
+         uci -q set shadowsocksr.@server_subscribe[0].user_agent='v2rayN/9.99'
+     fi

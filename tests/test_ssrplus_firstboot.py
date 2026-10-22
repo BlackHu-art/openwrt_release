@@ -401,7 +401,7 @@ config access_control
         self.assertNotIn("auto_update_time", subscribe)
         self.assertEqual({key: value for key, value in subscribe.items() if not key.startswith(".")},
                          {"auto_update_week_time": "*", "auto_update_day_time": "2",
-                          "auto_update_min_time": "0", "ss_type": "ss-rust",
+                          "auto_update_min_time": "0",
                           "user_agent": "v2rayN/9.99", "xray_hy2_type": "hysteria2"})
         sections = self.config_sections()
         self.assertEqual(sections["legacy_node"], {".type": "servers", ".anonymous": False,
@@ -416,7 +416,7 @@ config access_control
         self.assert_clean()
 
     def test_retained_empty_auto_and_custom_preferences_are_not_missing_options(self):
-        for preference in ("", "auto", "company-core"):
+        for preference in ("", "auto", "ss-rust", "ss-libev", "v2ray", "company-core"):
             with self.subTest(preference=preference):
                 self.config.write_text("config global\n option global_server 'nil'\n"
                                        "config server_subscribe\n option ss_type '" + preference + "'\n"
@@ -428,6 +428,32 @@ config access_control
                 self.assertEqual(len([value for value in self.config_sections().values()
                                       if value[".type"] == "global_xray_fragment"]), 1)
         self.assert_clean()
+
+    def test_retained_missing_ss_preference_remains_absent_after_repeated_hooks(self):
+        self.config.write_text("config global\n option global_server 'user_node'\n"
+                               "config server_subscribe\n option user_agent 'company-client'\n"
+                               "config servers 'user_node'\n option type 'ss-rust'\n"
+                               " option server 'company.example'\n", encoding="utf-8")
+        for _ in range(2):
+            self.shell('"$TEST_ROOT/defaults.sh"')
+            self.assertNotIn("ss_type", self.first_section("server_subscribe"))
+            self.assertEqual(self.first_section("server_subscribe")["user_agent"], "company-client")
+            self.assertEqual(self.first_section("global")["global_server"], "user_node")
+        self.assert_clean()
+
+    @unittest.skipUnless(subscriptions.LuaRuntime, "lupa.lua51 required for real subscriber")
+    def test_retained_missing_preference_selects_libev_and_xray_from_actual_hook(self):
+        for query, expected in (("", "ss-libev"), ("?type=ws&host=front.example&path=%2Fa%252Fb%2Bc+d", "v2ray")):
+            with self.subTest(query=query):
+                self.config.write_text("config global\n option global_server 'nil'\n"
+                                       "config server_subscribe\n option user_agent 'company-client'\n", encoding="utf-8")
+                self.shell('"$TEST_ROOT/defaults.sh"')
+                node = self.subscriber_from_hook({"ss-redir", "sslocal", "xray"} if query else {"ss-redir"}, query)
+                self.assertEqual(node["type"], expected)
+                self.assertNotIn("ss_type", self.first_section("server_subscribe"))
+                if query:
+                    self.assertEqual(node["ws_host"], "front.example")
+                    self.assertEqual(node["ws_path"], "/a%2Fb+c d")
 
     def test_real_defaults_hook_does_not_factory_replace_malformed_nonempty_configuration(self):
         original = b"user-owned malformed configuration\n"

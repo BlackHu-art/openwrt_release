@@ -7,6 +7,7 @@
 /tests/fixtures/ssrplus/2abdc9aa/shadowsocksr.config whitespace=-blank-at-eol,-blank-at-eof,-space-before-tab
 /tests/fixtures/ssrplus-persistence/** text eol=lf
 /tests/fixtures/ssrplus-persistence/2abdc9aa/** whitespace=-blank-at-eol,-space-before-tab
+/tests/fixtures/lua-neturl/** text eol=lf whitespace=-blank-at-eol,-space-before-tab
 /tests/*ssrplus* text eol=lf
 /tests/run_all.sh text eol=lf
 /tests/test_custom_feed_plugins.sh text eol=lf

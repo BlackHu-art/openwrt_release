@@ -8,6 +8,7 @@ Lifecycle calls observe committed configuration. Lupa is never auto-installed.
 """
 import base64
 import copy
+from functools import lru_cache
 import hashlib
 import json
 from pathlib import Path
@@ -17,7 +18,7 @@ import shutil
 import subprocess
 import tempfile
 import unittest
-from urllib.parse import parse_qsl, quote_plus, urlsplit
+from urllib.parse import quote, quote_plus
 
 try:
     from lupa.lua51 import LuaRuntime
@@ -27,6 +28,37 @@ except ImportError:
 ROOT = Path(__file__).resolve().parents[1]
 URL_A = "https://fixture.invalid/a"
 URL_B = "https://fixture.invalid/b"
+
+
+@lru_cache(maxsize=1)
+def neturl_source():
+    """Use the public package dependency, including its actual packaging patch."""
+    fixture = ROOT / "tests/fixtures/lua-neturl/v1.2-1"
+    checked = {"url.lua": "29f0914ee0f17df6a9cc90f8feb014dbd5075e4dc908ab77df6f610b02244d85",
+               "010-userinfo-regex.patch": "a11baa581ad2abbd47948d3150d2941e9c91874e7a25ed77c11317a120b3798c",
+               "LICENSE.txt": "07bfcfe585f4e8264630b1852a9bfcbd4b3cf3b393571de787c8ee6d3e97e5e7"}
+    for name, digest in checked.items():
+        if hashlib.sha256((fixture / name).read_bytes()).hexdigest() != digest:
+            raise AssertionError("public lua-neturl fixture changed: " + name)
+    with tempfile.TemporaryDirectory(prefix="ssrp-neturl-") as temporary:
+        target = Path(temporary) / "lib/net/url.lua"
+        target.parent.mkdir(parents=True)
+        target.write_bytes((fixture / "url.lua").read_bytes())
+        result = subprocess.run(["git", "-C", temporary, "init", "-q"],
+                                capture_output=True, text=True, timeout=30)
+        if result.returncode:
+            raise AssertionError(result.stderr)
+        result = subprocess.run(["git", "-c", "core.autocrlf=false", "-C", temporary,
+                                 "apply", str(fixture / "010-userinfo-regex.patch")],
+                                capture_output=True, text=True, timeout=30)
+        if result.returncode:
+            raise AssertionError(result.stderr)
+        result = subprocess.run(["git", "-c", "core.autocrlf=false", "-C", temporary,
+                                 "apply", "--reverse", "--check", str(fixture / "010-userinfo-regex.patch")],
+                                capture_output=True, text=True, timeout=30)
+        if result.returncode:
+            raise AssertionError("public lua-neturl packaging patch was not applied: " + result.stderr)
+        return target.read_text(encoding="utf-8")
 
 
 def group_hash(url):
@@ -54,8 +86,10 @@ class SubscriptionRegressions(unittest.TestCase):
         target = package / "root/usr/share/shadowsocksr/subscribe.lua"
         target.parent.mkdir(parents=True)
         shutil.copyfile(ROOT / "tests/fixtures/ssrplus/2abdc9aa/subscribe.lua", target)
-        patch = ROOT / "wrt_core/patches/ssrplus-subscription.patch"
-        if patch.exists():
+        for name in ("ssrplus-subscription.patch", "ssrplus-ss-parser.patch"):
+            patch = ROOT / "wrt_core/patches" / name
+            if not patch.exists():
+                continue
             for arguments in (("init", "-q"), ("apply", str(patch))):
                 result = subprocess.run(["git", "-C", str(package), *arguments],
                                         capture_output=True, text=True, timeout=30)
@@ -251,17 +285,8 @@ class SubscriptionRegressions(unittest.TestCase):
         def exit_script(code=0):
             raise ScriptExit(code)
 
-        def parse_url(value):
-            # URL is an unavailable module boundary, not subscriber logic.
-            # Preserve ordinary URL components and decoded query parameters.
-            parsed = urlsplit(value)
-            return lua_value({"scheme": parsed.scheme, "host": parsed.hostname,
-                              "port": parsed.port, "user": parsed.username,
-                              "password": parsed.password, "fragment": parsed.fragment,
-                              "query": dict(parse_qsl(parsed.query, keep_blank_values=True))})
-
         g.py_exec, g.py_call = self.shell_exec, self.shell_call
-        g.py_url_parse = parse_url
+        g.py_neturl_source = neturl_source()
         g.py_json_parse = json_parse
         g.py_json_stringify = lambda value: json.dumps(self.to_python(value), sort_keys=True, separators=(",", ":"))
         g.py_b64decode, g.py_b64encode = decode, lambda value: base64.b64encode(value.encode()).decode()
@@ -309,7 +334,7 @@ for _, module in ipairs({"luci.sys", "luci.jsonc", "luci.model.uci", "nixio"}) d
         (module == "luci.sys" and luci.sys or (module == "luci.jsonc" and luci.jsonc or luci.model.uci)) end
 end
 package.preload["luci.util"] = function() return {} end
-package.preload["url"] = function() return {parse=function(s) return py_url_parse(s) end} end
+package.preload["url"] = function() return assert(loadstring(py_neturl_source, "@lua-neturl/url.lua"))() end
 os.exit = function(code) py_exit(code or 0) end
 print = function(value) py_log(value) end
 ''')
@@ -318,6 +343,140 @@ print = function(value) py_log(value) end
             return 0
         except ScriptExit as result:
             return result.code
+
+    def node_from_link(self, link):
+        self.sections["subscribe"]["ss_type"] = "v2ray"
+        self.installed_cores = {"xray", "sslocal", "hysteria"}
+        self.downloads[URL_A] = base64.b64encode(link.encode()).decode()
+        self.files.pop("/tmp/sub_md5_" + group_hash(URL_A), None)
+        self.assertEqual(self.run_subscriber(), 0, self.logs)
+        return next(node for node in self.server_nodes().values()
+                    if node.get("grouphashkey") == group_hash(URL_A))
+
+    def test_xray_ss_credentials_accept_sip002_whole_base64_and_plain_userinfo(self):
+        password = "~~~p@ss:word+/%?#%2F+!"
+        credentials = "aes-256-gcm:" + password
+        whole = base64.b64encode((credentials + "@ss.example:443").encode()).decode()
+        sip002 = base64.b64encode(credentials.encode()).decode()
+        self.assertTrue(whole.endswith("="))
+        self.assertTrue(sip002.endswith("="))
+        self.assertIn("+", sip002)
+        encoded_plain = "aes-256-gcm:~~~p%40ss%3Aword+%2F%25%3F%23%252F%2B!"
+        cases = {"whole padded": whole, "whole unpadded": whole.rstrip("="),
+                 "SIP002 padded": sip002 + "@ss.example:443",
+                 "SIP002 unpadded": sip002.rstrip("=") + "@ss.example:443",
+                 "SIP002 URL safe": sip002.replace("+", "-").replace("/", "_").rstrip("=") + "@ss.example:443",
+                 "percent plain": encoded_plain + "@ss.example:443"}
+        for label, authority in cases.items():
+            with self.subTest(label=label):
+                node = self.node_from_link("ss://" + authority + "?type=ws&path=%2Fproxy#Encoded")
+                self.assertEqual(node["type"], "v2ray")
+                self.assertEqual(node["encrypt_method_ss"], "aes-256-gcm")
+                self.assertEqual(node["password"], password)
+                self.assertEqual(node["server"], "ss.example")
+                self.assertEqual(node["server_port"], 443)
+                self.assertEqual(node["ws_path"], "/proxy")
+        node = self.node_from_link("ss://aes-128-gcm:literal+plus:colon@ss.example:443#Plain")
+        self.assertEqual(node["password"], "literal+plus:colon")
+        node = self.node_from_link("ss://aes-128-gcm:p@ss+word@ss.example:443#LastAt")
+        self.assertEqual(node["password"], "p@ss+word")
+        self.assertEqual(node["server"], "ss.example")
+        node = self.node_from_link("ss://12345678-1234-1234-1234-123456789abc@ss.example:443?encryption=none&type=ws#UUID")
+        self.assertEqual(node["password"], "12345678-1234-1234-1234-123456789abc")
+        self.assertEqual(node["encrypt_method_ss"], "none")
+        node = self.node_from_link("ss://bm90LWEtcGFpcg==@ss.example:443?encryption=none&type=ws#Extension")
+        self.assertEqual(node["password"], "bm90LWEtcGFpcg==")
+        self.assertEqual(node["encrypt_method_ss"], "none")
+        for secret in ("AA==", "AAAA"):
+            with self.subTest(extension=secret):
+                node = self.node_from_link("ss://" + secret + "@ss.example:443?encryption=none&type=ws#Extension")
+                self.assertEqual(node["password"], secret)
+                self.assertEqual(node["encrypt_method_ss"], "none")
+
+    def test_malformed_xray_ss_group_preserves_nodes_and_allows_another_group(self):
+        self.sections["subscribe"]["ss_type"] = "v2ray"
+        self.installed_cores = {"xray"}
+        malformed = ("invalid", "@ss.example:443?type=ws", base64.b64encode(b"missing-separator").decode(),
+                     "aes-128-gcm:secret@ss.example", "aes-128-gcm:secret@:443",
+                     "aes-128-gcm:secret@ss.example:0", "aes-128-gcm:secret@ss.example:65536",
+                     base64.b64encode(b":password@ss.example:443").decode())
+        self.downloads[URL_A] = base64.b64encode("\n".join("ss://" + value for value in malformed).encode()).decode()
+        old_a = copy.deepcopy(self.sections["old_a"])
+        self.sections["subscribe"]["subscribe_url"] = [URL_A, URL_B]
+        self.assertNotEqual(self.run_subscriber(), 0)
+        self.assertEqual(self.sections["old_a"], old_a)
+        self.assertNotIn("old_b", self.sections)
+        self.assertNotIn("/tmp/sub_md5_" + group_hash(URL_A), self.files)
+        self.assertIn("/tmp/sub_md5_" + group_hash(URL_B), self.files)
+        self.assertFalse(any(node.get("grouphashkey") == group_hash(URL_A)
+                             for sid, node in self.server_nodes().items() if sid != "old_a"))
+
+    def test_ss_transport_query_fields_are_decoded_once_by_real_neturl(self):
+        for transport, field in (("ws", "ws"), ("httpupgrade", "httpupgrade"),
+                                 ("xhttp", "xhttp"), ("h2", "h2"), ("tcp", "tcp")):
+            with self.subTest(transport=transport):
+                node = self.node_from_link("ss://YWVzLTEyOC1nY206c2VjcmV0@ss.example:443?type=" + transport +
+                                           "&headerType=http&host=cdn%252F%2B.example&path=%2Fa%252Fb%2Bc+d#Transport")
+                self.assertEqual(node[field + "_path"], "/a%2Fb+c d")
+                self.assertEqual(node[field + "_host"], "cdn%2F+.example")
+
+    def test_ss_tls_ws_host_semantics_and_grpc_extra_fields_survive_once_decode(self):
+        node = self.node_from_link("ss://YWVzLTEyOC1nY206c2VjcmV0@ss.example:443?type=ws&security=tls&host=cdn.example"
+                                   "&sni=tls%252F%2B.example&path=%2F%252F%2B#TLS")
+        self.assertNotIn("ws_host", node)
+        self.assertEqual(node["tls_host"], "tls%2F+.example")
+        self.assertEqual(node["ws_path"], "/%2F+")
+        node = self.node_from_link("ss://YWVzLTEyOC1nY206c2VjcmV0@ss.example:443?type=grpc&serviceName=svc%252F%2B&mode=multi#GRPC")
+        self.assertEqual(node["serviceName"], "svc%2F+")
+        self.assertEqual(node["grpc_mode"], "multi")
+        extra = '{"downloadSettings":{"address":"cdn.example","path":"/%2F+"}}'
+        node = self.node_from_link("ss://YWVzLTEyOC1nY206c2VjcmV0@ss.example:443?type=xhttp&extra=" + quote(extra, safe="") +
+                                   "&security=reality&pbk=pk%252F%2B&spx=%2F%252F%2B&fm=mask%252F%2B#Extra")
+        self.assertEqual(base64.b64decode(node["xhttp_extra"]).decode(), extra)
+        self.assertEqual(node["download_address"], "cdn.example")
+        self.assertEqual(node["reality_publickey"], "pk%2F+")
+        self.assertEqual(node["reality_spiderx"], "/%2F+")
+        self.assertEqual(base64.b64decode(node["finalmaskg"]).decode(), "mask%2F+")
+
+    def test_vless_and_trojan_transport_paths_do_not_decode_ready_params_twice(self):
+        for protocol, user in (("vless", "12345678-1234-1234-1234-123456789abc"), ("trojan", "secret")):
+            for transport, field in (("ws", "ws"), ("httpupgrade", "httpupgrade"), ("xhttp", "xhttp"), ("h2", "h2")):
+                with self.subTest(protocol=protocol, transport=transport):
+                    node = self.node_from_link(protocol + "://" + user + "@ss.example:443?type=" + transport +
+                                               "&path=%2Fa%252Fb%2Bc+d#Transport")
+                    self.assertEqual(node[field + "_path"], "/a%2Fb+c d")
+
+    def test_hysteria_query_obfuscation_password_keeps_existing_once_decode(self):
+        node = self.node_from_link("hysteria2://secret@ss.example:443?obfs=salamander&obfs-password=%252F%2B#HY2")
+        self.assertEqual(node["salamander"], "%2F+")
+
+    def test_bracket_transport_parameters_do_not_publish_table_valued_fields(self):
+        self.sections["subscribe"]["ss_type"] = "v2ray"
+        self.installed_cores = {"xray"}
+        original = copy.deepcopy(self.sections)
+        for protocol, user in (("ss", "YWVzLTEyOC1nY206c2VjcmV0"),
+                               ("vless", "12345678-1234-1234-1234-123456789abc")):
+            for field in ("host", "path", "pbk", "spx"):
+                with self.subTest(protocol=protocol, field=field):
+                    self.sections = copy.deepcopy(original)
+                    transport = "xhttp" if field == "host" else "ws"
+                    link = protocol + "://" + user + "@ss.example:443?type=" + transport + "&security=reality&" + field + "[bad]=value#Malformed"
+                    self.downloads[URL_A] = base64.b64encode(link.encode()).decode()
+                    self.assertNotEqual(self.run_subscriber(), 0)
+                    self.assertEqual(self.sections, original)
+                    self.assertNotIn("/tmp/sub_md5_" + group_hash(URL_A), self.files)
+
+    def test_unused_bracket_metadata_does_not_reject_valid_grpc_nodes(self):
+        for protocol, user in (("ss", "YWVzLTEyOC1nY206c2VjcmV0"),
+                               ("vless", "12345678-1234-1234-1234-123456789abc")):
+            with self.subTest(protocol=protocol):
+                node = self.node_from_link(protocol + "://" + user + "@ss.example:443?type=grpc&serviceName=svc&host[unused]=value#GRPC")
+                self.assertEqual(node["transport"], "grpc")
+                self.assertEqual(node["serviceName"], "svc")
+
+    def test_duplicate_transport_query_values_keep_real_neturl_first_value(self):
+        node = self.node_from_link("ss://YWVzLTEyOC1nY206c2VjcmV0@ss.example:443?type=ws&path=%2Ffirst%2B&path=%2Fsecond#Duplicate")
+        self.assertEqual(node["ws_path"], "/first+")
 
     def test_removed_global_selection_is_committed_before_one_checked_restart(self):
         self.assertEqual(self.run_subscriber(), 0)

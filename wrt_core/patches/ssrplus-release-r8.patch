@@ -1,0 +1,15 @@
+Subject: SSR Plus: identify the subscription compatibility repair
+
+Keep all sixteen published patches intact so complete r4, r5, r6 and r7
+package sources can normalize to the independently reviewed upstream baseline.
+
+diff --git a/Makefile b/Makefile
+--- a/Makefile
++++ b/Makefile
+@@ -5,5 +5,5 @@
+ PKG_NAME:=luci-app-ssr-plus
+ PKG_VERSION:=190
+-PKG_RELEASE:=7
++PKG_RELEASE:=8
+ # Local repair set: SSR-20261021; source provenance is embedded in the package.
+ 

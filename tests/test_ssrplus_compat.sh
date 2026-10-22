@@ -59,7 +59,8 @@ expected_patches=(ssrplus-startup-lock.patch ssrplus-dns-transaction.patch ssrpl
     ssrplus-monitor-scheduler.patch ssrplus-persistence-lifecycle.patch ssrplus-package.patch
     ssrplus-dns-forwarding.patch ssrplus-custom-ports.patch ssrplus-release-r5.patch
     ssrplus-firstboot.patch ssrplus-release-r6.patch
-    ssrplus-initialization-order.patch ssrplus-release-r7.patch)
+    ssrplus-initialization-order.patch ssrplus-release-r7.patch
+    ssrplus-subscription-auto.patch ssrplus-ss-parser.patch ssrplus-release-r8.patch)
 [[ ${patches[*]} == "${expected_patches[*]}" ]] || fail 'complete SSR dependency order is missing or changed'
 independent=(ssrplus-startup-lock.patch ssrplus-dns-transaction.patch ssrplus-persistence.patch)
 for patch_file in "${patches[@]}"; do
@@ -103,7 +104,7 @@ import sys
 package, table, patch_list, patch_dir = map(Path, sys.argv[1:5])
 manifest = json.loads((package / "root/usr/share/shadowsocksr/ssrplus-build.json").read_text(encoding="utf-8"))
 assert manifest["source_commit"] == sys.argv[5], "wrong source commit in embedded manifest"
-assert manifest["repair_version"] == "190-r7", "wrong repair version"
+assert manifest["repair_version"] == "190-r8", "wrong repair version"
 patches = patch_list.read_text().splitlines()
 expected = {name: hashlib.sha256((patch_dir / name).read_bytes()).hexdigest() for name in patches}
 assert manifest["patches"] == expected, "patch manifest omitted or changed an extension"
@@ -150,7 +151,7 @@ assert_fully_patched() {
             fail "composed result did not normalize to official source: $path"
     done
     grep -qx 'PKG_VERSION:=190' "$package/Makefile" || fail 'package base version changed unexpectedly'
-    grep -qx 'PKG_RELEASE:=7' "$package/Makefile" || fail 'repair release marker is missing'
+    grep -qx 'PKG_RELEASE:=8' "$package/Makefile" || fail 'repair release marker is missing'
     grep -Fq 'Local repair set: SSR-20261021' "$package/Makefile" || fail 'local repair identity is missing'
     grep -Fq '+flock' "$package/Makefile" || fail 'persistent-lock dependency was not declared'
     cmp "$runtime_source" "$package/$runtime_path" || fail 'installed runtime helper differs from the reviewed project source'
@@ -200,14 +201,17 @@ for mask in "${legacy_masks[@]}"; do
 done
 # r4/r5 manifests protected the original eight programs plus the runtime; r6
 # added the hook/template targets and their mixed modes with fourteen patches.
-for legacy_release in 4 5 6; do
+# Complete r7 retains the same eleven targets with sixteen published patches.
+for legacy_release in 4 5 6 7; do
     parent="$test_root/complete-r$legacy_release-existing"
     package=$(make_package "$parent")
     legacy_count=9
     [[ $legacy_release != 5 ]] || legacy_count=12
     [[ $legacy_release != 6 ]] || legacy_count=14
+    [[ $legacy_release != 7 ]] || legacy_count=16
     legacy_sources=9
     [[ $legacy_release != 6 ]] || legacy_sources=11
+    [[ $legacy_release != 7 ]] || legacy_sources=11
     legacy_patches=("${patches[@]:0:$legacy_count}")
     manifest_args=()
     for patch_file in "${legacy_patches[@]}"; do
@@ -219,7 +223,7 @@ for legacy_release in 4 5 6; do
         [[ $path != root/* ]] || manifest_args+=(--file "/${path#root/}")
     done
     legacy_mode_args=()
-    if [[ $legacy_release == 6 ]]; then
+    if [[ $legacy_release == 6 || $legacy_release == 7 ]]; then
         legacy_mode_args+=(--file-mode-override /usr/share/shadowsocksr/shadowsocksr.config=0644)
     fi
     MSYS2_ARG_CONV_EXCL="${MSYS2_ARG_CONV_EXCL:+$MSYS2_ARG_CONV_EXCL;}/etc/;/usr/" \
@@ -227,11 +231,12 @@ for legacy_release in 4 5 6; do
             --output "$package/$manifest_path" --source-commit "$upstream_commit" \
             --repair-version "190-r$legacy_release" --file-mode 0755 "${legacy_mode_args[@]}" "${manifest_args[@]}" \
             --file /usr/share/shadowsocksr/ssrp-runtime.sh
-    python - "$package/$manifest_path" "$legacy_count" "$legacy_sources" <<'PY'
+    python - "$package/$manifest_path" "$legacy_count" "$legacy_sources" "$legacy_release" <<'PY'
 import json
 from pathlib import Path
 import sys
 manifest = json.loads(Path(sys.argv[1]).read_text())
+assert manifest["repair_version"] == "190-r" + sys.argv[4], "legacy repair identity changed"
 assert len(manifest["files"]) == int(sys.argv[3]), "legacy installed target count changed"
 assert len(manifest["patches"]) == int(sys.argv[2])
 if int(sys.argv[2]) < 14:
@@ -248,7 +253,7 @@ PY
     fix_ssrplus_compat "$package" > "$test_root/r$legacy_release-repeat.log"
     snapshot "$package" > "$test_root/after"
     cmp "$test_root/before" "$test_root/after" || fail "r$legacy_release upgrade was not idempotent"
-    echo "SSR complete r$legacy_release source and original manifest upgrade to r7: PASS"
+    echo "SSR complete r$legacy_release source and original manifest upgrade to r8: PASS"
 done
 
 # The complete dependent patch set may also be present before this helper runs.
