@@ -341,7 +341,7 @@ test "$(wc -l < "$TEST_ROOT/copies")" = 1
         self.assert_factory()
         self.assertEqual(self.entries(), ["entry:initialize", "entry:initialize"])
 
-    def test_real_defaults_hook_preserves_retained_values_and_rule_files_without_template(self):
+    def test_repeated_defaults_and_initialize_preserve_retained_transports_and_rules_without_template(self):
         self.config.write_text("""config global
  option global_server 'user_node'
 config server_subscribe
@@ -349,13 +349,50 @@ config server_subscribe
  option xray_hy2_type 'v2ray'
  option user_agent 'company-client'
  option auto_update_week_time '3'
+ list subscribe_url 'https://subscription.company.example/company'
 config servers 'user_node'
  option type 'v2ray'
  option v2ray_protocol 'shadowsocks'
  option server 'company.example'
  option transport 'ws'
+ option tls '1'
+ option tls_host 'tls.company.example'
  option ws_host 'front.company.example'
- option ws_path '/custom'
+ option ws_path '/custom%2F+path'
+config servers 'httpupgrade_node'
+ option type 'v2ray'
+ option v2ray_protocol 'vless'
+ option server 'upgrade.company.example'
+ option transport 'httpupgrade'
+ option tls '1'
+ option tls_host 'upgrade-tls.company.example'
+ option httpupgrade_host 'upgrade-front.company.example'
+ option httpupgrade_path '/upgrade%2F+path'
+config servers 'http_node'
+ option type 'v2ray'
+ option v2ray_protocol 'vless'
+ option server 'http.company.example'
+ option transport 'raw'
+ option tcp_guise 'http'
+ option http_host 'http-front.company.example'
+ option http_path '/http%2F+path'
+ option tcp_host 'legacy-front.company.example'
+ option tcp_path '/legacy%2F+path'
+config servers 'grpc_node'
+ option type 'v2ray'
+ option v2ray_protocol 'trojan'
+ option server 'grpc.company.example'
+ option transport 'grpc'
+ option tls '1'
+ option serviceName 'company%2F+service'
+ option enable_finalmask '1'
+ option finalmask 'eyJ0Y3AiOltdfQ=='
+ option finalmaskg 'eyJ1ZHAiOltdfQ=='
+config servers 'native_ss_node'
+ option type 'ss-rust'
+ option server 'native.company.example'
+ option encrypt_method_ss 'aes-128-gcm'
+ option password '~~~+@:%2F'
 config access_control
  list wan_fw_ips '192.0.2.0/24'
  list wan_bp_ips '198.51.100.17'
@@ -370,11 +407,17 @@ config global_xray_fragment
         for name, data in rules.items():
             (self.base / "fs/etc/ssrplus" / name).write_bytes(data)
         self.template.unlink()
-        self.shell('"$TEST_ROOT/defaults.sh"')
-        self.assertEqual(self.config_sections(), original)
-        for name, data in rules.items():
-            self.assertEqual((self.base / "fs/etc/ssrplus" / name).read_bytes(), data)
-        self.assertEqual(self.entries(), ["entry:initialize"])
+        for _ in range(2):
+            self.shell('"$TEST_ROOT/defaults.sh"')
+            self.assertEqual(self.config_sections(), original)
+            before_bytes, before_stat = self.config.read_bytes(), self.config.stat()
+            self.initialize()
+            self.assertEqual(self.config.read_bytes(), before_bytes)
+            self.assertEqual(self.config.stat().st_mtime_ns, before_stat.st_mtime_ns)
+            self.assertEqual(self.config.stat().st_ino, before_stat.st_ino)
+            for name, data in rules.items():
+                self.assertEqual((self.base / "fs/etc/ssrplus" / name).read_bytes(), data)
+        self.assertEqual(self.entries(), ["entry:initialize", "entry:initialize"])
         self.assert_clean()
 
     def test_real_defaults_hook_keeps_original_legacy_migrations_and_sed_conversions(self):

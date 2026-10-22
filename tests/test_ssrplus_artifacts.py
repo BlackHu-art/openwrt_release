@@ -61,7 +61,7 @@ class ArtifactVerification(unittest.TestCase):
         self.mode = stat.S_IMODE(target.stat().st_mode)
         self.manifest = {
             "source_commit": "2abdc9aa9e19607774dc9789709212b70b8607c6",
-            "repair_version": "190-r8",
+            "repair_version": "190-r9",
             "patches": {"ssrplus-example.patch": "a" * 64},
             "files": {"/" + PROTECTED: {"sha256": hashlib.sha256(CONTENT).hexdigest(),
                                        "mode": f"{self.mode:04o}"}},
@@ -88,7 +88,7 @@ class ArtifactVerification(unittest.TestCase):
             self.assertIn("SSR artifact verification failed:", result.stderr)
         return result
 
-    def make_package(self, kind="ar", *, data=None, version="190-8", embedded=None, name="luci-app-ssr-plus"):
+    def make_package(self, kind="ar", *, data=None, version="190-9", embedded=None, name="luci-app-ssr-plus"):
         if data is None:
             data = [(PROTECTED, CONTENT, self.mode)]
         manifest = json.dumps(self.manifest if embedded is None else embedded).encode()
@@ -155,7 +155,7 @@ class ArtifactVerification(unittest.TestCase):
 
     def test_apk_v2_reads_payload_after_signature_and_control_gzip_streams(self):
         self.cli("package", "--manifest", self.expected, "--package",
-                 self.make_package("apk2", version="190-r8"))
+                 self.make_package("apk2", version="190-r9"))
 
     def test_package_missing_protected_file_fails(self):
         self.cli("package", "--manifest", self.expected, "--package", self.make_package(data=[]), success=False)
@@ -177,16 +177,16 @@ class ArtifactVerification(unittest.TestCase):
         self.cli("package", "--manifest", self.expected, "--package", stripped, success=False)
 
     def test_package_embedded_repair_identity_must_match_trusted_source(self):
-        for version in ("190-r6", "190-r7"):
+        for version in ("190-r6", "190-r7", "190-r8"):
             with self.subTest(version=version):
                 stale = copy.deepcopy(self.manifest)
                 stale["repair_version"] = version
                 self.cli("package", "--manifest", self.expected, "--package",
                          self.make_package(embedded=stale), success=False)
 
-    def test_rootfs_embedded_r7_identity_cannot_pass_with_repaired_bytes(self):
+    def test_rootfs_embedded_r8_identity_cannot_pass_with_repaired_bytes(self):
         stale = copy.deepcopy(self.manifest)
-        stale["repair_version"] = "190-r7"
+        stale["repair_version"] = "190-r8"
         self.write_embedded(stale)
         self.cli("rootfs", "--manifest", self.expected, "--root", self.root, success=False)
 
@@ -201,7 +201,7 @@ class ArtifactVerification(unittest.TestCase):
         self.cli("package", "--manifest", self.expected, "--package", package, success=False)
 
     def test_old_package_control_version_fails_even_with_repaired_bytes(self):
-        for version in ("190-3", "190-4", "190-r4", "190-5", "190-r5", "190-6", "190-r6", "190-7", "190-r7"):
+        for version in ("190-3", "190-4", "190-r4", "190-5", "190-r5", "190-6", "190-r6", "190-7", "190-r7", "190-8", "190-r8"):
             with self.subTest(version=version):
                 self.cli("package", "--manifest", self.expected, "--package",
                          self.make_package(version=version), success=False)
@@ -221,12 +221,12 @@ class ArtifactVerification(unittest.TestCase):
         patch.write_bytes(b"source repair\n")
         output = self.base / "generated.json"
         self.cli("manifest", "--root", self.root, "--output", output,
-                 "--source-commit", self.manifest["source_commit"], "--repair-version", "190-r8",
+                 "--source-commit", self.manifest["source_commit"], "--repair-version", "190-r9",
                  "--patch", patch, "--file", "/" + PROTECTED)
         result = json.loads(output.read_text(encoding="utf-8"))
         self.assertEqual(result["files"], self.manifest["files"])
         self.assertEqual(result["patches"], {patch.name: hashlib.sha256(b"source repair\n").hexdigest()})
-        self.assertEqual(result["repair_version"], "190-r8")
+        self.assertEqual(result["repair_version"], "190-r9")
 
     def initialization_files(self):
         files = [(PROTECTED, CONTENT, 0o755),
@@ -244,7 +244,7 @@ class ArtifactVerification(unittest.TestCase):
         patch.write_bytes(b"firstboot initialization repair\n")
         arguments = ["manifest", "--root", self.root, "--output", output,
                      "--source-commit", self.manifest["source_commit"],
-                     "--repair-version", "190-r8", "--patch", patch]
+                     "--repair-version", "190-r9", "--patch", patch]
         for target in targets:
             arguments.extend(("--file", "/" + target))
         return arguments
@@ -326,7 +326,7 @@ class ArtifactVerification(unittest.TestCase):
 
     def test_mixed_mode_initialization_assets_verify_in_all_package_containers(self):
         files = self.mixed_mode_manifest()
-        for kind, version in (("ar", "190-8"), ("tar", "190-8"), ("apk2", "190-r8")):
+        for kind, version in (("ar", "190-9"), ("tar", "190-9"), ("apk2", "190-r9")):
             with self.subTest(kind=kind):
                 package = self.make_package(kind, data=files, version=version)
                 self.cli("package", "--manifest", self.expected, "--package", package)

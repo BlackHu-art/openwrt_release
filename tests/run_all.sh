@@ -23,6 +23,7 @@ python tests/test_ssrplus_firstboot.py
 python tests/test_ssrplus_persistence.py
 python tests/test_ssrplus_persistence_lifecycle.py
 python tests/test_ssrplus_subscription.py
+python tests/test_ssrplus_core_config.py
 python tests/test_ssrplus_monitor_scheduler.py
 python tests/test_ssrplus_availability.py
 python tests/test_ssrplus_artifacts.py

@@ -38,6 +38,7 @@ f88a83d10027d2854e3464d5d70cc959e0259b2d root/usr/share/shadowsocksr/subscribe.l
 41a65caeda830cd9d032b8d8595c0d045b041805 Makefile
 5f54eb9974052df4f437afd0c45dc5d2f3337c4a root/etc/uci-defaults/luci-ssr-plus
 ded6977f352d1c10da96b4bc2fdb9b4cac2c36d1 root/usr/share/shadowsocksr/shadowsocksr.config
+e226697bced19dab2481fd920f3cad219fa0c666 root/usr/share/shadowsocksr/gen_config.lua
 BLOBS
 source_paths=()
 while read -r blob path fixture; do
@@ -49,7 +50,7 @@ while read -r blob path fixture; do
         fail "fixture differs from reviewed upstream: $path"
     source_paths+=("$path")
 done < "$source_table"
-[[ ${#source_paths[@]} -eq 11 ]] || fail 'source table must protect all eleven reviewed files including initialization assets'
+[[ ${#source_paths[@]} -eq 12 ]] || fail 'source table must protect twelve reviewed files including initialization assets and the core generator'
 declare -F fix_ssrplus_compat >/dev/null ||
     fail "fix_ssrplus_compat is not defined by modules/plugin_compat.sh"
 
@@ -60,7 +61,8 @@ expected_patches=(ssrplus-startup-lock.patch ssrplus-dns-transaction.patch ssrpl
     ssrplus-dns-forwarding.patch ssrplus-custom-ports.patch ssrplus-release-r5.patch
     ssrplus-firstboot.patch ssrplus-release-r6.patch
     ssrplus-initialization-order.patch ssrplus-release-r7.patch
-    ssrplus-subscription-auto.patch ssrplus-ss-parser.patch ssrplus-release-r8.patch)
+    ssrplus-subscription-auto.patch ssrplus-ss-parser.patch ssrplus-release-r8.patch
+    ssrplus-transport-config.patch ssrplus-release-r9.patch)
 [[ ${patches[*]} == "${expected_patches[*]}" ]] || fail 'complete SSR dependency order is missing or changed'
 independent=(ssrplus-startup-lock.patch ssrplus-dns-transaction.patch ssrplus-persistence.patch)
 for patch_file in "${patches[@]}"; do
@@ -104,7 +106,7 @@ import sys
 package, table, patch_list, patch_dir = map(Path, sys.argv[1:5])
 manifest = json.loads((package / "root/usr/share/shadowsocksr/ssrplus-build.json").read_text(encoding="utf-8"))
 assert manifest["source_commit"] == sys.argv[5], "wrong source commit in embedded manifest"
-assert manifest["repair_version"] == "190-r8", "wrong repair version"
+assert manifest["repair_version"] == "190-r9", "wrong repair version"
 patches = patch_list.read_text().splitlines()
 expected = {name: hashlib.sha256((patch_dir / name).read_bytes()).hexdigest() for name in patches}
 assert manifest["patches"] == expected, "patch manifest omitted or changed an extension"
@@ -151,7 +153,7 @@ assert_fully_patched() {
             fail "composed result did not normalize to official source: $path"
     done
     grep -qx 'PKG_VERSION:=190' "$package/Makefile" || fail 'package base version changed unexpectedly'
-    grep -qx 'PKG_RELEASE:=8' "$package/Makefile" || fail 'repair release marker is missing'
+    grep -qx 'PKG_RELEASE:=9' "$package/Makefile" || fail 'repair release marker is missing'
     grep -Fq 'Local repair set: SSR-20261021' "$package/Makefile" || fail 'local repair identity is missing'
     grep -Fq '+flock' "$package/Makefile" || fail 'persistent-lock dependency was not declared'
     cmp "$runtime_source" "$package/$runtime_path" || fail 'installed runtime helper differs from the reviewed project source'
@@ -201,17 +203,19 @@ for mask in "${legacy_masks[@]}"; do
 done
 # r4/r5 manifests protected the original eight programs plus the runtime; r6
 # added the hook/template targets and their mixed modes with fourteen patches.
-# Complete r7 retains the same eleven targets with sixteen published patches.
-for legacy_release in 4 5 6 7; do
+# Complete r7/r8 retain eleven targets with sixteen/nineteen published patches.
+for legacy_release in 4 5 6 7 8; do
     parent="$test_root/complete-r$legacy_release-existing"
     package=$(make_package "$parent")
     legacy_count=9
     [[ $legacy_release != 5 ]] || legacy_count=12
     [[ $legacy_release != 6 ]] || legacy_count=14
     [[ $legacy_release != 7 ]] || legacy_count=16
+    [[ $legacy_release != 8 ]] || legacy_count=19
     legacy_sources=9
     [[ $legacy_release != 6 ]] || legacy_sources=11
     [[ $legacy_release != 7 ]] || legacy_sources=11
+    [[ $legacy_release != 8 ]] || legacy_sources=11
     legacy_patches=("${patches[@]:0:$legacy_count}")
     manifest_args=()
     for patch_file in "${legacy_patches[@]}"; do
@@ -223,7 +227,7 @@ for legacy_release in 4 5 6 7; do
         [[ $path != root/* ]] || manifest_args+=(--file "/${path#root/}")
     done
     legacy_mode_args=()
-    if [[ $legacy_release == 6 || $legacy_release == 7 ]]; then
+    if (( legacy_release >= 6 )); then
         legacy_mode_args+=(--file-mode-override /usr/share/shadowsocksr/shadowsocksr.config=0644)
     fi
     MSYS2_ARG_CONV_EXCL="${MSYS2_ARG_CONV_EXCL:+$MSYS2_ARG_CONV_EXCL;}/etc/;/usr/" \
@@ -253,7 +257,7 @@ PY
     fix_ssrplus_compat "$package" > "$test_root/r$legacy_release-repeat.log"
     snapshot "$package" > "$test_root/after"
     cmp "$test_root/before" "$test_root/after" || fail "r$legacy_release upgrade was not idempotent"
-    echo "SSR complete r$legacy_release source and original manifest upgrade to r8: PASS"
+    echo "SSR complete r$legacy_release source and original manifest upgrade to r9: PASS"
 done
 
 # The complete dependent patch set may also be present before this helper runs.

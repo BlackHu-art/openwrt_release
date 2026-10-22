@@ -12,9 +12,9 @@
 
 `wrt_core/modules/custom_feed.sh` 从 `fw876/helloworld` 的 **master** 获取包。
 `wrt_core/update.sh` 的 `stage_pre_install_source_fixes` 在 feeds install 前调用
-`fix_ssrplus_compat`，按 `wrt_core/compat/ssrplus/patches.list` 应用十九份补丁。
-原有十六份保持不变，随后追加 SS 自动选择迁移、订阅解析及单独的版本标记补丁。
-完整旧 `190-r4`/`190-r5`/`190-r6`/`190-r7` 源码及其原始构建清单也会重新验证并升级。
+`fix_ssrplus_compat`，按 `wrt_core/compat/ssrplus/patches.list` 应用二十一份补丁。
+原有十九份保持不变，随后追加订阅传输参数适配及单独的版本标记补丁。
+完整旧 `190-r4`/`190-r5`/`190-r6`/`190-r7`/`190-r8` 源码及其原始构建清单也会重新验证并升级。
 
 - 回移 [b791299](https://github.com/fw876/helloworld/commit/b791299f2859c0bbd9ebea48af17dea8a30fdae9)：
   nft GFW 模式下将 DNS 上游 IPv4 地址加入已有 `inet ss_spec gfwlist`，
@@ -27,8 +27,10 @@
 - 保留配置升级时，缺失的 SS 订阅核心偏好继续表示自动；已有显式偏好不改写，包括旧版本保存的 Rust。
 - 回移 [16617be](https://github.com/fw876/helloworld/commit/16617bee81157f68965994125b88ee74a822faa5) 的 SS 凭据解析修复，适配当前 master 的辅助函数；支持整串 Base64、SIP002 和明文凭据。
 - 已解码的 URL 查询参数直接写入传输字段，避免路径中的加号、百分号等被再次转换。
-- 包版本为 `190-8`，内嵌修复标识为 `190-r8`。构建清单包含全部补丁和
-  受保护程序哈希；现有包与 rootfs 门禁继续校验实际成品。
+- 订阅到实际核心 JSON 的回归覆盖 Trojan gRPC/HTTP 伪装、SS/VLESS HTTP 伪装、
+  SS/Trojan finalmask、原生 SS Base64 加号和 TLS 下独立的 WS/HTTPUpgrade Host。
+- 包版本为 `190-9`，内嵌修复标识为 `190-r9`。构建清单包含全部补丁和
+  十二个安装目标哈希，包括实际核心生成器；现有包与 rootfs 门禁继续校验实际成品。
 
 细节见 [SSR 兼容性说明](ssrplus-compatibility.md)。
 
@@ -68,7 +70,8 @@ feeds install 后，`wrt_core/modules/service_fixes.sh` 的 `update_adguardhome`
 
 测试执行实际打补丁后的程序，下载、服务和外部网络边界在测试中替换。
 首次初始化测试通过限定的 UCI 边界提交实际配置，再由真实 sed 和 Lua 5.1
-订阅器处理，覆盖最终核心选择和 WebSocket 参数；这不替代目标 UCI 的验收。
+订阅器处理，覆盖最终核心选择和 WebSocket 参数；订阅传输回归继续执行真实
+上游 `gen_config.lua` 检查最终 JSON。这不替代目标 UCI 或核心握手的验收。
 源码补丁支持重复执行，补丁或 SSR 源码校验不匹配时在写入前拒绝。Windows 本地验证不能
 替代 Linux 可执行权限及 nft/dnsmasq 检查；这些由 Linux CI 完成。
 以上不代表已完成完整固件交叉编译或路由器实机验收。

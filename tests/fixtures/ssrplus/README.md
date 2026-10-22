@@ -30,9 +30,9 @@ semantics require the separate runtime harness.
 
 All eight subsets of the three legacy startup/DNS/persistence patches and the
 complete dependent repair set must converge to the same package, versioned
-`190-r8`. Complete r4/r5 sources retain their original nine-target manifests;
-r6/r7 sources retain fourteen/sixteen patch hashes and eleven targets, including the
-0644 template. All upgrade to the eleven-target r8 manifest and prepare twice
+`190-r9`. Complete r4/r5 sources retain their original nine-target manifests;
+r6/r7/r8 sources retain fourteen/sixteen/nineteen patch hashes and eleven targets,
+including the 0644 template. All upgrade to the twelve-target r9 manifest and prepare twice
 without drift. The build gate reverses complete patches only in
 an isolated copy, then compares the original Git blobs before writing any feed
 source. Unknown changes outside patch context, incomplete patches, a missing
@@ -41,11 +41,27 @@ exercise the actual pre-install stage order and its explicit failure propagation
 The installed `root/usr/share/shadowsocksr/ssrp-runtime.sh` must be byte-identical
 to `wrt_core/compat/ssrplus/runtime.sh`.
 
-The full eleven-file baseline is recorded in
-`wrt_core/compat/ssrplus/source-files.tsv`; the ordered nineteen-patch repair set is
+The full twelve-file baseline is recorded in
+`wrt_core/compat/ssrplus/source-files.tsv`; the ordered twenty-one-patch repair set is
 `wrt_core/compat/ssrplus/patches.list`. Additional unchanged fixtures cover
 `subscribe.lua`, `ssr-monitor`, `ssr-switch`, and `ssrplusupdate.sh`; the reviewed
 `ssr-rules` fixture is in the adjacent `ssrplus-persistence/` directory.
+
+`gen_config.lua` is an additional, unmodified public fixture from the same
+commit, upstream path `luci-app-ssr-plus/root/usr/share/shadowsocksr/gen_config.lua`.
+Its Git blob is `e226697bced19dab2481fd920f3cad219fa0c666` and unchanged LF
+SHA-256 is `58784f09dece11bd755acc99e14bac05a0d87c5dacce01aa72ca82a801a93f21`.
+`tests/test_ssrplus_core_config.py` verifies both identities before executing
+the complete generator with nodes committed by the real patched subscriber.
+The generator is also the twelfth protected source and installed target, so
+upstream generator drift or compiled-file corruption cannot bypass the gate;
+the eleven previously published baseline rows remain unchanged.
+It checks the final core JSON, with isolated UCI/OS/JSON bindings; it does not
+launch a core, perform a protocol handshake, or alter router configuration.
+Cases cover native SS Base64 credentials and explicit core selection; Trojan
+gRPC, TCP, KCP and QUIC parameters; HTTP camouflage host/path defaults; finalmask
+JSON; independent TLS/Reality transport Host and SNI fallback; the unchanged
+VMess path; and failed subscription groups retaining old/manual nodes.
 
 The new firstboot harness executes the actual patched init and uci-defaults in
 an isolated filesystem. Missing/empty configurations must receive the reviewed

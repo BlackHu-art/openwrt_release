@@ -86,7 +86,7 @@ class SubscriptionRegressions(unittest.TestCase):
         target = package / "root/usr/share/shadowsocksr/subscribe.lua"
         target.parent.mkdir(parents=True)
         shutil.copyfile(ROOT / "tests/fixtures/ssrplus/2abdc9aa/subscribe.lua", target)
-        for name in ("ssrplus-subscription.patch", "ssrplus-ss-parser.patch"):
+        for name in ("ssrplus-subscription.patch", "ssrplus-ss-parser.patch", "ssrplus-transport-config.patch"):
             patch = ROOT / "wrt_core/patches" / name
             if not patch.exists():
                 continue
@@ -413,17 +413,17 @@ print = function(value) py_log(value) end
 
     def test_ss_transport_query_fields_are_decoded_once_by_real_neturl(self):
         for transport, field in (("ws", "ws"), ("httpupgrade", "httpupgrade"),
-                                 ("xhttp", "xhttp"), ("h2", "h2"), ("tcp", "tcp")):
+                                 ("xhttp", "xhttp"), ("h2", "h2"), ("tcp", "http")):
             with self.subTest(transport=transport):
                 node = self.node_from_link("ss://YWVzLTEyOC1nY206c2VjcmV0@ss.example:443?type=" + transport +
                                            "&headerType=http&host=cdn%252F%2B.example&path=%2Fa%252Fb%2Bc+d#Transport")
-                self.assertEqual(node[field + "_path"], "/a%2Fb+c d")
-                self.assertEqual(node[field + "_host"], "cdn%2F+.example")
+                self.assertEqual(node.get(field + "_path"), "/a%2Fb+c d")
+                self.assertEqual(node.get(field + "_host"), "cdn%2F+.example")
 
     def test_ss_tls_ws_host_semantics_and_grpc_extra_fields_survive_once_decode(self):
         node = self.node_from_link("ss://YWVzLTEyOC1nY206c2VjcmV0@ss.example:443?type=ws&security=tls&host=cdn.example"
                                    "&sni=tls%252F%2B.example&path=%2F%252F%2B#TLS")
-        self.assertNotIn("ws_host", node)
+        self.assertEqual(node.get("ws_host"), "cdn.example")
         self.assertEqual(node["tls_host"], "tls%2F+.example")
         self.assertEqual(node["ws_path"], "/%2F+")
         node = self.node_from_link("ss://YWVzLTEyOC1nY206c2VjcmV0@ss.example:443?type=grpc&serviceName=svc%252F%2B&mode=multi#GRPC")
@@ -436,7 +436,7 @@ print = function(value) py_log(value) end
         self.assertEqual(node["download_address"], "cdn.example")
         self.assertEqual(node["reality_publickey"], "pk%2F+")
         self.assertEqual(node["reality_spiderx"], "/%2F+")
-        self.assertEqual(base64.b64decode(node["finalmaskg"]).decode(), "mask%2F+")
+        self.assertEqual(base64.b64decode(node.get("finalmask", "")).decode(), "mask%2F+")
 
     def test_vless_and_trojan_transport_paths_do_not_decode_ready_params_twice(self):
         for protocol, user in (("vless", "12345678-1234-1234-1234-123456789abc"), ("trojan", "secret")):

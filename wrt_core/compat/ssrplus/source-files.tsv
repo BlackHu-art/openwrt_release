@@ -9,3 +9,4 @@ f88a83d10027d2854e3464d5d70cc959e0259b2d	root/usr/share/shadowsocksr/subscribe.l
 41a65caeda830cd9d032b8d8595c0d045b041805	Makefile	ssrplus/2abdc9aa/Makefile
 5f54eb9974052df4f437afd0c45dc5d2f3337c4a	root/etc/uci-defaults/luci-ssr-plus	ssrplus/2abdc9aa/luci-ssr-plus.defaults
 ded6977f352d1c10da96b4bc2fdb9b4cac2c36d1	root/usr/share/shadowsocksr/shadowsocksr.config	ssrplus/2abdc9aa/shadowsocksr.config
+e226697bced19dab2481fd920f3cad219fa0c666	root/usr/share/shadowsocksr/gen_config.lua	ssrplus/2abdc9aa/gen_config.lua
