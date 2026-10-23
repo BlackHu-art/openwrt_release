@@ -55,8 +55,10 @@ class OafOnlineLifecycle(unittest.TestCase):
         prefix = bash_path(root)
         postinst = re.search(r"(?ms)^default_postinst\(\) \{.*?^\}",
                              (FIXTURES / "functions.sh").read_text(encoding="utf-8")).group(0)
-        for path in ("/usr/lib/opkg/", "/lib/apk/", "/etc/", "/tmp/"):
-            postinst = postinst.replace(path, prefix + path)
+        # Map original paths once: Linux's prefix itself contains /tmp/, which
+        # must not be re-rooted after another target path has been mapped.
+        postinst = re.sub(r"/(?:usr/lib/opkg|lib/apk|etc|tmp)/",
+                          lambda match: prefix + match[0], postinst)
         rc = (FIXTURES / "rc.common").read_text(encoding="utf-8")
         rc = rc.replace("/lib/functions", prefix + "/lib/functions").replace("/etc/rc.d", prefix + "/etc/rc.d")
         if os.name == "nt":
@@ -140,12 +142,25 @@ case "$3" in
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
         self.assertEqual(result.stderr, "")
         self.assertEqual((root / "etc/config/fwx").read_bytes(), saved)
-        return {"events": log.read_text().splitlines(), "enabled": (root / "etc/rc.d/S96appfilter").exists(),
+        events = log.read_text().splitlines()
+        if not firstboot:
+            self.assertIn("service:start", events, "captured postinst did not dispatch the init script")
+        return {"events": events, "enabled": (root / "etc/rc.d/S96appfilter").exists(),
                 "running": (root / "running").exists(), "markers": list((root / "var/run").glob(".oaf-postinst-*"))}
 
     def test_root_installer_never_writes_its_token_in_the_public_tmp_directory(self):
         result = self.exercise("opkg", False, OFF)
         self.assertNotIn("public-token-before-start", result["events"])
+
+    def test_package_hooks_run_when_isolated_root_contains_tmp_component(self):
+        # Reproduce Linux's /tmp root mapping even on a Windows test host.
+        self.base = self.base / "tmp" / "nested"
+        result = self.exercise("opkg", False, dict(OFF, **{"fwx.record.enable": "1"}))
+        self.assertIn("service:enable", result["events"], result)
+        self.assertIn("service:start", result["events"], result)
+        self.assertIn("procd-command:/usr/bin/oafd", result["events"], result)
+        self.assertTrue(result["enabled"], result)
+        self.assertTrue(result["running"], result)
 
     def test_real_opkg_apk_install_and_upgrade_finish_disabled_for_default_off(self):
         for manager in ("opkg", "apk"):
@@ -154,6 +169,8 @@ case "$3" in
                     result = self.exercise(manager, upgrade, OFF)
                     self.assertFalse(result["enabled"], result)
                     self.assertFalse(result["running"], result)
+                    self.assertIn("service:disable", result["events"], result)
+                    self.assertIn("service:stop", result["events"], result)
                     self.assertFalse(any(e.startswith("procd-command:") for e in result["events"]), result)
                     self.assertEqual(result["markers"], [])
 
