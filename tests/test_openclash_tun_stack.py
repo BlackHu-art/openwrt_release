@@ -7,6 +7,8 @@ file/cache I/O boundary uses inline content; the actual generation code runs.
 Mihomo receives the generated configuration using its official base64 flag.
 """
 import base64
+from contextlib import nullcontext
+from copy import deepcopy
 import hashlib
 import json
 import os
@@ -16,6 +18,7 @@ import shutil
 import subprocess
 import tempfile
 import unittest
+from unittest.mock import patch
 
 from openclash_fixture import make_package
 
@@ -124,8 +127,15 @@ end
             return json.loads(ruby.stdout)
 
     def core_check(self, core, config):
-        encoded = base64.b64encode(json.dumps(config).encode()).decode()
         with tempfile.TemporaryDirectory(prefix="oc-core-dry-run-") as temporary:
+            core_config = dict(config)
+            if core_config.get("external-ui"):
+                # The generated path belongs to OpenWrt. Keep host validation
+                # within this core's home without changing any TUN settings.
+                dashboard = Path(temporary) / "ui"
+                dashboard.mkdir()
+                core_config["external-ui"] = dashboard.as_posix()
+            encoded = base64.b64encode(json.dumps(core_config).encode()).decode()
             return subprocess.run([core, "-t", "-d", temporary, "-config", encoded], text=True, encoding="utf-8", capture_output=True)
 
     def test_missing_ipv4_and_ipv6_stack_uses_compatible_mixed(self):
@@ -202,6 +212,26 @@ check_core_status() { echo core-status >> "$EVENTS"; }
                     config = self.generate(ipv4_stack=stack)
                     result = self.core_check(core, config)
                     self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+
+    def test_core_check_maps_only_dashboard_path_into_existing_temporary_home(self):
+        config = self.generate(ipv4_stack="mixed")
+        original = deepcopy(config)
+        with tempfile.TemporaryDirectory(prefix="oc-core-home-contract-") as home:
+            # Inspect the configuration sent across the subprocess boundary on
+            # every host; Windows Mihomo does not enforce Linux's path guard.
+            with patch.object(tempfile, "TemporaryDirectory", return_value=nullcontext(home)), \
+                 patch.object(subprocess, "run", return_value=subprocess.CompletedProcess([], 0)) as invocation:
+                self.core_check("configuration-consumer", config)
+            command = invocation.call_args.args[0]
+            self.assertEqual(command[command.index("-d") + 1], home)
+            delivered = json.loads(base64.b64decode(command[command.index("-config") + 1]))
+            dashboard = Path(delivered["external-ui"]).resolve()
+            self.assertTrue(dashboard.is_relative_to(Path(home).resolve()),
+                            "generated OpenWrt dashboard path escaped the isolated core home")
+            self.assertTrue(dashboard.is_dir(), "mapped dashboard directory was not materialized")
+            delivered["external-ui"] = original["external-ui"]
+            self.assertEqual(delivered, original, "host path adaptation changed generated core fields")
+            self.assertEqual(config, original, "host path adaptation mutated the generated configuration")
 
     def test_generated_mips_is_version_gated_by_real_core(self):
         if not OLD_CORE or not NEW_CORE:
