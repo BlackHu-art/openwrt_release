@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# Historical 190-r12 regression only; production v198.2 coverage is test_ssrplus_v198.py.
 # Real parser acceptance. Invoke only inside a fresh Linux network namespace:
 # sudo unshare -n bash tests/test_ssrplus_linux.sh
 set -euo pipefail
@@ -197,15 +198,15 @@ nft() {
     # for a controlled external worker: that worker must retain FD9 until done.
     # Reintroducing 9>&- at the finite call boundary makes this assertion fail.
     finite_package = case.base / "finite-package"
-    for row in Path("wrt_core/compat/ssrplus/source-files.tsv").read_text().splitlines():
+    for row in Path("tests/fixtures/ssrplus-legacy/wrt_core/compat/ssrplus/source-files.tsv").read_text().splitlines():
         _, target, fixture = row.split()
         destination = finite_package / target
         destination.parent.mkdir(parents=True, exist_ok=True)
         shutil.copyfile(Path("tests/fixtures") / fixture, destination)
     subprocess.run(["git", "init", "-q", str(finite_package)], check=True)
-    for patch in Path("wrt_core/compat/ssrplus/patches.list").read_text().splitlines():
+    for patch in Path("tests/fixtures/ssrplus-legacy/wrt_core/compat/ssrplus/patches.list").read_text().splitlines():
         subprocess.run(["git", "-C", str(finite_package), "apply",
-                        str(Path("wrt_core/patches", patch).resolve())], check=True)
+                        str(Path("tests/fixtures/ssrplus-legacy/wrt_core/patches", patch).resolve())], check=True)
     init_code = (finite_package / "root/etc/init.d/shadowsocksr").read_text(encoding="utf-8")
     begin = init_code.index("\nstart_rules() {\n") + 1
     end = init_code.index("\n}\n", begin) + 3
@@ -221,7 +222,7 @@ while [ ! -f "$TEST_ROOT/release-finite" ]; do sleep 0.02; done
 ''', encoding="utf-8", newline="\n")
     worker.chmod(0o755)
     owner = case.base / "finite-owner.sh"
-    owner.write_text('. "' + str(Path("wrt_core/compat/ssrplus/runtime.sh").resolve()) + '"\n' +
+    owner.write_text('. "' + str(Path("tests/fixtures/ssrplus-legacy/wrt_core/compat/ssrplus/runtime.sh").resolve()) + '"\n' +
                      finite_function + r'''
 get_host_ip() { printf '198.51.100.1\n'; }
 uci_get_by_name() { case "$2" in local_port) printf '1234\n' ;; esac; }

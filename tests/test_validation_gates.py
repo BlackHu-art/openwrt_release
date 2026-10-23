@@ -30,13 +30,15 @@ class ValidationGates(unittest.TestCase):
         scripts = '\n'.join(s.get('run', '') for s in provision)
         self.assertIn('python tests/fetch_xray_test_core.py --output', scripts)
         self.assertIn('XRAY_TEST_BINARY=', scripts)
+        self.assertIn('python tests/fetch_fw876_xray.py --output', scripts)
+        self.assertIn('FW876_XRAY_TEST_BINARY=', scripts)
         self.assertIn('GITHUB_ENV', scripts)
         self.assertIn('python tests/fetch_mihomo_test_cores.py --generation old --output', scripts)
         self.assertIn('python tests/fetch_mihomo_test_cores.py --generation new --output', scripts)
         self.assertIn('MIHOMO_OLD_TEST_BIN=', scripts)
         self.assertIn('MIHOMO_NEW_TEST_BIN=', scripts)
         environment = dict(self.job.get('env', {}), **steps[regression].get('env', {}))
-        for required in ('REQUIRE_XRAY_TEST_CORE', 'OPENCLASH_REQUIRE_RUBY34', 'OPENCLASH_REQUIRE_NODE', 'OPENCLASH_REQUIRE_MIHOMO'):
+        for required in ('REQUIRE_XRAY_TEST_CORE', 'REQUIRE_FW876_XRAY_TEST_CORE', 'OPENCLASH_REQUIRE_RUBY34', 'OPENCLASH_REQUIRE_NODE', 'OPENCLASH_REQUIRE_MIHOMO'):
             self.assertEqual(str(environment.get(required)), '1', required + ' must be enforced')
 
     def test_plugin_repair_inputs_trigger_validation(self):
@@ -44,6 +46,7 @@ class ValidationGates(unittest.TestCase):
         required = {
             'wrt_core/patches/openclash-*.patch', 'wrt_core/patches/adguardhome-*.patch',
             'wrt_core/compat/adguardhome/**', 'wrt_core/patches/passwall2-singbox-*.patch',
+            'wrt_core/patches/passwall2-fw876-*.patch',
             'wrt_core/patches/xray-core-*.patch', 'wrt_core/compat/proxy-cores/**',
             'maintenance/plugins/passwall2/**',
             'maintenance/plugins/manifests/**', 'wrt_core/patches/homeproxy-*.patch',
@@ -57,6 +60,7 @@ class ValidationGates(unittest.TestCase):
     def test_required_tools_cannot_be_silently_skipped(self):
         probes = (
             ('test_shared_xray_compat', 'REQUIRE_XRAY_TEST_CORE', 'XRAY_TEST_BINARY', 'Xray'),
+            ('test_fw876_xray_compat', 'REQUIRE_FW876_XRAY_TEST_CORE', 'FW876_XRAY_TEST_BINARY', 'fw876 Xray'),
             ('test_openclash_tun_stack', 'OPENCLASH_REQUIRE_MIHOMO', 'MIHOMO_OLD_TEST_BIN', 'Mihomo'),
             ('test_openclash_backports', 'OPENCLASH_REQUIRE_NODE', 'NODE', 'Node'),
             ('test_openclash_filename', 'OPENCLASH_REQUIRE_NODE', 'NODE', 'Node'),

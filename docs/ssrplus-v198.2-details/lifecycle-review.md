@@ -1,5 +1,7 @@
 # SSR v198.2 lifecycle / DNS / persistence patch assessment
 
+> 历史记录：本文保留 190 系列及 2026-10-22 评估阶段的代码事实、建议和验证结果，文中“当前”指当时基线。生产现已采用固定 fw876 v198.2；旧启动/DNS 修复只留在历史测试中，未按本文建议迁回生产。现行来源、更新策略与验证边界见 [fw876 集成说明](../fw876-core-migration.md)。
+
 本报告仅核对固定 `45893d778767f3bdb2fcb6e873cf8f9a667d94d4`（v198.2）源码与本地 HEAD `6d76ce1` 中的指定补丁，不执行上游脚本，不改仓库。按补丁全部 hunks 的功能分组逐项追踪。没有以 apply 失败推断缺陷，没有对 router/netfilter/real dnsmasq 作运行验证。
 
 行号约定：上游路径均相对 `maintenance/plugins/ssrplus/upstream-v198.2/luci-app-ssr-plus/`；`init`=`root/etc/init.d/shadowsocksr`，`rules`=`root/usr/bin/ssr-rules`，`gfw`=`root/usr/share/shadowsocksr/gfw2ipset.sh`，`update`=`root/usr/share/shadowsocksr/update.lua`，`monitor`=`root/usr/bin/ssr-monitor`，`switch`=`root/usr/bin/ssr-switch`，`scheduler`=`root/usr/share/shadowsocksr/ssrplusupdate.sh`。补丁行号相对 `wrt_core/patches/`。`runtime`=`wrt_core/compat/ssrplus/runtime.sh`。

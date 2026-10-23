@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# Historical 190-r12 regression only; production v198.2 coverage is test_ssrplus_v198.py.
 """Execute the complete patched monitor, switch and cron scripts locally.
 
 Only OS boundaries (process inventory, init dispatch, UCI, daemon executables,
@@ -18,7 +19,7 @@ import unittest
 
 ROOT = Path(__file__).resolve().parents[1]
 FIXTURES = ROOT / "tests/fixtures/ssrplus/2abdc9aa"
-PATCH = ROOT / "wrt_core/patches/ssrplus-monitor-scheduler.patch"
+PATCH = ROOT / "tests/fixtures/ssrplus-legacy/wrt_core/patches/ssrplus-monitor-scheduler.patch"
 BASH = os.environ.get("BASH") or shutil.which("bash")
 if os.name == "nt" and not BASH:
     BASH = "C:/Program Files/Git/bin/bash.exe"
@@ -287,9 +288,9 @@ config_foreach() { "$1" backup; }
             shutil.copyfile(FIXTURES / name, self.share / name)
         for name in ("ssrplus-startup-lock.patch", "ssrplus-dns-transaction.patch"):
             self.command(["git", "-C", str(self.package), "apply",
-                          str(ROOT / "wrt_core/patches" / name)])
+                          str(ROOT / "tests/fixtures/ssrplus-legacy/wrt_core/patches" / name)])
         runtime = self.base / "runtime.sh"
-        runtime.write_text((ROOT / "wrt_core/compat/ssrplus/runtime.sh").read_text(
+        runtime.write_text((ROOT / "tests/fixtures/ssrplus-legacy/wrt_core/compat/ssrplus/runtime.sh").read_text(
             encoding="utf-8").replace("/etc/init.d/dnsmasq", "test_dnsmasq"),
             encoding="utf-8", newline="\n")
         source = init.read_text(encoding="utf-8")

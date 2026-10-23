@@ -25,7 +25,7 @@ mkdir -p "$BUILD_DIR"
 python3() { :; }
 install_managed_custom_feed() {
     local package
-    for package in xray-core sing-box luci-app-homeproxy oaf open-app-filter luci-app-oaf \
+    for package in luci-app-ssr-plus chinadns-ng dns2socks dns2tcp lua-neturl microsocks mosdns shadowsocks-rust shadowsocksr-libev simple-obfs tcping v2ray-plugin ipt2socks upx xray-core sing-box luci-app-homeproxy oaf open-app-filter luci-app-oaf \
         luci-app-istorex quickstart luci-app-quickstart luci-app-store taskd luci-lib-taskd luci-lib-xterm; do
         mkdir -p "$1/$package"
         printf 'PKG_NAME:=%s\n' "$package" > "$1/$package/Makefile"
@@ -36,6 +36,10 @@ sync_sparse_packages_to_feed_dir() {
     shift 4
     printf '%s|%s\n' "$url" "$branch" >> "$test_root/sources"
     for package in "$@"; do
+        case "$package" in
+            luci-app-ssr-plus|xray-core|chinadns-ng|dns2socks|dns2tcp|lua-neturl|microsocks|mosdns|shadowsocks-rust|shadowsocksr-libev|simple-obfs|tcping|v2ray-plugin|ipt2socks|upx)
+                echo "FAIL: managed fw876 package requested remotely: $package" >&2; return 1 ;;
+        esac
         mkdir -p "$target/$package"
         printf 'PKG_NAME:=%s\n' "$package" > "$target/$package/Makefile"
     done
@@ -57,9 +61,13 @@ for package in luci-app-passwall2 luci-app-ssr-plus luci-app-partexp; do
         exit 1
     }
 done
-for upstream in Openwrt-Passwall/openwrt-passwall2 fw876/helloworld sirpdboy/luci-app-partexp; do
+for upstream in Openwrt-Passwall/openwrt-passwall2 sirpdboy/luci-app-partexp; do
     grep -Fq "https://github.com/$upstream.git|" "$test_root/sources"
 done
+if grep -Fq 'https://github.com/fw876/helloworld.git|' "$test_root/sources"; then
+    echo 'FAIL: pinned fw876 sources were requested from rolling upstream' >&2
+    exit 1
+fi
 [[ ! -e "$BUILD_DIR/feeds/custom_feed/luci-app-passwall" ]]
 if grep -Fq 'https://github.com/Openwrt-Passwall/openwrt-passwall.git|' "$test_root/sources"; then
     echo 'FAIL: removed Passwall1 repository was imported' >&2
@@ -68,21 +76,21 @@ fi
 grep -Fq "src-link custom_feed $BUILD_DIR/custom_feed" "$BUILD_DIR/$FEEDS_CONF"
 echo "custom feed selected plugins: PASS"
 
-# Exercise the real sparse import locally: the package loses its Git directory,
-# so its exact source commit must survive in the receipt for the repair manifest.
+# Exercise an unmanaged sparse import locally. Managed fw876 packages are
+# covered by the production loader and the overwrite rejection Python tests.
 source "$repo_root/wrt_core/modules/custom_feed.sh"
 source_repo="$test_root/local-upstream"
 receipt_target="$test_root/imported"
-mkdir -p "$source_repo/luci-app-ssr-plus" "$receipt_target"
+mkdir -p "$source_repo/external-example" "$receipt_target"
 git -C "$source_repo" init -q
-git -C "$source_repo" config user.name 'SSR regression'
-git -C "$source_repo" config user.email 'ssr-regression@example.invalid'
-printf 'PKG_NAME:=luci-app-ssr-plus\n' > "$source_repo/luci-app-ssr-plus/Makefile"
+git -C "$source_repo" config user.name 'Feed regression'
+git -C "$source_repo" config user.email 'feed-regression@example.invalid'
+git -C "$source_repo" config core.autocrlf false
+printf 'PKG_NAME:=external-example\n' > "$source_repo/external-example/Makefile"
 git -C "$source_repo" add .
 git -C "$source_repo" -c commit.gpgsign=false commit -qm 'Local import fixture'
-expected_revision=$(git -C "$source_repo" rev-parse HEAD)
-git_retry() { git "$@"; }
-sync_sparse_packages_to_feed_dir "$source_repo" '' "$receipt_target" 'local regression' luci-app-ssr-plus
-[[ "$(cat "$receipt_target/luci-app-ssr-plus/.ssrplus-upstream-commit")" == "$expected_revision" ]]
-[[ ! -e "$receipt_target/luci-app-ssr-plus/.git" ]]
-echo "custom feed source commit receipt: PASS"
+git_retry() { git -c core.autocrlf=false "$@"; }
+sync_sparse_packages_to_feed_dir "$source_repo" '' "$receipt_target" 'local regression' external-example
+cmp "$source_repo/external-example/Makefile" "$receipt_target/external-example/Makefile"
+[[ ! -e "$receipt_target/external-example/.git" ]]
+echo "custom feed external package import: PASS"

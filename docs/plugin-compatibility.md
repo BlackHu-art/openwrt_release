@@ -1,9 +1,10 @@
 # 插件兼容修复与编译入口
 
-兼容修复沿用当前选择的插件来源，不切换 SSR dev 分支。Passwall1 已移除，保留 Passwall2。共享 Xray 配方从 `26.3.27` 调整为 `26.10.21`，
-同时要求 Go >=1.27.3；sing-box 保持 `1.14.3`。
-后续通过项目标准 `build.sh` / GitHub Actions 编译、并选中对应插件的固件，
-会在编译源码准备阶段自动应用这些补丁。
+SSR 与已选共享核心固定到 `fw876/helloworld@v198.2`，保留官方 Passwall2。
+共享 Xray 使用 fw876 `26.10.21-r2` 完整配方及十份补丁，要求 Go >=1.27.3；
+sing-box 保持 `1.14.3`，其他插件选择不变。旧 SSR 启动/DNS 修复仅用于历史回归。
+项目标准 `build.sh` / GitHub Actions 在源码准备阶段应用当前集成调整，
+完整范围见 [fw876 集成说明](fw876-core-migration.md)。
 
 当前 AX6600 的 `jdcloud_ipq60xx_immwrt.config` 已启用 SSR Plus、OpenClash 和 AdGuard Home。
 `jdcloud_ipq60xx_libwrt.config` 启用 OpenClash/ADG，SSR 需由最终配置选中；
@@ -16,12 +17,12 @@
 
 ## 受管源码与构建接入
 
-[`sources.lock.json`](../wrt_core/managed/sources.lock.json) 固定 16 个顶层源码单元，
+[`sources.lock.json`](../wrt_core/managed/sources.lock.json) 固定 30 个顶层源码单元，
 记录完整提交、原始路径、Git mode、文件集合和 SHA-256。Argon 内嵌的空配置兼容包
-随主题保留，不作为第 17 份独立源码再次复制。
+随主题保留，不作为额外独立源码再次复制。
 
-- `custom_feed` 的 13 个本地单元：xray-core、sing-box、luci-app-homeproxy、oaf、
-  open-app-filter、luci-app-oaf，以及 iStoreX 的七个组件。
+- `custom_feed` 的 27 个本地单元：15 个 fw876 配方，以及 sing-box、luci-app-homeproxy、
+  oaf、open-app-filter、luci-app-oaf 和 iStoreX 的七个组件；完整清单见受管来源锁。
 - 原 `feeds/luci/themes/` 路径的两个主题：luci-theme-argon、luci-theme-aurora；
   luci-app-aurora-config 沿用 `feeds/luci/applications/` 路径。
 
@@ -44,23 +45,21 @@ Passwall1 的插件源码、维护清单、独立许可证、下载入口、兼�
 - 生成器失败后删除不完整 JSON、记录诊断并停止核心启动；空指纹、显式允许不安全连接的原有语义不变。
 - sing-box 1.14.3 的当前标签不包含 Naive 出站，gRPC 为 lite 实现；这些限制没有通过强行升级核心绕过。
 
-Passwall2 虽然仍声明 `version.min=26.7.11`，其 MASQUE 输出需要更新的核心。
-受管原始 Xray recipe 保持 `26.3.27` 原字节，通过
-[Xray 配方补丁](../wrt_core/patches/xray-core-26.10.21.patch) 在构建副本选定 `26.10.21` 和源码 SHA-256；
-来源、精确提交及 Linux/Windows 核心哈希见
-[版本记录](../wrt_core/compat/proxy-cores/xray-26.10.21.json)。
-[官方发布](https://github.com/XTLS/Xray-core/releases/tag/v26.10.21) 为紧急安全更新，API 未标为 prerelease，
-但发布说明仍将 stable 推迟到月底，不据此承诺所有功能的长期稳定性。
+Passwall2 的 Xray 最低版本声明继续作为构建门槛。共享 Xray 直接使用受管的
+fw876 `26.10.21-r2`，来源、完整补丁集合以及官方/定制测试核心身份见
+[核心记录](../wrt_core/compat/proxy-cores/xray-26.10.21.json)。
+`fix_xray_core_compat` 每次核对整个 recipe 子树及十份补丁，随后检查 Passwall2
+最低版本与 Go 的 major/minor/patch；缺失文件、额外补丁、未知声明或旧 Go 均拒绝。
+`update_golang` 继续先验证 `27.x` 的 Go >=1.27.3，再替换旧源；失败保留旧源并停止准备。
 
-`update_golang` 先将 `27.x` 下载到临时目录，校验版本 >=1.27.3 后替换，失败保留旧源并停止准备。
-`fix_xray_core_compat` 每次重查原始/补丁后 recipe、Passwall2 最低版本声明和 Go 的 major/minor/patch，
-缓存已打补丁也不能绕过；未知声明、上游漂移或旧 Go 均拒绝。Go >=1.27.3 同时满足此次发布的证书处理要求。
+运行时共享 Xray 通过 SSR「组件更新」从 fw876 更新，并保留完整包修订号。
+Passwall2 禁用自己的 Xray 检查、下载、解包、移动接口和主程序自升级，
+展示当前版本及受管更新入口；路径配置和别名也不能绕过共享核心覆盖限制。
+其他组件的正常更新保留，官方 Passwall2 的 sing-box 兼容处理继续应用。
 
-共享核心回归运行 Passwall2 的完整生成器与 SSR 的真实订阅到配置链，覆盖 raw、WebSocket、HTTPUpgrade、gRPC、
-TLS、VMess、Reality、MASQUE、mKCP、Hysteria2、XHTTP、透明代理、DNS、分流和辅助代理。
-SSR `190-r12` 修正 mKCP seed/掩码及 Gecko 参数，保护旧节点 ID 和四类选择；
-已移除的 h2/http、QUIC 传输会明确报错，保留节点及选择，不能自动转成另一种远端协议。
-详情见 [SSR 说明](ssrplus-compatibility.md)。`xray-plugin` 为独立软件包，不随此 recipe 改版。
+共享生成器测试使用当前 SSR v198 源码与官方 Passwall2 实际生成器。
+官方 Xray 只作为通用 JSON 配置交叉检查，私有协议验证要求精确匹配的 fw876 Linux 核心；
+旧 `190-r12` 的历史测试不能代替当前集成验证。`xray-plugin` 是独立软件包，不随本次改版。
 
 ## HomeProxy、主题与 iStoreX
 
@@ -111,7 +110,7 @@ Apache-2.0 文件也不能作为该独立 gist 的许可证明。quickstart 二�
 
 ## QuickFile 外部源码检查
 
-QuickFile 不在上述 16 个受管单元内，仍从 sbwml/luci-app-quickfile 获取源码。
+QuickFile 不在上述 30 个受管单元内，仍从 sbwml/luci-app-quickfile 获取源码。
 当前已核对提交 `13f1a61d962e3a7790f7ab9898543be2ee5835cb` 的核心为 `2.0.8-r1`，
 官方 `quickfile-src-2.0.8.tar.xz` 实测 SHA-256 与 recipe 的
 `05596624c46331418296a86a4f0a457a9b5f8ff2d9bd81e0f4e8cb6a3933b7db` 一致。
@@ -126,39 +125,21 @@ Rust 构建和安装结构；不符合该结构的旧预编译 recipe 会被拒�
 
 ## SSR Plus
 
-`wrt_core/modules/custom_feed.sh` 从 `fw876/helloworld` 的 **master** 获取包。
-`wrt_core/update.sh` 的 `stage_pre_install_source_fixes` 在 feeds install 前调用
-`fix_ssrplus_compat`，按 `wrt_core/compat/ssrplus/patches.list` 应用二十五份补丁。
-原有二十三份保持不变，随后追加订阅节点引用修复及单独的版本标记补丁。
-完整旧 `190-r4`/`190-r5`/`190-r6`/`190-r7`/`190-r8`/`190-r9`/`190-r10` 源码及其原始构建清单也会重新验证并升级。
+SSR 原始包固定为 `fw876/helloworld@v198.2`，由受管 loader 复制到构建树。
+`stage_pre_install_source_fixes` 调用 `fix_ssrplus_compat`，应用
+[当前 v198 补丁清单](../wrt_core/compat/ssrplus/patches.list)，补齐必需依赖、
+安装权限、Xray 配置及更新入口适配；主程序在线自升级禁用，避免丢失项目适配。
+原始受管包保持上游字节，源码准备幂等并拒绝未知改动。
 
-- 回移 [b791299](https://github.com/fw876/helloworld/commit/b791299f2859c0bbd9ebea48af17dea8a30fdae9)：
-  nft GFW 模式下将 DNS 上游 IPv4 地址加入已有 `inet ss_spec gfwlist`，
-  DNS 准备阶段不操作内核，完成后更新 SSR 私有持久化快照。
-  当前 master 没有 IPv6 GFW 规则，IPv6 地址安全跳过。
-- 回移 [356dd51](https://github.com/fw876/helloworld/commit/356dd51f880da55544e7601a0a3773acaf6fd76f)：
-  自定义代理端口从 global 配置读取。
-- 首次配置生成与运行时 reset 分离，空配置不再依赖停服务及规则清理；已有非空配置跳过默认值安装，保留上游兼容迁移。
-- 初始化在旧配置迁移之后、原有 sed 转换之前执行；新配置保留自动核心选择，SS WebSocket 链接保留 Xray 传输参数。
-- 保留配置升级时，缺失的 SS 订阅核心偏好继续表示自动；已有显式偏好不改写，包括旧版本保存的 Rust。
-- 回移 [16617be](https://github.com/fw876/helloworld/commit/16617bee81157f68965994125b88ee74a822faa5) 的 SS 凭据解析修复，适配当前 master 的辅助函数；支持整串 Base64、SIP002 和明文凭据。
-- 已解码的 URL 查询参数直接写入传输字段，避免路径中的加号、百分号等被再次转换。
-- 订阅到实际核心 JSON 的回归覆盖 Trojan gRPC/HTTP 伪装、SS/VLESS HTTP 伪装、
-  SS/Trojan finalmask、原生 SS Base64 加号和 TLS 下独立的 WS/HTTPUpgrade Host。
-- 原生 SS 的 Base64 凭据解码后保留密码的精确字节，字面 `%2B`、`%3A`、`%25`
-  不再被猜测为内层 URI 编码；外层 URI 转义仍解码。仅后续订阅实际重新解析链接时生效，
-  已有持久化值和 MD5 缓存不迁移。旧密码信息若已损失，需要重新订阅并确保实际重新解析，
-  不自动迁移或重写配置。
-- 订阅实际重解析原生 Base64 SS 时，同组唯一匹配历史错误密码指纹的旧节点保持原 SID，
-  原位更新正确密码和指纹，主代理、UDP、SOCKS5 与 Netflix 引用保持不变。
-  手工节点、跨组节点和普通凭据变更不做模糊匹配；歧义在写入前拒绝整个订阅事务，
-  保留配置和 MD5 缓存。初始化和默认模板不改动，也不在升级时自动迁移配置。
-- 包版本为 `190-12`，内嵌修复标识为 `190-r12`。构建清单包含全部补丁和
-  十二个安装目标哈希，包括实际核心生成器；现有包与 rootfs 门禁继续校验实际成品。
-  r4/r5 原始清单保持九个目标，r6/r7/r8 保持十一个，r9/r10 分别保持二十一/二十三份补丁和十二个目标。
+旧启动锁、DNS 事务、运行辅助脚本和 190 系列补丁已移入
+[历史测试目录](../tests/fixtures/ssrplus-legacy/README.md)。生产不调用这些实现，
+v198 上游启动、DNS、IPv6 与防火墙路径由当前源码测试单独验证。
+旧版的并发、事务恢复或初始化承诺不能直接套用到新版本。
 
-细节见 [SSR 兼容性说明](ssrplus-compatibility.md)。
-维护区的 `v198.2` 仅用于迁移评估，当前构建仍使用上述 master 来源及 `190-r12` 修复集。
+源码来源清单、包版本、安装文件内容与权限继续进入 IPK/APK 和 rootfs 门禁；
+按设备 rootfs 仍检查实际制镜像目录。用户配置不作为不可变安装内容哈希。
+SSR 自身组件选择显式保持已有能力，新增必需依赖单独声明；其他插件和设备选择不变。
+详细来源、更新策略和验证边界见 [fw876 集成说明](fw876-core-migration.md)。
 
 ## OpenClash
 
@@ -238,27 +219,26 @@ Xray 配方回归覆盖源码与补丁哈希、版本及 Go 门槛、重复执�
 OpenClash 回归执行真实 Ruby AST/覆写入口、模板 JavaScript 和 Lua 文件入口；
 ADG 回归覆盖无需更新时不触碰核心、实际下载及 force 控制、四种完整补丁状态、重复执行与漂移拒绝。
 `.github/workflows/test_ssrplus.yml` 在 Linux 上执行该入口，并在隔离网络
-命名空间内用真实 nft/dnsmasq 验证生成配置与生命周期。
+命名空间验证当前 v198 DNS/IPv6 规则；190 系列生命周期另设历史 fixture 检查。
 标准固件构建及发布工作流继续依赖测试门禁。
 CI 配置 Ruby `3.4`、Node.js `22`，并强制要求 Ruby 3.4 AST、Node.js、真实 Xray 与旧/新 Mihomo 核心检查；
 相关插件补丁、兼容基线和测试所读维护快照的变更纳入测试工作流触发范围。
 
-共享 Xray 回归通过 `XRAY_TEST_BINARY` 调用官方核心的 `run -test` 检查最终配置。
-CI 使用 [固定版本下载器](../tests/fetch_xray_test_core.py) 校验归档 SHA-256 后设置该变量；
-本地未设置时会明确跳过实际核心校验，但仍运行生成器检查。Windows 与 Linux amd64 的
-官方测试归档分别锁定哈希。该校验不启动代理监听，也不能证明真实 TLS 握手或数据转发成功。
+共享 Xray 通用配置回归通过 `XRAY_TEST_BINARY` 调用官方核心的 `run -test`。
+[官方下载器](../tests/fetch_xray_test_core.py) 保留 Windows/Linux 固定哈希；
+[fw876 下载器](../tests/fetch_fw876_xray.py) 另校验定制发行包、包身份和 ELF 哈希。
+Linux CI 设置 `FW876_XRAY_TEST_BINARY` 与 `REQUIRE_FW876_XRAY_TEST_CORE=1`，
+私有协议检查缺少正确核心时失败。Windows 的官方核心通过不能替代该项。
+这些配置解析检查不启动代理监听，不能证明真实 TLS 握手或数据转发成功。
 Windows 使用官方 `stdin:` 加载完整生成 JSON，Linux 继续验证文件加载；两者均包含非法协议拒绝对照，
 不将本机临时文件访问问题误判为生成器或核心兼容问题。
 
-测试执行实际打补丁后的程序，下载、服务和外部网络边界在测试中替换。
-首次初始化测试通过限定的 UCI 边界提交实际配置，再由真实 sed 和 Lua 5.1
-订阅器处理，覆盖最终核心选择和 WebSocket 参数；订阅传输回归继续执行真实
-上游 `gen_config.lua` 检查最终 JSON。这不替代目标 UCI 或核心握手的验收。
-源码补丁支持重复执行，补丁或受保护源码校验不匹配时在写入前拒绝。Windows 的 SSR 首次初始化
-回归也需要真实 `flock`；只有 Git Bash 时会因缺少该命令失败，可通过现有 `SSRP_TEST_FLOCK_DIR`
-指定可用工具目录。完整 Windows 依赖安装与检查见 [本地测试说明](windows-testing.md)。
-Windows 本地验证不能替代 Linux 可执行权限及 nft/dnsmasq 检查；这些仍需在 Linux CI 验证。
-以上不代表已完成完整固件交叉编译或路由器实机验收。
+测试执行实际准备后的程序，下载、服务和外部网络边界在测试中替换。
+当前 SSR v198 测试读取新的受管源码；保留的首次初始化、旧订阅事务与生命周期测试
+明确属于 190 系列历史覆盖，其 `flock` 依赖不能理解为生产恢复了旧锁方案。
+完整 Windows 依赖安装与检查见 [本地测试说明](windows-testing.md)。
+Windows 本地验证不能替代 Linux 可执行权限、符号链接、fw876 定制核心执行及 nft/dnsmasq 检查。
+以上测试入口描述不代表本轮完整回归、固件交叉编译或路由器实机验收已经通过。
 
 ## NSS 固件选择
 

@@ -1,15 +1,16 @@
 # 插件源码维护区
 
-这里保存第一批插件的原始参考快照（Passwall1 已按用户要求删除），并追加 SSR Plus+ 的固定版本迁移评估。
-本目录是 **reference-only** 维护区，不是固件源码输入；第一批来源记录的是采集时构建脚本的来源。
-SSR 专项另外保存 `v198.2` 原始仓库、`190-r11` 历史比较副本及 `190-r12` 当前修复副本。
+这里保存插件原始参考快照（Passwall1 已按用户要求删除）与 SSR 的历史评估输入。
+本目录不由固件构建直接读取。SSR `v198.2` 已成为生产来源：其中实际选择的 15 个配方
+以原始字节镜像到独立的 [受管目录](../../wrt_core/managed/README.md)，完整维护快照仍保留不变。
+`190-r11`、`190-r12` 都是历史派生副本，不是当前生产修复版。
 Passwall2 的部分回归会读取这里的快照，更新后仍需运行对应回归。
 
-本次实际接入固件准备流程的 16 个顶层受管源码单元位于
-[`wrt_core/managed/`](../../wrt_core/managed/README.md)，由其自己的
-[`sources.lock.json`](../../wrt_core/managed/sources.lock.json) 和 loader 管理。
-这与本目录的参考快照锁文件是两个独立用途：更新本维护区不会自动切换构建来源，
-也不能把参考快照的版本表当作当前固件版本表。
+当前实际接入固件准备流程的 **30 个顶层受管源码单元**由
+[生产来源锁](../../wrt_core/managed/sources.lock.json) 和 loader 管理。
+本维护区的锁记录参考快照身份，并注明 SSR 哪些配方已镜像到生产；仅修改维护快照
+不会自动更新受管副本，也不能把第一批参考版本表当作当前固件版本表。
+当前迁移范围与验证边界见 [fw876 集成说明](../../docs/fw876-core-migration.md)。
 
 获取日期：2026-10-22（Asia/Shanghai）。项目基线：`6d76ce124426086bbc5f90a9fcb9fcc0ba3b0a41`。完整来源、提交、Git tree、版本原始字段和内容清单入口见 [sources.lock.json](sources.lock.json)。
 
@@ -25,9 +26,14 @@ Passwall2 的部分回归会读取这里的快照，更新后仍需运行对应�
 
 当前文件集合、字节数和原始 mode 以各快照清单为准，不含本目录说明与补充许可证。OpenClash 包内跟踪的数据和资源文件也保留原样，没有额外下载代理核心。
 
-## SSR Plus+ 专项评估
+## SSR Plus+ 固定来源与历史评估
 
-另行保存的 [SSR Plus+ 维护目录](ssrplus/README.md) 包含 `fw876/helloworld@v198.2` 完整仓库快照（962 文件）与本项目 `190-r11` 历史还原副本（61 文件）与 `190-r12` 当前修复副本。锁文件新增的 `ssrplus-v198.2` 是评估来源，**不是当前构建来源切换**。两者详细差异、补丁去留及依赖阻塞见 [迁移评估](../../docs/ssrplus-v198.2-migration-assessment.md)。
+[SSR Plus+ 维护目录](ssrplus/README.md) 保存 `fw876/helloworld@v198.2` 完整仓库快照
+（962 文件）以及 `190-r11`、`190-r12` 历史还原副本。锁文件中的 `ssrplus-v198.2`
+现已注明 15 个生产镜像配方，构建读取的是 `wrt_core/managed/`，不读取维护目录。
+[旧迁移评估](../../docs/ssrplus-v198.2-migration-assessment.md) 的比较事实保留；
+其中旧启动/DNS 补丁迁移建议已被本次明确要求替代，当前方案以
+[fw876 集成说明](../../docs/fw876-core-migration.md) 为准。
 
 这里的版本是 Makefile 中的软件包字段，不等于路由器上实际运行的核心版本。SmartDNS 软件包仍由 recipe 指向 `pymumu/smartdns@136c0c2690138d6dedd8b520281aafe49112643f`；本目录没有另行导入其 C 核心仓库。AdGuard Home 保存的是 LuCI 插件，未导入 Go 核心。Passwall2、OpenClash 同样不包含所有代理核心的源码。
 
@@ -50,9 +56,9 @@ Passwall2 的部分回归会读取这里的快照，更新后仍需运行对应�
 | OpenClash | [fix_openclash_compat](../../wrt_core/modules/plugin_compat.sh) 应用六份补丁：原有 WAN 子网、checksum，以及 Ruby AST、dashboard 状态、文件名/目录校验，以及 TUN 栈兼容保护 | [plugin-runtime](../../tests/fixtures/plugin-runtime/README.md) 的下载函数与 [0.48.002 完整文件](../../tests/fixtures/openclash/0.48.002/README.md)；真实 Ruby、JavaScript、Lua 入口回归 |
 | AdGuard Home | [update_adguardhome](../../wrt_core/modules/service_fixes.sh) 获取源码后调用 `fix_adguardhome_compat`，应用稳定更新安全与无需更新时不执行 UPX 两份补丁；[三文件 blob 基线](../../wrt_core/compat/adguardhome/source-files.tsv) 在写入前校验 | [plugin-runtime](../../tests/fixtures/plugin-runtime/README.md) 的固定更新器、下载配置及 Lua 控制器；补丁组合、重复执行与源码漂移回归 |
 
-SSRPlus、HomeProxy 等已有固定测试基线继续保留在 `tests/fixtures/`；HomeProxy 的实际构建输入现已另行固定在 `wrt_core/managed/`。原始维护快照与已应用补丁的构建源码可能存在预期差异。源码获取成功和校验一致只说明快照完整，不代表新上游已通过固件构建或路由器运行验收。
+SSR 190 系列旧补丁与运行辅助代码仅保留在 `tests/fixtures/ssrplus-legacy/`，用于历史回归；当前 v198 测试独立执行。SSR 与 HomeProxy 的实际构建输入均固定在 `wrt_core/managed/`。原始维护快照与已应用补丁的构建源码可能存在预期差异。源码获取成功和校验一致只说明快照完整，不代表新上游已通过固件构建或路由器运行验收。
 
-当前补丁行为与验证边界见 [插件兼容性说明](../../docs/plugin-compatibility.md)。Xray 配方版本调整的来源与哈希单独记录在 [共享核心版本记录](../../wrt_core/compat/proxy-cores/xray-26.10.21.json)，不改写本维护区的原始源码和来源锁文件。
+当前补丁行为与验证边界见 [插件兼容性说明](../../docs/plugin-compatibility.md)。Xray 完整 fw 配方、定制补丁和测试产物身份单独记录在 [共享核心版本记录](../../wrt_core/compat/proxy-cores/xray-26.10.21.json)，不改写本维护区的原始源码。
 
 OpenClash 的 Ruby AST、dashboard 和文件名修复分别适配上游 `ac3c7bf`、`4983173`、`75d34d0`；AdGuard Home 无更新时的 UPX 修复适配 `81a7d33`。OpenClash WAN #5359 / `a4b7073` 暂缓，因自定义 WAN 与默认链共存时可能选错区域，且 fw3 仅枚举 IPv4 区域。维护快照和现有 WAN 子网补丁不代表已修复该问题；来源链接和具体行为见上述兼容性说明。
 

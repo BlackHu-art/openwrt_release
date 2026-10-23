@@ -18,8 +18,7 @@ import tempfile
 import unittest
 
 from fetch_xray_test_core import VERSION as TARGET_VERSION
-import test_ssrplus_core_config as ssr_core
-import test_ssrplus_subscription as ssr_subscription
+import test_ssrplus_v198 as ssr_core
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -32,7 +31,7 @@ TRANSPORTS = ("raw", "ws", "httpupgrade", "grpc")
 if os.environ.get("REQUIRE_XRAY_TEST_CORE") == "1" and not os.environ.get("XRAY_TEST_BINARY"):
     raise RuntimeError("Xray is required by REQUIRE_XRAY_TEST_CORE; set XRAY_TEST_BINARY")
 
-if os.environ.get("XRAY_TEST_BINARY") and not ssr_subscription.LuaRuntime:
+if os.environ.get("XRAY_TEST_BINARY") and not ssr_core.LuaRuntime:
     raise RuntimeError("XRAY_TEST_BINARY requires lupa.lua51; refusing to skip the real core gate")
 
 
@@ -71,7 +70,7 @@ def generate_passwall_config(plugin, node=None, *, runtime_args=None, sections=N
     package = ROOT / "maintenance/plugins" / plugin / ("luci-app-" + plugin)
     source = (package / "luasrc" / plugin / "util_xray.lua").read_text(encoding="utf-8")
     api_source = (package / "luasrc" / plugin / "api.lua").read_text(encoding="utf-8")
-    lua = ssr_subscription.LuaRuntime(unpack_returned_tuples=True)
+    lua = ssr_core.LuaRuntime(unpack_returned_tuples=True)
     globals_ = lua.globals()
     values = copy.deepcopy(sections or {})
     if node:
@@ -160,21 +159,18 @@ def passwall_node(protocol, transport="raw"):
             "grpc_serviceName": "fixture-service", "grpc_mode": "gun"}
 
 
-def _subscribe_ssr_node(uri):
-    subscriber = ssr_subscription.SubscriptionRegressions()
-    subscriber.setUp()
-    try:
-        subscriber.sections["subscribe"].update(ss_type="v2ray", xray_tj_type="v2ray")
-        subscriber.installed_cores = set(ssr_core.CORE_BINARIES)
-        subscriber.downloads[ssr_subscription.URL_A] = base64.b64encode(uri.encode()).decode()
-        subscriber.files.pop("/tmp/sub_md5_" + ssr_subscription.group_hash(ssr_subscription.URL_A), None)
-        status = subscriber.run_subscriber()
-        if status:
-            raise AssertionError("real SSRPlus subscription failed: " + repr(subscriber.logs))
-        return next(copy.deepcopy(node) for node in subscriber.persisted.values()
-                    if node.get("grouphashkey") == ssr_subscription.group_hash(ssr_subscription.URL_A))
-    finally:
-        subscriber.doCleanups()
+def ssr_node(protocol, transport="raw"):
+    """UCI fields consumed by the real v198.2 generator; no legacy generator."""
+    return {"type": "v2ray", "v2ray_protocol": protocol, "server": "192.0.2.1",
+            "server_port": "443", "vmess_id": UUID, "alter_id": "0", "security": "auto",
+            "password": "fixture-secret", "encrypt_method_ss": "aes-128-gcm",
+            "transport": transport, "tls": "1", "tls_host": "tls.example", "insecure": "0",
+            "ws_host": "cdn.example", "ws_path": "/fixture", "httpupgrade_host": "cdn.example",
+            "httpupgrade_path": "/fixture", "serviceName": "fixture-service", "grpc_mode": "gun"}
+
+
+def generate_ssr_config(node, **kwargs):
+    return ssr_core.generate_xray_config(node, xray_version=TARGET_VERSION, **kwargs)
 
 
 @lru_cache(maxsize=1)
@@ -229,37 +225,43 @@ def generated_configs():
             "domain_list": "domain:direct.example", "ip_list": "192.0.2.0/24", "network": "tcp,udp"}}
         cases[plugin + "/shunt-dns"] = generate_passwall_config(
             plugin, shunt, runtime_args=runtime, sections=sections)
-    for protocol in ("ss", "vless", "trojan"):
+    for protocol in ("shadowsocks", "vless", "trojan"):
         for transport in TRANSPORTS:
-            uri = ssr_core.link(protocol, "type=" + transport +
-                                "&security=tls&sni=tls.example&host=cdn.example&path=%2Ffixture&serviceName=fixture-service")
-            node = _subscribe_ssr_node(uri)
-            cases["/".join(("ssrplus", protocol, transport, "tls"))] = ssr_core.generate_core_config(
-                node, xray_version=TARGET_VERSION)
-    vmess_uri = "vmess://" + base64.b64encode(json.dumps({
-        "v": "2", "ps": "VMess TLS fixture", "add": "ss.example", "port": "443",
-        "id": UUID, "aid": "0", "scy": "auto", "net": "ws", "type": "none",
-        "host": "cdn.example", "path": "/fixture", "tls": "tls", "sni": "tls.example"
-    }).encode()).decode()
-    cases["ssrplus/vmess/ws/tls"] = ssr_core.generate_core_config(
-        _subscribe_ssr_node(vmess_uri), xray_version=TARGET_VERSION)
-    reality_uri = ssr_core.link("vless", "type=raw&security=reality&sni=tls.example&fp=chrome&pbk=" +
-                               REALITY_PUBLIC_KEY + "&sid=0123456789abcdef&flow=xtls-rprx-vision")
-    cases["ssrplus/vless/raw/reality"] = ssr_core.generate_core_config(
-        _subscribe_ssr_node(reality_uri), xray_version=TARGET_VERSION)
-    node = _subscribe_ssr_node(ssr_core.link("vless", "type=raw&security=tls&sni=tls.example"))
+            cases["/".join(("ssrplus", protocol, transport, "tls"))] = generate_ssr_config(
+                ssr_node(protocol, transport))
+    cases["ssrplus/vmess/ws/tls"] = generate_ssr_config(ssr_node("vmess", "ws"))
+    reality = ssr_node("vless")
+    reality.update(reality="1", tls="0", reality_publickey=REALITY_PUBLIC_KEY,
+                   reality_shortid="0123456789abcdef", tls_fingerprint="chrome",
+                   tls_flow="xtls-rprx-vision")
+    cases["ssrplus/vless/raw/reality"] = generate_ssr_config(reality)
+    node = ssr_node("vless")
     for mode in ("tcp", "udp", "tcp,udp"):
-        cases["ssrplus/transparent-" + mode] = ssr_core.generate_core_config(
-            node, runtime_args=[mode, "12347", "0"], xray_version=TARGET_VERSION)
-    cases["ssrplus/socks-only"] = ssr_core.generate_core_config(
-        node, runtime_args=["tcp", "0", "12345"], xray_version=TARGET_VERSION)
-    node.update(domain_resolver="tcp", domain_resolver_dns="223.5.5.5:53")
-    cases["ssrplus/node-dns"] = ssr_core.generate_core_config(node, xray_version=TARGET_VERSION)
+        cases["ssrplus/transparent-" + mode] = generate_ssr_config(
+            node, runtime_args=[mode, "12347", "0"])
+    cases["ssrplus/socks-only"] = generate_ssr_config(node, runtime_args=["tcp", "0", "12345"])
+    cases["ssrplus/node-dns"] = generate_ssr_config(node, global_options={
+        "pdnsd_enable": "7", "tunnel_forward": "223.5.5.5:53", "filter_aaaa": "0"})
+    for guise in ("none", "srtp", "dns"):
+        mkcp = ssr_node("vless", "kcp")
+        mkcp.update(tls="0", kcp_guise=guise, seed="fixture-seed", kcp_domain="mask.example")
+        cases["ssrplus/vless/mkcp/" + guise] = generate_ssr_config(mkcp)
+    for obfs in ("salamander", "gecko"):
+        hy2 = ssr_node("hysteria2")
+        hy2.update(hy2_auth="fixture-auth", flag_obfs="1", obfs_type=obfs,
+                   salamander="fixture-obfs", obfs_MinPacketSize="600", obfs_MaxPacketSize="1100")
+        cases["ssrplus/hysteria2/" + obfs] = generate_ssr_config(hy2)
     return cases
 
 
-@unittest.skipUnless(ssr_subscription.LuaRuntime, "optional lupa.lua51 is required")
+@unittest.skipUnless(ssr_core.LuaRuntime, "optional lupa.lua51 is required")
 class SharedXrayGeneratorContracts(unittest.TestCase):
+    def test_current_ssr_mkcp_emits_supported_mask_names(self):
+        for guise in ("none", "srtp", "dns"):
+            masks = generated_configs()["ssrplus/vless/mkcp/" + guise]["outbounds"][0]["streamSettings"]["finalmask"]["udp"]
+            self.assertTrue(masks)
+            self.assertTrue(all(mask["type"] == "mkcp-legacy" for mask in masks), masks)
+
     def test_new_transport_parameters_reach_the_final_config(self):
         cases = generated_configs()
         outbound = cases["passwall2/masque"]["outbounds"][0]

@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# Historical 190-r12 regression only; production v198.2 coverage is test_ssrplus_v198.py.
 """Run the actual ordered SSR patches against the immutable upstream files.
 
 The tests replace only unavailable OS commands and fixed filesystem paths. They
@@ -29,7 +30,7 @@ class FollowupFixes(unittest.TestCase):
         cls.package = Path(cls.prepared.name)
         cls.environment = os.environ.copy()
         cls.environment["MSYS_NO_PATHCONV"] = "1"
-        for entry in (ROOT / "wrt_core/compat/ssrplus/source-files.tsv").read_text().splitlines():
+        for entry in (ROOT / "tests/fixtures/ssrplus-legacy/wrt_core/compat/ssrplus/source-files.tsv").read_text().splitlines():
             blob, target, fixture = entry.split()
             data = (ROOT / "tests/fixtures" / fixture).read_bytes()
             actual = hashlib.sha1(b"blob " + str(len(data)).encode() + b"\0" + data).hexdigest()
@@ -40,11 +41,11 @@ class FollowupFixes(unittest.TestCase):
             destination.write_bytes(data)
         subprocess.run(["git", "init", "-q", str(cls.package)], check=True,
                        capture_output=True, env=cls.environment)
-        for name in (ROOT / "wrt_core/compat/ssrplus/patches.list").read_text().splitlines():
+        for name in (ROOT / "tests/fixtures/ssrplus-legacy/wrt_core/compat/ssrplus/patches.list").read_text().splitlines():
             if os.environ.get("SSR_FOLLOWUPS_UNPATCHED") and name in FOLLOWUPS:
                 continue
             result = subprocess.run(["git", "-C", str(cls.package), "apply",
-                                     str(ROOT / "wrt_core/patches" / name)],
+                                     str(ROOT / "tests/fixtures/ssrplus-legacy/wrt_core/patches" / name)],
                                     text=True, capture_output=True, env=cls.environment)
             if result.returncode:
                 raise AssertionError("ordered patch failed: " + name + "\n" + result.stderr)
@@ -59,7 +60,7 @@ class FollowupFixes(unittest.TestCase):
         self.init = self.base / "init.sh"
         code = self.init_code.replace(
             '${IPKG_INSTROOT:-}/usr/share/shadowsocksr/ssrp-runtime.sh',
-            (ROOT / "wrt_core/compat/ssrplus/runtime.sh").as_posix())
+            (ROOT / "tests/fixtures/ssrplus-legacy/wrt_core/compat/ssrplus/runtime.sh").as_posix())
         code = code.replace("/usr/bin/ssr-rules", self.base.as_posix() + "/ssr-rules")
         code = code.replace("/usr/share/shadowsocksr/gfw2ipset.sh", "/bin/true")
         code = code.replace("/etc/ssrplus/mosdns-config.yaml", self.base.as_posix() + "/mosdns.yaml")

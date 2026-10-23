@@ -1,0 +1,56 @@
+--- a/Makefile
++++ b/Makefile
+@@ -32,7 +32,7 @@
+ LUCI_DEPENDS:= \
+ 	+libuci-lua +lua +luci-compat +dns2tcp +dnsmasq-full \
+ 	+ip-full +lua-neturl +libuci-lua +microsocks +ipt2socks +lyaml \
+-	+resolveip +curl +nping \
++	+resolveip +curl +nping +flock +dns2socks \
+ 	+PACKAGE_$(PKG_NAME)_INCLUDE_ChinaDNS_NG:chinadns-ng \
+ 	+PACKAGE_$(PKG_NAME)_INCLUDE_MosDNS:mosdns \
+ 	+PACKAGE_$(PKG_NAME)_INCLUDE_Shadow_TLS:shadow-tls \
+@@ -215,6 +215,44 @@
+ 	if [ -f "$(1)/etc/hotplug.d/iface/99-ssrplus-pppoe" ]; then \
+ 		chmod 0755 "$(1)/etc/hotplug.d/iface/99-ssrplus-pppoe" 2>/dev/null || true; \
+ 	fi
++	# Reviewed installed modes; no runtime script is modified.
++	chmod 0644 "$(1)/etc/config/shadowsocksr"
++	chmod 0755 "$(1)/etc/hotplug.d/iface/99-ssrplus-pppoe"
++	chmod 0755 "$(1)/etc/init.d/shadowsocksr"
++	chmod 0644 "$(1)/etc/ssrplus/ad.conf"
++	chmod 0644 "$(1)/etc/ssrplus/applechina.conf"
++	chmod 0644 "$(1)/etc/ssrplus/black.list"
++	chmod 0644 "$(1)/etc/ssrplus/china6_ssr.txt"
++	chmod 0644 "$(1)/etc/ssrplus/china_ssr.txt"
++	chmod 0644 "$(1)/etc/ssrplus/deny.list"
++	chmod 0644 "$(1)/etc/ssrplus/dnsproxy_dns.list"
++	chmod 0644 "$(1)/etc/ssrplus/gfw_base.conf"
++	chmod 0644 "$(1)/etc/ssrplus/gfw_list.conf"
++	chmod 0644 "$(1)/etc/ssrplus/mosdns-config.yaml"
++	chmod 0644 "$(1)/etc/ssrplus/netflixip.list"
++	chmod 0644 "$(1)/etc/ssrplus/white.list"
++	chmod 0755 "$(1)/etc/uci-defaults/luci-ssr-plus"
++	chmod 0755 "$(1)/usr/bin/ssr-monitor"
++	chmod 0755 "$(1)/usr/bin/ssr-rules"
++	chmod 0755 "$(1)/usr/bin/ssr-switch"
++	chmod 0644 "$(1)/usr/share/rpcd/acl.d/luci-app-ssr-plus.json"
++	chmod 0755 "$(1)/usr/share/shadowsocksr/chinaipset.sh"
++	chmod 0755 "$(1)/usr/share/shadowsocksr/clash_yaml.lua"
++	chmod 0644 "$(1)/usr/share/shadowsocksr/Country.mmdb"
++	chmod 0755 "$(1)/usr/share/shadowsocksr/gen_anytls_server.lua"
++	chmod 0755 "$(1)/usr/share/shadowsocksr/gen_config.lua"
++	chmod 0755 "$(1)/usr/share/shadowsocksr/gen_naive_server.lua"
++	chmod 0755 "$(1)/usr/share/shadowsocksr/gen_snell_server.lua"
++	chmod 0755 "$(1)/usr/share/shadowsocksr/gen_ssr_server.lua"
++	chmod 0755 "$(1)/usr/share/shadowsocksr/gen_tuic_server.lua"
++	chmod 0755 "$(1)/usr/share/shadowsocksr/gfw2ipset.sh"
++	chmod 0755 "$(1)/usr/share/shadowsocksr/ipv6.sh"
++	chmod 0644 "$(1)/usr/share/shadowsocksr/shadowsocksr.config"
++	chmod 0755 "$(1)/usr/share/shadowsocksr/ssrplusupdate.sh"
++	chmod 0755 "$(1)/usr/share/shadowsocksr/subscribe.lua"
++	chmod 0755 "$(1)/usr/share/shadowsocksr/update.lua"
++	chmod 0755 "$(1)/usr/share/shadowsocksr/update_components.sh"
++	chmod 0644 "$(1)/usr/share/ucitrack/luci-app-ssr-plus.json"
+ endef
+ 
+ # call BuildPackage - OpenWrt buildroot signature

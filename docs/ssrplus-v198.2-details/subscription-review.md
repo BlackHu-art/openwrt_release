@@ -1,5 +1,7 @@
 # SSR v198.2 订阅、初始化与引用迁移只读评估
 
+> 历史记录：本文保留 190 系列及 2026-10-22 评估阶段的代码事实、建议和验证结果，文中“当前”指当时基线。生产现已采用固定 fw876 v198.2；旧启动/DNS 修复只留在历史测试中，未按本文建议迁回生产。现行来源、更新策略与验证边界见 [fw876 集成说明](../fw876-core-migration.md)。
+
 范围：patches.list 第 6/13/15/17/18/20/22/24 项，共 47 个 hunks。对照当前 190-r11 还原源码与 fw876/helloworld 固定 commit `45893d778767f3bdb2fcb6e873cf8f9a667d94d4`（v198.2）。没有执行上游脚本、修改仓库代码或运行全测试。下列 `U:` 路径相对 `maintenance/plugins/ssrplus/upstream-v198.2/luci-app-ssr-plus/`；`C:` 相对项目目录 `maintenance/plugins/ssrplus/current-190-r11/`。所有结论是逐 hunk 与上下游调用路径核对，不是 apply 结果推断。
 
 ## 结论矩阵

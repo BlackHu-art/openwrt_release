@@ -145,9 +145,9 @@ S20M 支持同步自构建上游 [`90a9591`](https://github.com/ZqinKing/wrt_rel
 
 ## 7. 三方插件
 
-三方插件通过受管本地源码和外部 feeds 共同加入。当前有 16 个顶层源码单元固定在
+三方插件通过受管本地源码和外部 feeds 共同加入。当前有 30 个顶层源码单元固定在
 [`wrt_core/managed/`](wrt_core/managed/README.md)，来源、完整提交和逐文件校验记录在
-[`sources.lock.json`](wrt_core/managed/sources.lock.json)。其中 13 个写入 `custom_feed`，
+[`sources.lock.json`](wrt_core/managed/sources.lock.json)。其中 27 个写入 `custom_feed`，
 Argon、Aurora 主题仍写入 `feeds/luci/themes/`，Aurora 配置包写入 `feeds/luci/applications/`。
 Argon 内嵌的空 `luci-app-argon-config` 兼容包随主题保留，不另拷贝一份源码。
 
@@ -177,11 +177,15 @@ HomeProxy 从本地锁定的官方源码复制到构建目录后、最终 feeds 
 
 补丁保存在 `wrt_core/patches/homeproxy-*.patch`。构建时从两个兼容补丁版本中选择一个，再预检 ACL 和特性缓存补丁，全部通过后才修改源码；已应用的补丁逐份跳过。遇到无法匹配的上游源码变化会停止构建，需检查并更新补丁，避免静默编出有兼容问题的 HomeProxy。
 
-共享 Xray 保留已审查的 `26.3.27` 原始 recipe，由现有 guard 和补丁在构建副本中产出
-`26.10.21`，Go 工具链最低 `1.27.3`；sing-box 固定为 `1.14.3`。Passwall1 的源码和构建入口已移除，`proxy` 片段统一选中 Passwall2。
+SSR 与已选配套核心统一固定到 `fw876/helloworld@v198.2`：SSR 为 `198-r2`，
+共享 Xray 使用 `26.10.21-r2` 完整 fw 配方及十份补丁，Go 工具链最低 `1.27.3`。
+运行时共享 Xray 通过 SSR「组件更新」管理；SSR 和 Passwall2 主程序的在线自升级禁用，
+以保留本项目适配。旧启动/DNS 修复仅留历史测试，当前集成及验证边界见
+[fw876 迁移说明](docs/fw876-core-migration.md)。sing-box 固定为 `1.14.3`，其他插件选择不变。
+Passwall1 的源码和构建入口已移除，`proxy` 片段统一选中官方 Passwall2。
 iStoreX 的七个组件及 `istore_backend.lua` 兼容文件也改从本地受管输入复制。
 
-QuickFile 仍从外部上游获取，不属于这 16 个受管单元。已核对的 `2.0.8` 使用 Rust 源码包，
+QuickFile 仍从外部上游获取，不属于这 30 个受管单元。已核对的 `2.0.8` 使用 Rust 源码包，
 官方归档 SHA-256 与 recipe 一致；旧架构 sed 已失效且静默无改动，并非已证明的编译失败。
 构建已移除旧改写，并用结构检查要求安装目标 Rust 产物；Rust 源码归档仍按上游哈希外部下载。
 具体兼容行为、来源刷新和验证边界见 [插件兼容性说明](docs/plugin-compatibility.md)。
@@ -189,7 +193,7 @@ QuickFile 仍从外部上游获取，不属于这 16 个受管单元。已核对
 ## 8. 项目结构说明
 
 完整目录职责见 [项目文件布局](docs/project-layout.md)。实际参与构建的本地输入见
-[受管源码说明](wrt_core/managed/README.md)；第一批参考快照及 SSR 专项评估见
+[受管源码说明](wrt_core/managed/README.md)；第一批参考快照及 SSR 固定源/历史评估见
 [插件源码维护区](maintenance/plugins/README.md)。
 
 - `build.sh`：主编译入口，负责设备选择、模式选择、配置组合、容器构建和固件收集。
@@ -201,7 +205,7 @@ QuickFile 仍从外部上游获取，不属于这 16 个受管单元。已核对
 - `wrt_core/deconfig/`：设备和共享默认配置 `.config`。
 - `wrt_core/deconfig/fragments/`：可组合配置片段。
 - `wrt_core/modules/`：模块化脚本，包括仓库准备、网络重试、feeds/custom_feed、源码修正、LuCI 修正、服务修正、验证、Docker 等静态职责模块。
-- `wrt_core/managed/`：16 个实际参与构建的本地受管源码单元、固定兼容文件及来源锁；`managed_plugins.py` 校验内容后在 Linux 构建目录恢复权限与符号链接。
+- `wrt_core/managed/`：30 个实际参与构建的本地受管源码单元、固定兼容文件及来源锁；`managed_plugins.py` 校验内容后在 Linux 构建目录恢复权限与符号链接。
 - `wrt_core/patches/`：补丁、默认设置、Wi-Fi 初始化、NSS 诊断、PBR 规则和其他构建时注入文件。
 - `maintenance/plugins/`：独立的插件源码维护区，保存原始上游快照、提交与文件校验记录；当前构建不从这里读取源码。
 - `tests/fixtures/`：用于回归测试的固定源码和补丁基线，与维护区中获取的新上游快照分别管理。

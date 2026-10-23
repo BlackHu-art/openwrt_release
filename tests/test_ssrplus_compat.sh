@@ -1,8 +1,9 @@
 #!/usr/bin/env bash
+# Historical 190-r12 regression only; production v198.2 coverage is test_ssrplus_v198.py.
 set -euo pipefail
 
 repo_root=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
-BASE_PATH="$repo_root/wrt_core"
+BASE_PATH="$repo_root/tests/fixtures/ssrplus-legacy/wrt_core"
 source "$BASE_PATH/modules/plugin_compat.sh"
 source_table="$BASE_PATH/compat/ssrplus/source-files.tsv"
 patch_list="$BASE_PATH/compat/ssrplus/patches.list"
@@ -408,53 +409,3 @@ cmp "$test_root/trusted-build.json" "$package/$manifest_path" || fail 'manifest 
 echo 'SSR nested-Git scratch isolation and independently checked manifest integrity: PASS'
 
 # Exercise the real update stage with only unrelated build helpers replaced.
-# Sparse source import must precede this fix, and feeds install must follow it.
-(
-    source "$repo_root/wrt_core/update.sh"
-    eval "$(declare -f fix_ssrplus_compat | sed '1s/fix_ssrplus_compat/apply_reviewed_ssrplus_patch/')"
-    # declare -f omits the semicolon after the final simple command.
-    while IFS= read -r helper; do
-        [[ $helper == fix_ssrplus_compat ]] || eval "$helper() { :; }"
-    done < <(declare -f stage_pre_install_source_fixes |
-        sed -n -E 's/^[[:space:]]+([a-zA-Z_][a-zA-Z_0-9]*)([[:space:];].*)?$/\1/p')
-    feed_parent="$test_root/build-stage"
-    get_custom_feed_worktree_dir() { printf '%s\n' "$feed_parent/sparse-feed"; }
-    install_custom_feed() {
-        make_package "$feed_parent" >/dev/null
-        printf 'import\n' >"$test_root/stage-order"
-    }
-    fix_ssrplus_compat() {
-        [[ -s "$test_root/stage-order" ]] || fail 'SSR patch ran before source import'
-        [[ $1 == "$feed_parent/sparse-feed/luci-app-ssr-plus" ]] || fail 'SSR patch targets the wrong source directory'
-        apply_reviewed_ssrplus_patch "$1" || return 1
-        printf 'patch\n' >>"$test_root/stage-order"
-    }
-    install_feeds() {
-        assert_fully_patched "$feed_parent" "$feed_parent/sparse-feed/luci-app-ssr-plus"
-        printf 'install\n' >>"$test_root/stage-order"
-    }
-    stage_custom_feed_prepare
-    stage_pre_install_source_fixes
-    stage_feeds_install
-)
-[[ $(cat "$test_root/stage-order") == $'import\npatch\ninstall' ]] ||
-    fail 'SSR fix did not run between source import and feeds installation'
-
-# A caller using if/OR suppresses Bash errexit. The production stage must
-# explicitly propagate rejection and avoid running every subsequent helper.
-status=0
-(
-    source "$repo_root/wrt_core/update.sh"
-    while IFS= read -r helper; do
-        [[ $helper == fix_ssrplus_compat ]] ||
-            eval "$helper() { [[ ! -e \"\$test_root/stage-rejected\" ]] || fail 'stage continued after SSR rejection'; }"
-    done < <(declare -f stage_pre_install_source_fixes |
-        sed -n -E 's/^[[:space:]]+([a-zA-Z_][a-zA-Z_0-9]*)([[:space:];].*)?$/\1/p')
-    get_custom_feed_worktree_dir() { printf '%s\n' "$test_root/rejected-feed"; }
-    fix_ssrplus_compat() { : >"$test_root/stage-rejected"; return 1; }
-    stage_pre_install_source_fixes
-) || status=$?
-[[ $status -eq 1 && -e "$test_root/stage-rejected" ]] ||
-    fail "source-fix stage swallowed SSR rejection (status $status)"
-
-echo 'SSR build-stage order and failure propagation: PASS'

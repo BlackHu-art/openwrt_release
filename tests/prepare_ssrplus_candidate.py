@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Render the reviewed public-source repair files; never contact a router."""
+"""Render the current fw876 integration from managed source; never contact a router."""
 import argparse
 import os
 from pathlib import Path
@@ -18,12 +18,7 @@ def main():
     output = options.output.resolve()
     if output.exists():
         parser.error("output already exists: " + str(output))
-    output.mkdir(parents=True)
-    for line in (ROOT / "wrt_core/compat/ssrplus/source-files.tsv").read_text().splitlines():
-        _blob, target, fixture = line.split()
-        destination = output / target
-        destination.parent.mkdir(parents=True, exist_ok=True)
-        shutil.copyfile(ROOT / "tests/fixtures" / fixture, destination)
+    shutil.copytree(ROOT / "wrt_core/managed/packages/luci-app-ssr-plus", output)
     bash = ("C:/Program Files/Git/bin/bash.exe" if os.name == "nt" else shutil.which("bash"))
     environment = os.environ.copy()
     environment.pop("MSYS_NO_PATHCONV", None)

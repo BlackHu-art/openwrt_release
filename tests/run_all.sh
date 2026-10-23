@@ -8,6 +8,7 @@ python tests/verify_upstream_sync.py
 python wrt_core/managed_plugins.py check
 python tests/test_managed_plugins.py
 python tests/test_managed_build.py
+python tests/test_fw876_sources.py
 python tests/test_quickfile_source.py
 python tests/test_oaf_compat.py
 python tests/test_oaf_lifecycle.py
@@ -19,8 +20,12 @@ python tests/test_xray_core_compat.py
 python tests/test_passwall2_only.py
 python tests/test_passwall2_tls.py
 python tests/test_passwall2_launch.py
+python tests/test_passwall2_fw876_updates.py
 python tests/test_proxy_compat_pipeline.py
 python tests/test_shared_xray_compat.py
+python tests/test_fetch_fw876_xray.py
+python tests/test_fw876_xray_compat.py
+python tests/test_ssrplus_v198.py
 bash tests/test_custom_feed_plugins.sh
 bash tests/test_plugin_runtime.sh
 bash tests/test_openclash_checksum.sh
@@ -34,6 +39,7 @@ bash tests/test_repo_checkout.sh
 python tests/test_homeproxy_dns_expire.py
 bash tests/test_homeproxy_compat.sh
 bash tests/test_homeproxy_routing.sh
+# Historical 190-r12 fixture coverage; current firmware is tested above.
 bash tests/test_ssrplus_compat.sh
 python tests/test_ssrplus_runtime_regressions.py
 python tests/test_ssrplus_updater_regressions.py
@@ -49,6 +55,7 @@ python tests/test_ssrplus_monitor_scheduler.py
 python tests/test_ssrplus_availability.py
 python tests/test_ssrplus_artifacts.py
 python tests/test_ssrplus_build_gate.py
+python tests/test_ssrplus_v198_updates.py
 bash tests/test_argon_compat.sh
 bash tests/test_miniupnpd_compat.sh
 bash tests/test_libffi_compat.sh

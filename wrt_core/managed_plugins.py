@@ -6,6 +6,7 @@ import json
 import os
 from pathlib import Path, PurePosixPath
 import shutil
+import stat
 import sys
 import tempfile
 
@@ -102,6 +103,35 @@ def stage_package(sources, package_id, destination, build_root):
             shutil.rmtree(scratch)
 
 
+def verify_staged(sources, package_id, destination):
+    """Reject missing, changed or additional build inputs, including patches."""
+    _, expected = verify_package(sources, package_id)
+    package = Path(destination)
+    if not package.is_dir() or package.is_symlink():
+        raise ValueError(f"invalid staged package directory: {package_id}")
+    actual = {p.relative_to(package).as_posix(): p for p in package.rglob("*")
+              if p.is_file() or p.is_symlink()}
+    if set(actual) != set(expected):
+        raise ValueError(f"staged file set mismatch for {package_id}: "
+                         f"missing={sorted(set(expected) - set(actual))}, "
+                         f"extra={sorted(set(actual) - set(expected))}")
+    for name, item in expected.items():
+        path = actual[name]
+        if item["mode"] == "120000":
+            if not path.is_symlink():
+                raise ValueError(f"staged symlink missing: {package_id}/{name}")
+            content = os.readlink(path).encode("utf-8")
+        else:
+            if path.is_symlink() or not path.resolve().is_relative_to(package.resolve()):
+                raise ValueError(f"unsafe staged file: {package_id}/{name}")
+            content = path.read_bytes()
+            if os.name != "nt" and stat.S_IMODE(path.stat().st_mode) != MODES[item["mode"]]:
+                raise ValueError(f"staged file mode mismatch: {package_id}/{name}")
+        if hashlib.sha256(content).hexdigest() != item["sha256"]:
+            raise ValueError(f"staged file hash mismatch: {package_id}/{name}")
+    return package
+
+
 def stage_support(sources, name, destination, build_root):
     lock = read_lock(sources)
     entries = {item["path"]: item for item in lock.get("supplemental_files", [])}
@@ -139,6 +169,11 @@ def main(argv=None):
     stage.add_argument("package")
     stage.add_argument("destination", type=Path)
     stage.add_argument("--build-root", required=True, type=Path)
+    verify = commands.add_parser("verify-staged")
+    verify.add_argument("package")
+    verify.add_argument("destination", type=Path)
+    external = commands.add_parser("assert-external")
+    external.add_argument("packages", nargs="+")
     support = commands.add_parser("support")
     support.add_argument("name")
     support.add_argument("destination", type=Path)
@@ -147,6 +182,14 @@ def main(argv=None):
     try:
         if args.command == "check":
             print(f"Managed package sources: {verify_all(args.sources)} packages verified")
+        elif args.command == "verify-staged":
+            verify_staged(args.sources, args.package, args.destination)
+            print(f"Managed staged package verified: {args.package}")
+        elif args.command == "assert-external":
+            managed = read_lock(args.sources)["packages"]
+            duplicates = sorted(set(args.packages) & set(managed))
+            if duplicates:
+                raise ValueError("managed package cannot be imported externally: " + ", ".join(duplicates))
         elif args.command == "support":
             stage_support(args.sources, args.name, args.destination, args.build_root)
         else:

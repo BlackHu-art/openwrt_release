@@ -1,0 +1,366 @@
+--- a/root/usr/share/shadowsocksr/update_components.sh
++++ b/root/usr/share/shadowsocksr/update_components.sh
+@@ -188,6 +188,40 @@
+ 	return 0
+ }
+ 
++get_xray_package_version() {
++	local pm="$1" version status
++	case "$pm" in
++		opkg)
++			status="$(opkg status xray-core 2>/dev/null)"
++			printf '%s\n' "$status" | grep -q '^Status:.* installed$' || return 1
++			version="$(printf '%s\n' "$status" | sed -n 's/^Version:[[:space:]]*//p' | sed -n '1p')"
++			;;
++		apk)
++			version="$(apk list -I xray-core 2>/dev/null | sed -n 's/^xray-core-\([^[:space:]]*\).*$/\1/p' | sed -n '1p')"
++			;;
++	esac
++	[ -n "${version:-}" ] || return 1
++	printf '%s' "$version"
++}
++
++normalize_xray_package_version() {
++	# opkg records -N while APK and fw release assets may use -rN.
++	trim_version "$1" | sed 's/-r\([0-9][0-9]*\)$/-\1/'
++}
++
++xray_update_available() {
++	local latest="$1" installed_package="$2" installed_binary="$3" latest_binary
++	[ -n "$installed_binary" ] || return 0
++	if [ -n "$installed_package" ]; then
++		version_gt "$(normalize_xray_package_version "$latest")" "$(normalize_xray_package_version "$installed_package")"
++		return $?
++	fi
++	# An untracked binary has no reliable package revision. Restore package
++	# management on equal versions, but never downgrade a newer binary.
++	latest_binary="$(normalize_xray_package_version "$latest" | sed 's/-[0-9][0-9]*$//')"
++	! version_gt "$installed_binary" "$latest_binary"
++}
++
+ get_mihomo_current_version() {
+ 	local pm version binary
+ 
+@@ -1038,7 +1072,6 @@
+ 			;;
+ 	esac
+ 
+-	version="$(printf '%s' "$version" | sed 's/-r[0-9][0-9]*$//')"
+ 	[ -n "$version" ] || return 1
+ 	printf '%s' "$version"
+ }
+@@ -1268,49 +1301,7 @@
+ }
+ 
+ mainprogram_info() {
+-	local pm current installed latest_output latest_rc latest_version arch asset can_upgrade
+-
+-	installed=0
+-	current=""
+-	pm="$(detect_package_manager 2>/dev/null || true)"
+-	arch="$(get_openwrt_arch)"
+-	if [ -n "$pm" ] && current="$(get_mainprogram_current_version "$pm")" && [ -n "$current" ]; then
+-		installed=1
+-	fi
+-
+-	latest_output="$(get_mainprogram_latest_info 2>/dev/null)"
+-	latest_rc=$?
+-
+-	log_kv component mainprogram
+-	log_kv installed "$installed"
+-	log_kv current_version "$current"
+-	log_kv package_manager "$pm"
+-	log_kv arch "$arch"
+-	log_kv asset ''
+-
+-	if [ $latest_rc -ne 0 ]; then
+-		log_kv can_upgrade 0
+-		case "$latest_rc" in
+-			2) log_kv error 'unsupported_package_manager' ;;
+-			3) log_kv error 'fetch_failed' ;;
+-			4) log_kv error 'asset_not_found' ;;
+-			*) log_kv error 'unknown_error' ;;
+-		esac
+-		return 0
+-	fi
+-
+-	latest_version="$(printf '%s\n' "$latest_output" | sed -n 's/^latest_version=//p' | sed -n '1p')"
+-	pm="$(printf '%s\n' "$latest_output" | sed -n 's/^package_manager=//p' | sed -n '1p')"
+-	arch="$(printf '%s\n' "$latest_output" | sed -n 's/^arch=//p' | sed -n '1p')"
+-	asset="$(printf '%s\n' "$latest_output" | sed -n 's/^asset=//p' | sed -n '1p')"
+-	can_upgrade=0
+-	if [ -z "$current" ] || version_gt "$latest_version" "$current"; then
+-		can_upgrade=1
+-	fi
+-
+-	printf '%s\n' "$latest_output" | sed '/^download_url=/d'
+-	log_kv can_upgrade "$can_upgrade"
+-	log_kv error ''
++	mainprogram_local_info
+ }
+ 
+ mainprogram_local_info() {
+@@ -1331,7 +1322,8 @@
+ 	log_kv arch "$(get_openwrt_arch)"
+ 	log_kv asset ''
+ 	log_kv can_upgrade 0
+-	log_kv error ''
++	log_kv error managed_update
++	log_kv message 'Use managed firmware or packages to update SSR Plus and preserve local integration.'
+ }
+ 
+ mainprogram_install_package() {
+@@ -1352,84 +1344,16 @@
+ }
+ 
+ mainprogram_upgrade() {
+-	local latest_output latest_rc latest_version download_url package_manager asset tmp_dir package_file current_before current_after
+-
+-	latest_output="$(get_mainprogram_latest_info 2>/dev/null)"
+-	latest_rc=$?
+-	if [ $latest_rc -ne 0 ]; then
+-		log_kv success 0
+-		case "$latest_rc" in
+-			2) log_kv message 'Unsupported package manager' ;;
+-			3) log_kv message 'Failed to fetch release metadata' ;;
+-			4) log_kv message 'Matching release asset not found' ;;
+-			*) log_kv message 'Unknown error' ;;
+-		esac
+-		return 0
+-	fi
+-
+-	latest_version="$(printf '%s\n' "$latest_output" | sed -n 's/^latest_version=//p' | sed -n '1p')"
+-	download_url="$(printf '%s\n' "$latest_output" | sed -n 's/^download_url=//p' | sed -n '1p')"
+-	package_manager="$(printf '%s\n' "$latest_output" | sed -n 's/^package_manager=//p' | sed -n '1p')"
+-	asset="$(printf '%s\n' "$latest_output" | sed -n 's/^asset=//p' | sed -n '1p')"
+-	current_before="$(get_mainprogram_current_version "$package_manager" 2>/dev/null || true)"
+-
+-	tmp_dir="$(mktemp -d /tmp/ssrplus-mainprogram.XXXXXX)"
+-	if [ -z "$tmp_dir" ] || [ ! -d "$tmp_dir" ]; then
+-		log_kv success 0
+-		log_kv message 'Failed to create temp directory'
+-		return 0
+-	fi
+-
+-	package_file="$tmp_dir/$asset"
+-	trap "rm -rf '$tmp_dir'" EXIT INT TERM
+-
+-	if ! download_file "$download_url" "$package_file"; then
+-		log_kv success 0
+-		log_kv message 'Download failed'
+-		return 0
+-	fi
+-
+-	if [ ! -s "$package_file" ]; then
+-		log_kv success 0
+-		log_kv message 'Download failed'
+-		return 0
+-	fi
+-
+-	if ! mainprogram_install_package "$package_manager" "$package_file"; then
+-		log_kv success 0
+-		log_kv message 'Install failed'
+-		return 0
+-	fi
+-
+-	current_after="$(get_mainprogram_current_version "$package_manager" 2>/dev/null || true)"
+-	if [ -z "$current_after" ]; then
+-		log_kv success 0
+-		log_kv message 'Installed package check failed'
+-		return 0
+-	fi
+-
+-	if [ -x /etc/init.d/rpcd ]; then
+-		/etc/init.d/rpcd restart >/dev/null 2>&1 || true
+-	fi
+-	if [ -x /etc/init.d/uhttpd ]; then
+-		/etc/init.d/uhttpd reload >/dev/null 2>&1 || true
+-	fi
+-
+ 	log_kv component mainprogram
+-	log_kv success 1
+-	log_kv previous_version "$current_before"
+-	log_kv current_version "$current_after"
+-	log_kv latest_version "$latest_version"
+-	log_kv package_manager "$package_manager"
+-	log_kv arch "$(get_openwrt_arch)"
+-	log_kv asset "$asset"
++	log_kv success 0
+ 	log_kv can_upgrade 0
+-	log_kv message 'Upgrade completed'
++	log_kv error managed_update
++	log_kv message 'Use managed firmware or packages to update SSR Plus and preserve local integration.'
+ 	return 0
+ }
+ 
+ xray_info() {
+-	local pm current installed latest_output latest_rc latest_version arch asset can_upgrade
++	local pm current current_package installed latest_output latest_rc latest_version arch asset can_upgrade
+ 
+ 	installed=0
+ 	current=""
+@@ -1443,9 +1367,12 @@
+ 	latest_output="$(get_xray_latest_info 2>/dev/null)"
+ 	latest_rc=$?
+ 
++	current_package="$(get_xray_package_version "$pm" 2>/dev/null || true)"
++
+ 	log_kv component xray
+ 	log_kv installed "$installed"
+ 	log_kv current_version "$current"
++	log_kv current_package_version "$current_package"
+ 	log_kv package_manager "$pm"
+ 	log_kv arch "$arch"
+ 	log_kv asset "$asset"
+@@ -1466,7 +1393,7 @@
+ 	arch="$(printf '%s\n' "$latest_output" | sed -n 's/^arch=//p' | sed -n '1p')"
+ 	asset="$(printf '%s\n' "$latest_output" | sed -n 's/^asset=//p' | sed -n '1p')"
+ 	can_upgrade=0
+-	if [ -z "$current" ] || version_gt "$latest_version" "$current"; then
++	if xray_update_available "$latest_version" "$current_package" "$current"; then
+ 		can_upgrade=1
+ 	fi
+ 
+@@ -1571,7 +1498,7 @@
+ }
+ 
+ xray_local_info() {
+-	local pm current installed arch
++	local pm current current_package installed arch
+ 
+ 	installed=0
+ 	current=""
+@@ -1581,9 +1508,12 @@
+ 		installed=1
+ 	fi
+ 
++	current_package="$(get_xray_package_version "$pm" 2>/dev/null || true)"
++
+ 	log_kv component xray
+ 	log_kv installed "$installed"
+ 	log_kv current_version "$current"
++	log_kv current_package_version "$current_package"
+ 	log_kv latest_version ''
+ 	log_kv package_manager "$pm"
+ 	log_kv arch "$arch"
+@@ -1637,7 +1567,7 @@
+ }
+ 
+ xray_upgrade() {
+-	local latest_output latest_rc latest_version download_url package_manager asset tmp_dir package_file current_before current_after
++	local latest_output latest_rc latest_version download_url package_manager asset tmp_dir package_file current_before current_after current_package
+ 
+ 	latest_output="$(get_xray_latest_info 2>/dev/null)"
+ 	latest_rc=$?
+@@ -1657,10 +1587,12 @@
+ 	package_manager="$(printf '%s\n' "$latest_output" | sed -n 's/^package_manager=//p' | sed -n '1p')"
+ 	asset="$(printf '%s\n' "$latest_output" | sed -n 's/^asset=//p' | sed -n '1p')"
+ 	current_before="$(get_xray_current_version 2>/dev/null || true)"
+-	if [ -n "$current_before" ] && ! version_gt "$latest_version" "$current_before"; then
++	current_package="$(get_xray_package_version "$package_manager" 2>/dev/null || true)"
++	if ! xray_update_available "$latest_version" "$current_package" "$current_before"; then
+ 		log_kv success 1
+ 		log_kv previous_version "$current_before"
+ 		log_kv current_version "$current_before"
++		log_kv current_package_version "$current_package"
+ 		log_kv latest_version "$latest_version"
+ 		log_kv message 'Already up to date'
+ 		return 0
+@@ -1702,6 +1634,7 @@
+ 	log_kv success 1
+ 	log_kv previous_version "$current_before"
+ 	log_kv current_version "$current_after"
++	log_kv current_package_version "$(get_xray_package_version "$package_manager" 2>/dev/null || true)"
+ 	log_kv latest_version "$latest_version"
+ 	log_kv package_manager "$package_manager"
+ 	log_kv arch "$(get_openwrt_arch)"
+--- a/luasrc/controller/shadowsocksr.lua
++++ b/luasrc/controller/shadowsocksr.lua
+@@ -606,6 +606,7 @@
+ 		component = data.component or "xray",
+ 		installed = data.installed == "1",
+ 		current_version = data.current_version or "",
++		current_package_version = data.current_package_version or "",
+ 		latest_version = data.latest_version or "",
+ 		previous_version = data.previous_version or "",
+ 		arch = data.arch or "",
+--- a/luasrc/view/shadowsocksr/component.htm
++++ b/luasrc/view/shadowsocksr/component.htm
+@@ -2,8 +2,9 @@
+ //<![CDATA[
+ 	var componentMeta = {
+ 		mainprogram: {
++			managed: true,
+ 			label: '<%:SSR Plus+ Main Program%>',
+-			help: '<%:The online upgrade downloads the latest luci-app-ssr-plus package from fw876/helloworld releases and installs the matching IPK or APK package for this system.%>'
++			help: '<%:Use managed firmware or packages to update SSR Plus and preserve local integration.%>'
+ 		},
+ 		xray: {
+ 			label: '<%:Xray-core%>',
+@@ -40,6 +41,7 @@
+ 	};
+ 
+ 	var componentMessageMap = {
++		'Use managed firmware or packages to update SSR Plus and preserve local integration.': '<%:Use managed firmware or packages to update SSR Plus and preserve local integration.%>',
+ 		'Already up to date': '<%:Already up to date%>',
+ 		'Upgrade completed': '<%:Upgrade completed%>',
+ 		'Unsupported ARCH': '<%:Unsupported ARCH%>',
+@@ -89,6 +91,7 @@
+ 			fetch_failed: '<%:Failed to fetch release metadata%>',
+ 			asset_not_found: '<%:Matching release asset not found%>',
+ 			unsupported_component: '<%:Unsupported component%>',
++			managed_update: '<%:Use managed firmware or packages to update SSR Plus and preserve local integration.%>',
+ 			unknown_error: '<%:Unknown error%>'
+ 		};
+ 
+@@ -119,6 +122,9 @@
+ 		}
+ 
+ 		html.push('<div><strong><%:Installed Version%>:</strong> ' + (data.current_version || '<%:Not installed%>') + '</div>');
++		if (data.current_package_version) {
++			html.push('<div><strong><%:Installed Package Version%>:</strong> ' + data.current_package_version + '</div>');
++		}
+ 		html.push('<div><strong><%:Latest Version%>:</strong> ' + (data.latest_version || '<%:Unknown%>') + '</div>');
+ 		if (data.package_manager) {
+ 			html.push('<div><strong><%:Package Manager%>:</strong> ' + data.package_manager + '</div>');
+@@ -139,7 +145,7 @@
+ 		panel.innerHTML = html.join('');
+ 
+ 		if (upgradeButton) {
+-			upgradeButton.disabled = !!data.error || !checkedRemote || !data.latest_version || !data.can_upgrade;
++			upgradeButton.disabled = !!(componentMeta[component] && componentMeta[component].managed) || !!data.error || !checkedRemote || !data.latest_version || !data.can_upgrade;
+ 		}
+ 
+ 		if (action) {
+@@ -151,6 +157,10 @@
+ 
+ 	function queryComponentInfo(button, doUpgrade) {
+ 		var component = selectedComponent();
++		if (doUpgrade && componentMeta[component] && componentMeta[component].managed) {
++			renderComponentInfo({component: component, error: 'managed_update', can_upgrade: false}, false);
++			return;
++		}
+ 		var mirror = selectedMirror();
+ 		var action = document.getElementById('component-action');
+ 		var url = doUpgrade
+@@ -478,7 +488,7 @@
+ 					<div class="component-upgrade-help" id="component-help"></div>
+ 					<div class="component-upgrade-actions">
+ 						<input type="button" class="btn cbi-button cbi-button-reload" value="<%:Check Update%>" onclick="queryComponentInfo(this, false)" />
+-						<input type="button" class="btn cbi-button cbi-button-apply" id="component-upgrade" value="<%:Upgrade%>" onclick="queryComponentInfo(this, true)" />
++						<input type="button" class="btn cbi-button cbi-button-apply" id="component-upgrade" disabled="disabled" value="<%:Upgrade%>" onclick="queryComponentInfo(this, true)" />
+ 					</div>
+ 					<div class="component-upgrade-result" id="component-action"></div>
+ 				</div>
+--- a/po/zh_Hans/ssr-plus.po
++++ b/po/zh_Hans/ssr-plus.po
+@@ -3900,3 +3900,9 @@
+ 
+ msgid "Naive transport"
+ msgstr "Naive 传输协议"
++
++msgid "Use managed firmware or packages to update SSR Plus and preserve local integration."
++msgstr "请通过受管固件或软件包升级 SSR Plus，以保留本地集成适配。"
++
++msgid "Installed Package Version"
++msgstr "已安装软件包版本"

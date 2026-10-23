@@ -86,7 +86,7 @@ cmp "$BASE_PATH/managed/compat/istore_backend.lua" "$target/luci-app-quickstart/
 ''')
         self.assert_ok(result)
 
-    def test_managed_core_recipes_reach_the_existing_reviewed_final_versions(self):
+    def test_managed_core_recipes_keep_complete_fw_xray_and_existing_sing_box(self):
         result = self.run_stage('''
 target="$BUILD_DIR/feeds/custom_feed"
 install_managed_package xray-core "$target/xray-core"
@@ -101,10 +101,54 @@ printf 'GO_VERSION_MAJOR_MINOR:=1.27\nGO_VERSION_PATCH:=3\n' > "$BUILD_DIR/feeds
 fix_xray_core_compat "$target/xray-core"
 grep -q '^PKG_VERSION:=26.10.21$' "$target/xray-core/Makefile"
 grep -q '^PKG_VERSION:=1.14.3$' "$target/sing-box/Makefile"
-grep -q '^PKG_VERSION:=26.3.27$' "$BASE_PATH/managed/packages/xray-core/Makefile"
+test "$(find "$target/xray-core/patches" -name '*.patch' | wc -l)" -eq 10
+grep -q '^PKG_VERSION:=26.10.21$' "$BASE_PATH/managed/packages/xray-core/Makefile"
 fix_xray_core_compat "$target/xray-core"
 ''')
         self.assert_ok(result)
+
+    def test_tcping_refresh_checks_local_fw_source_without_network_or_changes(self):
+        result = self.run_stage('''
+target="$BUILD_DIR/feeds/custom_feed/tcping"
+install_managed_package tcping "$target"
+update_tcping
+cmp "$BASE_PATH/managed/packages/tcping/Makefile" "$target/Makefile"
+printf '\\n# unreviewed override\\n' >> "$target/Makefile"
+if update_tcping; then echo 'tcping drift was accepted' >&2; exit 93; fi
+''')
+        self.assert_ok(result)
+
+    def test_feed_cleanup_removes_conflicting_fw_recipes_but_keeps_unselected_packages(self):
+        result = self.run_stage('''
+cd "$BUILD_DIR"
+for package in net/dns2tcp net/microsocks lang/lua-neturl utils/upx; do
+    mkdir -p "feeds/packages/$package"
+    printf 'stale source' > "feeds/packages/$package/Makefile"
+done
+mkdir -p feeds/packages/net/unrelated
+remove_unwanted_packages
+for package in net/dns2tcp net/microsocks lang/lua-neturl utils/upx; do
+    test ! -e "feeds/packages/$package"
+done
+test -d feeds/packages/net/unrelated
+''')
+        self.assert_ok(result)
+
+    def test_external_import_rejects_managed_names_before_any_network_or_file_changes(self):
+        result = self.run_stage('''
+target="$BUILD_DIR/feeds/custom_feed"
+install_managed_package tcping "$target/tcping"
+if sync_sparse_packages_to_feed_dir https://example.invalid/feed.git main "$target" test tcping; then
+    echo 'managed sparse overwrite allowed' >&2; exit 93
+fi
+if sync_repo_root_package_to_feed_dir https://example.invalid/feed.git main "$target" test tcping; then
+    echo 'managed root overwrite allowed' >&2; exit 94
+fi
+cmp "$BASE_PATH/managed/packages/tcping/Makefile" "$target/tcping/Makefile"
+''')
+        self.assert_ok(result)
+        self.assertNotIn("unexpected managed source network download", result.stderr)
+        self.assertIn("managed package cannot be imported externally", result.stderr)
 
     def test_oaf_compatibility_is_called_on_the_real_managed_source(self):
         # Only the two translation symlinks are POSIX-only; the actual affected
@@ -147,7 +191,7 @@ sync_sparse_packages_to_feed_dir() {
     shift 4
     for package in "$@"; do
         case "$package" in
-            xray-core|sing-box|luci-app-homeproxy|oaf|open-app-filter|luci-app-oaf|luci-app-istorex|quickstart|luci-app-quickstart|luci-app-store|taskd|luci-lib-taskd|luci-lib-xterm)
+            luci-app-ssr-plus|xray-core|chinadns-ng|dns2socks|dns2tcp|lua-neturl|microsocks|mosdns|shadowsocks-rust|shadowsocksr-libev|simple-obfs|tcping|v2ray-plugin|ipt2socks|upx|sing-box|luci-app-homeproxy|oaf|open-app-filter|luci-app-oaf|luci-app-istorex|quickstart|luci-app-quickstart|luci-app-store|taskd|luci-lib-taskd|luci-lib-xterm)
                 echo "managed package requested remotely: $package" >&2; return 93 ;;
         esac
         mkdir -p "$target/$package"

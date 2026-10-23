@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# Historical 190-r12 regression only; production v198.2 coverage is test_ssrplus_v198.py.
 """Exercise the imported ssr-rules shell, replacing only OS operations.
 
 The official fixture stays byte-for-byte intact.  The lifecycle patch depends
@@ -16,7 +17,7 @@ import unittest
 
 ROOT = Path(__file__).resolve().parents[1]
 FIXTURE = ROOT / "tests/fixtures/ssrplus-persistence/2abdc9aa/ssr-rules"
-PATCHES = [ROOT / "wrt_core/patches" / name for name in (
+PATCHES = [ROOT / "tests/fixtures/ssrplus-legacy/wrt_core/patches" / name for name in (
     "ssrplus-persistence.patch", "ssrplus-persistence-lifecycle.patch")]
 INET = """table inet ss_spec {
     set whitelist {

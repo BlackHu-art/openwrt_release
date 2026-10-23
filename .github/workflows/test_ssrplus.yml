@@ -26,6 +26,7 @@ on:
       - 'wrt_core/patches/adguardhome-*.patch'
       - 'wrt_core/compat/adguardhome/**'
       - 'wrt_core/patches/passwall2-singbox-*.patch'
+      - 'wrt_core/patches/passwall2-fw876-*.patch'
       - 'wrt_core/patches/xray-core-*.patch'
       - 'wrt_core/compat/proxy-cores/**'
       - 'maintenance/plugins/passwall2/**'
@@ -58,6 +59,7 @@ on:
       - 'wrt_core/patches/adguardhome-*.patch'
       - 'wrt_core/compat/adguardhome/**'
       - 'wrt_core/patches/passwall2-singbox-*.patch'
+      - 'wrt_core/patches/passwall2-fw876-*.patch'
       - 'wrt_core/patches/xray-core-*.patch'
       - 'wrt_core/compat/proxy-cores/**'
       - 'maintenance/plugins/passwall2/**'
@@ -77,6 +79,7 @@ jobs:
     timeout-minutes: 15
     env:
       REQUIRE_XRAY_TEST_CORE: '1'
+      REQUIRE_FW876_XRAY_TEST_CORE: '1'
       OPENCLASH_REQUIRE_RUBY34: '1'
       OPENCLASH_REQUIRE_NODE: '1'
       OPENCLASH_REQUIRE_MIHOMO: '1'
@@ -106,6 +109,10 @@ jobs:
         run: |
           python tests/fetch_xray_test_core.py --output "$RUNNER_TEMP/shared-xray/xray"
           echo "XRAY_TEST_BINARY=$RUNNER_TEMP/shared-xray/xray" >> "$GITHUB_ENV"
+      - name: Fetch and authenticate the fw876 custom Xray test core
+        run: |
+          python tests/fetch_fw876_xray.py --output "$RUNNER_TEMP/fw876-xray/xray"
+          echo "FW876_XRAY_TEST_BINARY=$RUNNER_TEMP/fw876-xray/xray" >> "$GITHUB_ENV"
       - name: Fetch and verify old and new Mihomo test cores
         run: |
           python tests/fetch_mihomo_test_cores.py --generation old --output "$RUNNER_TEMP/mihomo-old/mihomo"
@@ -117,5 +124,7 @@ jobs:
           ruby --version
           node --version
           bash tests/run_all.sh
-      - name: Validate generated DNS and nft configuration in an isolated namespace
+      - name: Validate current fw876 DNS and IPv6 rules in an isolated namespace
+        run: sudo unshare -n bash tests/test_ssrplus_v198_linux.sh
+      - name: Validate historical 190-r12 fixture DNS and nft behavior
         run: sudo unshare -n bash tests/test_ssrplus_linux.sh

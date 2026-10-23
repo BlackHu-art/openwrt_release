@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# Historical 190-r12 regression only; production v198.2 coverage is test_ssrplus_v198.py.
 """Run the complete pinned subscribe.lua in Lua 5.1 with UCI/OS boundaries.
 
 No network, router, host UCI configuration, or service is touched. The UCI
@@ -87,7 +88,7 @@ def subscription_source(exclude_patches=()):
         for name in ("ssrplus-subscription.patch", "ssrplus-ss-parser.patch",
                      "ssrplus-transport-config.patch", "ssrplus-ss-password.patch",
                      "ssrplus-node-references.patch", "ssrplus-core-transport.patch"):
-            patch = ROOT / "wrt_core/patches" / name
+            patch = ROOT / "tests/fixtures/ssrplus-legacy/wrt_core/patches" / name
             if name in exclude_patches or not patch.exists():
                 continue
             result = subprocess.run(["git", "-C", str(package), "apply",

@@ -4,7 +4,7 @@
 [`maintenance/plugins/`](../../maintenance/plugins/README.md) 的 reference-only 审查快照用途不同。
 构建不会以维护区的快照替代这里的输入，也不会为缺失或损坏的受管文件自动回退远端。
 
-当前 [`sources.lock.json`](sources.lock.json) 有 **16 个顶层源码单元**，不是 16 个最终二进制包。
+当前 [`sources.lock.json`](sources.lock.json) 有 **30 个顶层源码单元**，不是 30 个最终二进制包。
 Argon 子树内还包含空 `luci-app-argon-config` 兼容 recipe，随主题一起保存和安装，
 不另拷贝、不另计为顶层来源。包内的子 recipe 和下载源码仍以实际 Makefile 为准。
 
@@ -13,7 +13,11 @@ Argon 子树内还包含空 `luci-app-argon-config` 兼容 recipe，随主题一
 | 顶层单元 | 原始版本/标识 | 锁定上游提交 | 构建目标 |
 | --- | --- | --- | --- |
 | luci-app-homeproxy | 官方固定源码 | fadaa676104f | custom_feed/luci-app-homeproxy |
-| xray-core | 原始 recipe 26.3.27 | small-package 3d5609257639 | custom_feed/xray-core |
+| luci-app-ssr-plus | 198-2 | fw876 v198.2 / 45893d778767 | custom_feed/luci-app-ssr-plus |
+| xray-core | fw876 26.10.21-r2，完整十份补丁 | fw876 v198.2 / 45893d778767 | custom_feed/xray-core |
+| chinadns-ng、dns2socks、dns2tcp、lua-neturl、microsocks、mosdns | 原始 fw876 配方 | fw876 v198.2 / 45893d778767 | custom_feed/同名目录 |
+| shadowsocks-rust、shadowsocksr-libev、simple-obfs、tcping、v2ray-plugin、ipt2socks | 原始 fw876 配方 | fw876 v198.2 / 45893d778767 | custom_feed/同名目录 |
+| upx | 5.2.1，Xray host 编译依赖 | fw876 v198.2 / 45893d778767 | custom_feed/upx |
 | sing-box | 1.14.3 | small-package fca4816303d6 | custom_feed/sing-box |
 | oaf | 内核包源码 | small-package fca4816303d6 | custom_feed/oaf |
 | open-app-filter | appfilter 7.0.1 | small-package fca4816303d6 | custom_feed/open-app-filter |
@@ -29,7 +33,7 @@ Argon 子树内还包含空 `luci-app-argon-config` 兼容 recipe，随主题一
 | luci-theme-aurora | 1.4.0 | 84c27b66952e | feeds/luci/themes/luci-theme-aurora |
 | luci-app-aurora-config | 1.2.5 | a5299ce01448 | feeds/luci/applications/luci-app-aurora-config |
 
-完整仓库 URL、引用、提交和源路径均以锁文件为准。13 个 custom_feed 单元先写入
+完整仓库 URL、引用、提交和源路径均以锁文件为准。27 个 custom_feed 单元先写入
 `<BUILD_DIR>/custom_feed/`，再通过现有 src-link feed 进入 `feeds/custom_feed` 并安装；
 两个主题沿用 `feeds/luci/themes/`，Aurora 配置包沿用 `feeds/luci/applications/` 路径。
 
@@ -43,7 +47,9 @@ Argon 子树内还包含空 `luci-app-argon-config` 兼容 recipe，随主题一
 
 [`managed_plugins.py`](../managed_plugins.py) 的 `check` 验证各单元文件集合、内容哈希和安全路径；
 `stage` 校验后在构建目录临时副本中按 mode 恢复 `0644` / `0755` 与包内相对链接，
-再替换目标目录。`support` 校验锁定兼容文件后写入指定构建路径。
+再替换目标目录。`verify-staged` 检查构建副本完整文件集合、哈希、文件类型和 POSIX mode，
+缺失或额外补丁均拒绝。`assert-external` 在网络请求之前拒绝外部同步任何受管同名包。
+`support` 校验锁定兼容文件后写入指定构建路径。
 [`managed_plugins.sh`](../modules/managed_plugins.sh) 提供 shell 接入，
 [`custom_feed.sh`](../modules/custom_feed.sh) 在重建自定义 feed 前执行完整输入检查。
 loader 面向构建源码树，不用于改写运行中的 `/etc` 或用户 overlay。
@@ -61,11 +67,24 @@ python3 wrt_core/managed_plugins.py check
 HomeProxy 固定 `fadaa676` 官方源码，继续应用原有 sing-box 1.14、ACL 域名和特性缓存补丁，
 补齐 `ucode-mod-math`，保留补丁预检与未知源码拒绝逻辑。翻译和规则数据随提交一起固定。
 
-Xray 有意保留 `3d5609257639` 中已审查的 `26.3.27` 原始 recipe，
-由 [`fix_xray_core_compat`](../modules/xray_core_compat.sh) 在构建副本应用原补丁，
-产出 `26.10.21` 并检查 Passwall2 生成器最低版本和 Go >=1.27.3。
+SSR 和实际选择的共享核心统一使用 `fw876/helloworld@v198.2`，固定提交
+`45893d778767f3bdb2fcb6e873cf8f9a667d94d4`。导入时按维护快照 manifest
+逐文件验证大小、SHA-256、Git blob 并保留 mode；原始受管包不应用生产兼容修改。
+不导入未选择的 fw876 可选核心。MosDNS 核心使用 fw876，未选择的 LuCI MosDNS
+仍沿用原来源和配置处理；tcping 的准备入口只校验本地 fw876 源，不再在线覆盖。
+
+Xray 保存完整 `26.10.21-r2` recipe、EIP93 说明及十份补丁。
+[`fix_xray_core_compat`](../modules/xray_core_compat.sh) 对整个包做精确校验，
+随后检查官方 Passwall2 生成器最低版本和 Go >=1.27.3；每次准备都会重新检查。
+原官方 Xray 升级补丁不再用于生产。fw876 Xray 需要 `golang/host` 和 `upx/host`，
+UPX 只作为编译依赖引入；shadowsocks-rust 依赖标准 `rust/host`。
+Xray recipe 内启用 Naive outbound 时另按原配方下载固定哈希的 Cronet Clang，
+不需要导入单独 NaiveProxy 的 `gn/host` 包。
 Go 使用先校验再替换的 `27.x` 获取流程；sing-box 保持 `1.14.3`。
 固定 recipe 不表示把 Xray、sing-box 等核心源码归档全部内嵌，下载仍按 recipe 的来源和哈希执行。
+完整来源与 fw876 测试产物身份见
+[`xray-26.10.21.json`](../compat/proxy-cores/xray-26.10.21.json)。官方 Xray 二进制
+仅做通用配置交叉检查，fw876 私有协议需要 Linux 上的固定 fw876 测试核心。
 
 OAF 保持当前 7 / `fwx` schema，不包含旧 OAF 6 规则自动迁移。
 [`oaf_compat.py`](../oaf_compat.py) 只在构建副本准备新安装默认值：应用过滤、MAC 过滤、

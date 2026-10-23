@@ -1,0 +1,30 @@
+Subject: SSR v198.2: emit mKCP masks accepted by Xray 26.10.21
+
+--- a/root/usr/share/shadowsocksr/gen_config.lua
++++ b/root/usr/share/shadowsocksr/gen_config.lua
+@@ -722,19 +722,19 @@
+ 				local PT = server.v2ray_protocol
+ 				local TP = server.transport
+ 				if TP == "kcp" then
+-					local map = {none = "none", srtp = "header-srtp", utp = "header-utp", ["wechat-video"] = "header-wechat",
+-						dtls = "header-dtls", wireguard = "header-wireguard", dns = "header-dns"}
++					local map = {srtp = "srtp", utp = "utp", ["wechat-video"] = "wechat",
++						dtls = "dtls", wireguard = "wireguard", dns = "dns"}
+ 					local udp = {}
+ 					if server.kcp_guise and server.kcp_guise ~= "none" then
+-						local g = { type = map[server.kcp_guise] }
++						local g = { type = "mkcp-legacy", settings = { header = map[server.kcp_guise] } }
+ 						if server.kcp_guise == "dns" and server.kcp_domain and server.kcp_domain ~= "" then
+-							g.settings = { domain = server.kcp_domain }
++							g.settings.value = server.kcp_domain
+ 						end
+ 						udp[#udp+1] = g
+ 					end
+-					local c = { type = (server.seed and server.seed ~= "") and "mkcp-aes128gcm" or "mkcp-original" }
++					local c = { type = "mkcp-legacy" }
+ 					if server.seed and server.seed ~= "" then
+-						c.settings = { password = server.seed }
++						c.settings = { value = server.seed }
+ 					end
+ 					udp[#udp+1] = c
+ 					finalmask.udp = udp

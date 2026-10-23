@@ -91,7 +91,7 @@ Python 依赖固定在 [`tests/requirements.txt`](../tests/requirements.txt)，�
 | PyYAML | `6.0.3` | YAML 配置检查 |
 | Lupa | `2.8` | 执行测试中的 Lua 逻辑，包括 `lupa.lua51` |
 | MSYS2 util-linux | `2.40.2-2` | 从官方包中仅提取 `flock.exe`，验证真实文件锁互斥 |
-| Xray | `26.10.21`，官方紧急安全更新 | 对生成配置执行核心解析检查 |
+| Xray | 官方 `26.10.21` | 对 SSR / Passwall2 通用协议的生成配置执行核心解析检查；固件使用 fw876 定制构建 |
 | [RubyInstaller](https://github.com/oneclick/rubyinstaller2/releases/tag/RubyInstaller-3.4.9-1) | `3.4.9-1`，Ruby `3.4.9` | 私有 `bin` / `lib` 运行目录，执行真实 Ruby 3.4 AST 与 YAML 覆写检查 |
 | [Node.js](https://nodejs.org/download/release/v22.23.4/) | `22.23.4` | 仅提取 `node.exe`，执行 dashboard 与文件名 JavaScript 检查 |
 
@@ -114,9 +114,25 @@ Ruby 与 Node.js 归档缓存位于 `<依赖目录>/downloads/`；`install` 可�
 
 版本维护应作为仓库变更处理：先确认官方来源及下载包、可执行文件的校验值，再同步更新脚本、依赖文件和本说明，重新执行安装、环境检查与回归。不要因下载失败而改用未校验的二进制，也不要把哈希校验或必需依赖检查改成跳过。
 
-更换 Xray 版本时，还需核对 [`tests/fixtures/proxy-cores/`](../tests/fixtures/proxy-cores/README.md) 中的固定基线和 [`tests/test_shared_xray_compat.py`](../tests/test_shared_xray_compat.py) 的共享核心配置用例。现有验证基线为 53 份生成配置，其中包括 19 份 SSR Plus+ 配置；这不是 unittest 用例数量。不能仅凭 `xray version` 输出正确就认为配置兼容。
+更换 Xray 版本时，还需核对 [`tests/fixtures/proxy-cores/`](../tests/fixtures/proxy-cores/README.md) 中的固定基线和 [`tests/test_shared_xray_compat.py`](../tests/test_shared_xray_compat.py) 的共享核心配置用例。当前通用协议矩阵为 **48 份生成配置**：新版 SSR Plus+ 24 份、官方 Passwall2 24 份；这不是 unittest 用例数量。SSR 使用生产准备后的 v198.2 生成器，覆盖 mKCP、Hysteria2、Reality、透明代理和 DNS。不能仅凭 `xray version` 输出正确就认为配置兼容。
 
-Windows 将完整生成 JSON 经 Xray 官方 `stdin:` 输入交给真实核心解析，避免本机原生进程与 Python 读取临时文件内容不一致；Linux CI 继续通过文件加载。两种入口都检查 53 份合法配置，并确认无效协议被核心明确拒绝。这不验证 Windows 临时文件加载，也不改变固件中的配置生成或加载流程。
+Windows 将完整生成 JSON 经 Xray 官方 `stdin:` 输入交给真实核心解析，避免本机原生进程与 Python 读取临时文件内容不一致；Linux CI 继续通过文件加载。两种入口都检查通用协议矩阵，并确认无效协议被核心明确拒绝。这不验证 Windows 临时文件加载，也不改变固件中的配置生成或加载流程。
+
+固件使用 `fw876/helloworld@v198.2` 的定制 Xray `26.10.21-r2`。官方 Windows 核心不支持它新增的全部协议，因此 Windows 通用配置解析通过不能证明 fw 私有协议兼容。[`tests/test_fw876_xray_compat.py`](../tests/test_fw876_xray_compat.py) 另有 6 份私有协议/传输配置（AnyTLS、ShadowsocksR、TUIC、Snell、Naive、ShadowTLS），Linux CI 使用校验过的 fw 实际二进制解析通用矩阵与这 6 份配置，并要求错误协议失败。
+
+Linux CI 显式执行以下准备，再运行完整回归；`REQUIRE_FW876_XRAY_TEST_CORE=1` 防止漏装定制核心后跳过检查：
+
+```bash
+python tests/fetch_fw876_xray.py --output /tmp/fw876-xray/xray
+export FW876_XRAY_TEST_BINARY=/tmp/fw876-xray/xray
+export REQUIRE_FW876_XRAY_TEST_CORE=1
+bash tests/run_all.sh
+sudo unshare -n bash tests/test_ssrplus_v198_linux.sh
+```
+
+下载器固定 fw `v198.2` 的 x86_64 IPK，并同时校验包身份、归档与 ELF：归档 SHA-256 为 `790fd76aacedfb5ec75721470323050fe119de546b354c9fbfce0560acd49153`，ELF SHA-256 为 `8275f03f7715326c6de6b3e25e1f4fa6991738002ac33e620f114437b76236aa`。Windows 环境管理器不会安装或运行 Linux ELF，当前 fw 实际核心执行测试在 Windows 明确跳过；下载器身份校验及配置生成测试仍执行。
+
+当前 SSR 的启动、DNS、订阅和 IPv6 测试入口是 [`tests/test_ssrplus_v198.py`](../tests/test_ssrplus_v198.py)。旧 190-r12 补丁与测试输入隔离在 [`tests/fixtures/ssrplus-legacy/`](../tests/fixtures/ssrplus-legacy/)，只用于历史回归，不参与固件准备。新版 Linux 门禁检查实际 IPv6 nft 规则、策略路由清理及 DNS 片段解析，旧 `test_ssrplus_linux.sh` 单独标记为历史用例。迁移范围和更新政策见 [fw876 迁移维护说明](fw876-core-migration.md)。
 
 ## 常见问题与验证边界
 

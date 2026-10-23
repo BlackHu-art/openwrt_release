@@ -11,7 +11,7 @@ remove_unwanted_packages() {
         "luci-app-msd_lite" "luci-app-unblockneteasemusic" "luci-app-adguardhome"
     )
     local packages_net=(
-        "haproxy" "xray-core" "xray-plugin" "dns2socks" "alist" "hysteria"
+        "haproxy" "xray-core" "xray-plugin" "dns2socks" "dns2tcp" "microsocks" "alist" "hysteria"
         "mosdns" "adguardhome" "ddns-go" "naiveproxy" "shadowsocks-rust"
         "sing-box" "v2ray-core" "v2ray-geodata" "v2ray-plugin" "tuic-client"
         "chinadns-ng" "ipt2socks" "tcping" "trojan-plus" "simple-obfs" "shadowsocksr-libev"
@@ -31,6 +31,9 @@ remove_unwanted_packages() {
             \rm -rf ./feeds/packages/net/$pkg
         fi
     done
+
+    # fw876 also owns these selected recipes outside the standard net category.
+    rm -rf ./feeds/packages/lang/lua-neturl ./feeds/packages/utils/upx
 
     if [[ -d ./package/istore ]]; then
         \rm -rf ./package/istore
@@ -244,16 +247,9 @@ fix_mkpkg_format_invalid() {
 
 
 update_tcping() {
-    local tcping_path="$(get_custom_feed_worktree_dir)/tcping/Makefile"
-    local url="https://raw.githubusercontent.com/Openwrt-Passwall/openwrt-passwall-packages/refs/heads/main/tcping/Makefile"
-
-    if [ -d "$(dirname "$tcping_path")" ]; then
-        echo "正在更新 tcping Makefile..."
-        if ! curl_retry -fsSL -o "$tcping_path" "$url"; then
-            echo "错误：从 $url 下载 tcping Makefile 失败" >&2
-            exit 1
-        fi
-    fi
+    # Keep the preparation hook, but never overwrite the pinned fw876 recipe.
+    python3 "$BASE_PATH/managed_plugins.py" verify-staged tcping \
+        "$(get_custom_feed_worktree_dir)/tcping"
 }
 
 

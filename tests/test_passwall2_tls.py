@@ -120,10 +120,7 @@ class PasswallTLSRegression(unittest.TestCase):
         for plugin in PLUGINS:
             original = ROOT / "maintenance/plugins" / plugin / ("luci-app-" + plugin)
             package = Path(cls.temp.name) / plugin
-            for relative in (f"luasrc/{plugin}/util_sing-box.lua", f"root/usr/share/{plugin}/app.sh"):
-                target = package / relative
-                target.parent.mkdir(parents=True, exist_ok=True)
-                shutil.copyfile(original / relative, target)
+            shutil.copytree(original, package)
             subprocess.run(["git", "init", "-q", str(package)], check=True)
             if not BASELINE:
                 env = dict(os.environ, BASE_PATH=bash_path(ROOT / "wrt_core"),

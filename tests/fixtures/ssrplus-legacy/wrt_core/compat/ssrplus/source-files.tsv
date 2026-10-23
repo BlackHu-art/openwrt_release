@@ -1,0 +1,12 @@
+1d5c32973355320958fd9ced04599a7e5350e7d3	root/etc/init.d/shadowsocksr	ssrplus/2abdc9aa/shadowsocksr.init
+f4ade91b08e3cc350a1100e99cf96eba0008706f	root/usr/share/shadowsocksr/gfw2ipset.sh	ssrplus/2abdc9aa/gfw2ipset.sh
+34d13dc89e5c013e3213f02c37d8dc8d698d3a4c	root/usr/share/shadowsocksr/update.lua	ssrplus/2abdc9aa/update.lua
+074d002cf612cc18357529dcb24c9cd5b93a9593	root/usr/bin/ssr-rules	ssrplus-persistence/2abdc9aa/ssr-rules
+f88a83d10027d2854e3464d5d70cc959e0259b2d	root/usr/share/shadowsocksr/subscribe.lua	ssrplus/2abdc9aa/subscribe.lua
+51f9efc400b1271528f5c442951474326c620dd9	root/usr/bin/ssr-monitor	ssrplus/2abdc9aa/ssr-monitor
+9424cfac716f7b265b7e89cb75ce88106d0a7cfd	root/usr/share/shadowsocksr/ssrplusupdate.sh	ssrplus/2abdc9aa/ssrplusupdate.sh
+5a2a3709032f791fb8d6bd2822576fe7d0e76dbd	root/usr/bin/ssr-switch	ssrplus/2abdc9aa/ssr-switch
+41a65caeda830cd9d032b8d8595c0d045b041805	Makefile	ssrplus/2abdc9aa/Makefile
+5f54eb9974052df4f437afd0c45dc5d2f3337c4a	root/etc/uci-defaults/luci-ssr-plus	ssrplus/2abdc9aa/luci-ssr-plus.defaults
+ded6977f352d1c10da96b4bc2fdb9b4cac2c36d1	root/usr/share/shadowsocksr/shadowsocksr.config	ssrplus/2abdc9aa/shadowsocksr.config
+e226697bced19dab2481fd920f3cad219fa0c666	root/usr/share/shadowsocksr/gen_config.lua	ssrplus/2abdc9aa/gen_config.lua

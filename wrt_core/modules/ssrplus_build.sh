@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Fail before compilation/firmware collection when the selected SSR repair is incomplete.
+# Fail before compilation/firmware collection when the selected fw876 integration is incomplete.
 SSRP_BUILD_CORE_PATH=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
 
 verify_ssrplus_final_config() {
@@ -7,6 +7,7 @@ verify_ssrplus_final_config() {
     grep -qE '^CONFIG_PACKAGE_luci-app-ssr-plus=[ym]$' "$config" || return 0
     for key in CONFIG_PACKAGE_firewall4 CONFIG_PACKAGE_dnsmasq-full \
         CONFIG_PACKAGE_dnsmasq_full_nftset CONFIG_PACKAGE_flock \
+        CONFIG_PACKAGE_ipt2socks CONFIG_PACKAGE_dns2socks \
         CONFIG_PACKAGE_luci-app-ssr-plus_Nftables_Transparent_Proxy; do
         if ! grep -qxF "$key=y" "$config"; then
             echo "SSR build rejected: final configuration requires $key=y" >&2
@@ -14,7 +15,7 @@ verify_ssrplus_final_config() {
         fi
     done
     if grep -qxF 'CONFIG_PACKAGE_luci-app-ssr-plus_Iptables_Transparent_Proxy=y' "$config"; then
-        echo 'SSR build rejected: nft repair selected with the iptables backend' >&2
+        echo 'SSR build rejected: nft integration selected with the iptables backend' >&2
         return 1
     fi
 }

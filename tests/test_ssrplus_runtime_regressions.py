@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# Historical 190-r12 regression only; production v198.2 coverage is test_ssrplus_v198.py.
 """Run the SSR compatibility runtime in a temporary local filesystem.
 
 No router is contacted. Bash executes the production helper; the portable cases
@@ -18,7 +19,7 @@ import unittest
 
 
 ROOT = Path(__file__).resolve().parents[1]
-RUNTIME = ROOT / "wrt_core/compat/ssrplus/runtime.sh"
+RUNTIME = ROOT / "tests/fixtures/ssrplus-legacy/wrt_core/compat/ssrplus/runtime.sh"
 BASH = os.environ.get("BASH") or shutil.which("bash")
 if os.name == "nt" and not BASH:
     BASH = "C:/Program Files/Git/bin/bash.exe"
@@ -119,8 +120,8 @@ class RuntimeRegressions(unittest.TestCase):
         shutil.copyfile(fixture / "gfw2ipset.sh", generator)
         shutil.copyfile(fixture / "update.lua", generator.parent / "update.lua")
         for arguments in (("init", "-q"),
-                          ("apply", str(ROOT / "wrt_core/patches/ssrplus-startup-lock.patch")),
-                          ("apply", str(ROOT / "wrt_core/patches/ssrplus-dns-transaction.patch"))):
+                          ("apply", str(ROOT / "tests/fixtures/ssrplus-legacy/wrt_core/patches/ssrplus-startup-lock.patch")),
+                          ("apply", str(ROOT / "tests/fixtures/ssrplus-legacy/wrt_core/patches/ssrplus-dns-transaction.patch"))):
             result = subprocess.run(["git", "-C", str(package), *arguments],
                                     env=self.env, capture_output=True, text=True, timeout=30)
             self.assertEqual(result.returncode, 0,

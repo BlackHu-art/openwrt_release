@@ -10,12 +10,13 @@ import sys
 import tempfile
 import unittest
 import test_ssrplus_artifacts as artifacts
-import test_ssrplus_runtime_regressions as runtime_cases
+import test_ssrplus_v198 as runtime_cases
 
 ROOT = artifacts.ROOT
 REQUIRED = ("CONFIG_PACKAGE_firewall4", "CONFIG_PACKAGE_dnsmasq-full",
             "CONFIG_PACKAGE_dnsmasq_full_nftset", "CONFIG_PACKAGE_flock",
-            "CONFIG_PACKAGE_luci-app-ssr-plus_Nftables_Transparent_Proxy")
+            "CONFIG_PACKAGE_luci-app-ssr-plus_Nftables_Transparent_Proxy",
+            "CONFIG_PACKAGE_ipt2socks", "CONFIG_PACKAGE_dns2socks")
 
 
 class BuildGate(unittest.TestCase):
@@ -40,7 +41,7 @@ class BuildGate(unittest.TestCase):
         (self.base / ".config").write_text("\n".join(lines) + "\n", encoding="utf-8")
 
     def prepare_artifacts(self):
-        target = self.base / "bin/packages/test/luci/luci-app-ssr-plus_190-12_all.ipk"
+        target = self.base / "bin/packages/test/luci/luci-app-ssr-plus_198-2_all.ipk"
         target.parent.mkdir(parents=True)
         self.case.make_package().replace(target)
         expected = self.base / "feeds/custom_feed/luci-app-ssr-plus/root" / artifacts.MANIFEST_TARGET
@@ -59,17 +60,7 @@ class BuildGate(unittest.TestCase):
 
     def source_fixture(self):
         package = self.base / "source/luci-app-ssr-plus"
-        table = ROOT / "wrt_core/compat/ssrplus/source-files.tsv"
-        for entry in table.read_text(encoding="utf-8").splitlines():
-            _, relative, fixture = entry.split()
-            target = package / relative
-            target.parent.mkdir(parents=True, exist_ok=True)
-            shutil.copyfile(ROOT / "tests/fixtures" / fixture, target)
-        # Real upstream packages already carry this generator, including r4-r10;
-        # test its protection even before the source table learns about it.
-        generator = package / "root/usr/share/shadowsocksr/gen_config.lua"
-        generator.parent.mkdir(parents=True, exist_ok=True)
-        shutil.copyfile(ROOT / "tests/fixtures/ssrplus/2abdc9aa/gen_config.lua", generator)
+        shutil.copytree(runtime_cases.UPSTREAM, package)
         self.env.update(BASE_PATH=(ROOT / "wrt_core").as_posix(),
                         SSR_SOURCE_PACKAGE=package.as_posix())
         return package
@@ -78,19 +69,17 @@ class BuildGate(unittest.TestCase):
         return self.shell('. "$BASE_PATH/modules/plugin_compat.sh" && '
                           'fix_ssrplus_compat "$SSR_SOURCE_PACKAGE"')
 
-    def test_source_preparation_embeds_r12_identity_with_matching_recipe_release(self):
+    def test_source_preparation_embeds_v198_identity_with_matching_recipe_release(self):
         package = self.source_fixture()
         result = self.prepare_source()
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
         manifest = json.loads((package / "root" / artifacts.MANIFEST_TARGET).read_text(encoding="utf-8"))
-        self.assertEqual(manifest["repair_version"], "190-r12")
-        self.assertEqual(len(manifest["patches"]), 27)
-        self.assertIn("ssrplus-transport-config.patch", manifest["patches"])
-        self.assertIn("ssrplus-ss-password.patch", manifest["patches"])
-        self.assertIn("ssrplus-node-references.patch", manifest["patches"])
-        self.assertIn("ssrplus-core-transport.patch", manifest["patches"])
-        self.assertEqual(len(manifest["files"]), 12)
-        self.assertIn("PKG_RELEASE:=12\n", (package / "Makefile").read_text(encoding="utf-8"))
+        self.assertEqual(manifest["repair_version"], "198-r2")
+        self.assertIn("ssrplus-v198-integration.patch", manifest["patches"])
+        self.assertNotIn("ssrplus-startup-lock.patch", manifest["patches"])
+        self.assertIn("/usr/share/shadowsocksr/gen_config.lua", manifest["files"])
+        self.assertIn("/etc/hotplug.d/iface/99-ssrplus-pppoe", manifest["files"])
+        self.assertIn("PKG_RELEASE:=2\n", (package / "Makefile").read_text(encoding="utf-8"))
 
     def test_source_preparation_rejects_changed_generator_before_publishing(self):
         package = self.source_fixture()
@@ -150,7 +139,7 @@ class BuildGate(unittest.TestCase):
 
     def test_compiled_module_package_verified_without_requiring_rootfs_install(self):
         self.config()
-        target = self.base / "bin/packages/test/luci/luci-app-ssr-plus_190-12_all.ipk"
+        target = self.base / "bin/packages/test/luci/luci-app-ssr-plus_198-2_all.ipk"
         target.parent.mkdir(parents=True)
         self.case.make_package().replace(target)
         expected = self.base / "feeds/custom_feed/luci-app-ssr-plus/root" / artifacts.MANIFEST_TARGET
@@ -159,10 +148,10 @@ class BuildGate(unittest.TestCase):
         result = self.shell("verify_ssrplus_built_artifacts")
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
 
-    def test_old_package_cannot_pass_with_r12_payload_and_manifest(self):
+    def test_old_package_cannot_pass_with_v198_payload_and_manifest(self):
         self.config()
         self.prepare_artifacts()
-        target = self.base / "bin/packages/test/luci/luci-app-ssr-plus_190-12_all.ipk"
+        target = self.base / "bin/packages/test/luci/luci-app-ssr-plus_198-2_all.ipk"
         for version in ("190-7", "190-r7", "190-8", "190-r8", "190-9", "190-r9", "190-10", "190-r10", "190-11", "190-r11"):
             with self.subTest(version=version):
                 self.case.make_package(version=version).replace(target)
@@ -172,7 +161,7 @@ class BuildGate(unittest.TestCase):
 
     def test_selected_rootfs_package_cannot_pass_without_final_rootfs(self):
         self.config(selected="y")
-        target = self.base / "bin/packages/test/luci/luci-app-ssr-plus_190-12_all.ipk"
+        target = self.base / "bin/packages/test/luci/luci-app-ssr-plus_198-2_all.ipk"
         target.parent.mkdir(parents=True)
         self.case.make_package().replace(target)
         expected = self.base / "feeds/custom_feed/luci-app-ssr-plus/root" / artifacts.MANIFEST_TARGET
@@ -269,7 +258,7 @@ class BuildGate(unittest.TestCase):
         root = self.base / "build_dir/target-fixture/linux-qualcommax_ipq60xx/target-dir-deadbeef"
         status = root / "usr/lib/opkg/status"
         status.parent.mkdir(parents=True)
-        status.write_text("Package: luci-app-ssr-plus\nVersion: 190-12\n", encoding="utf-8")
+        status.write_text("Package: luci-app-ssr-plus\nVersion: 198-2\n", encoding="utf-8")
         result = self.shell("verify_ssrplus_built_artifacts")
         self.assertNotEqual(result.returncode, 0, result.stdout + result.stderr)
 

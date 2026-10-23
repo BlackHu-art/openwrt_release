@@ -1,5 +1,7 @@
 # SSR 190-r11 → fw876 v198.2：核心、依赖、包与构建门禁只读评估
 
+> 历史记录：本文保留 190 系列及 2026-10-22 评估阶段的代码事实、建议和验证结果，文中“当前”指当时基线。生产现已采用固定 fw876 v198.2；旧启动/DNS 修复只留在历史测试中，未按本文建议迁回生产。现行来源、更新策略与验证边界见 [fw876 集成说明](../fw876-core-migration.md)。
+
 审查基线：本项目 HEAD 6d76ce1；fw876 tag v198.2 = 45893d778767f3bdb2fcb6e873cf8f9a667d94d4；kenzok8/small-package 固定快照 3d5609257639ed76aaacdeffe242343d51265fea。没有改编译配置、构建脚本、源码补丁，也没有运行上游源码或目标程序。审查过程中发现其他任务并行修改工作树（包括Xray26.7.11适配），后文单独记载，不将其视为HEAD既有内容。
 
 路径简写：`U/` = `maintenance/plugins/ssrplus/upstream-v198.2/`；`K/<path>:line` = 固定 kenzo Git 对象中的文件及行号，来源为 https://github.com/kenzok8/small-package/tree/3d5609257639ed76aaacdeffe242343d51265fea。kenzo 比较对象不是本次构建已解析安装的事实；实际 feeds 为滚动拉取且另有覆盖步骤。

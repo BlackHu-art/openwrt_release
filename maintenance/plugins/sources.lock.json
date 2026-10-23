@@ -233,10 +233,31 @@
       "snapshot_kind": "repository-root",
       "local_path": "ssrplus/upstream-v198.2",
       "build_source": {
-        "file": "wrt_core/modules/custom_feed.sh",
-        "function": "install_custom_feed",
-        "active_ref": "master",
-        "evaluation_only": true
+        "file": "wrt_core/modules/managed_plugins.sh",
+        "function": "install_managed_custom_feed",
+        "active_ref": "v198.2",
+        "evaluation_only": false,
+        "production_mirror": true,
+        "directly_consumed_from_maintenance": false,
+        "managed_lock": "wrt_core/managed/sources.lock.json",
+        "managed_packages": [
+          "luci-app-ssr-plus",
+          "xray-core",
+          "chinadns-ng",
+          "dns2socks",
+          "dns2tcp",
+          "lua-neturl",
+          "microsocks",
+          "mosdns",
+          "shadowsocks-rust",
+          "shadowsocksr-libev",
+          "simple-obfs",
+          "tcping",
+          "v2ray-plugin",
+          "ipt2socks",
+          "upx"
+        ],
+        "note": "Selected original package blobs are mirrored into separately locked build-owned inputs; the complete maintenance snapshot remains unmodified and is not read directly by firmware builds."
       },
       "package_makefile_path": "luci-app-ssr-plus/Makefile",
       "package_makefile_fields": {
@@ -261,9 +282,9 @@
         "shadowsocksr-libev/src/libsodium/.gitignore",
         "shadowsocksr-libev/src/libsodium/packaging/nuget/.gitignore"
       ],
-      "snapshot_state": "unmodified-upstream-release-for-migration-assessment",
+      "snapshot_state": "unmodified-upstream-release-mirrored-to-managed-production",
       "captured_at_utc": "2026-10-22T15:45:37.018902+00:00"
     }
   ],
-  "updated_at_utc": "2026-10-22T15:45:37.018902+00:00"
+  "updated_at_utc": "2026-10-23T16:16:32.709522+00:00"
 }

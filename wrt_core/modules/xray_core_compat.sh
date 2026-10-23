@@ -1,25 +1,16 @@
 #!/usr/bin/env bash
-# 保留 small-package 的 XTLS 来源，仅提升已审查配方以满足共享生成器。
+# Validate the complete pinned fw876 recipe and patches before compilation.
 
 fix_xray_core_compat() (
-    local package_dir=${1:-} recipe patch_file blob generator minimum lowest label declarations
-    local go_recipe go_version go_patch patch_declarations scratch='' temporary='' temp_base
+    local package_dir=${1:-} generator minimum lowest label declarations
+    local go_recipe go_version go_patch patch_declarations
     local target_version=26.10.21
-    local source_blob=481e0342987bde364588e00ec716c1f23a250512
-    local patched_blob=cc538ed322a3a1bdc77463d7ff8208abbd30a065
-    recipe="$package_dir/Makefile"
-    patch_file="$BASE_PATH/patches/xray-core-26.10.21.patch"
-    if [[ ! -d "$package_dir" || ! -f "$recipe" || -L "$recipe" ]]; then
-        echo "错误：Xray Makefile 不存在或不是普通文件：$recipe" >&2
-        return 1
-    fi
-    blob=$(git hash-object --no-filters "$recipe") || return 1
-    if [[ "$blob" != "$source_blob" && "$blob" != "$patched_blob" ]]; then
-        echo "错误：Xray Makefile 发生未审查或不完整的变化，停止构建：$recipe" >&2
+    if ! python3 "$BASE_PATH/managed_plugins.py" verify-staged xray-core "$package_dir"; then
+        echo "错误：Xray fw876 完整配方、补丁或来源锁校验失败：$package_dir" >&2
         return 1
     fi
 
-    # 每次执行都读取本轮拉取的生成器，不能让已打补丁的缓存绕过版本门槛。
+    # 每次执行都读取本轮拉取的生成器，不能让已验证过的缓存绕过版本门槛。
     label=Passwall2
     generator="$package_dir/../luci-app-passwall2/luasrc/passwall2/util_xray.lua"
     if [[ ! -f "$generator" ]]; then
@@ -62,33 +53,5 @@ fix_xray_core_compat() (
         echo "错误：Xray $target_version 需要 Go >= 1.27.3，当前 Go 为 $go_version。" >&2
         return 1
     fi
-    if [[ "$blob" == "$patched_blob" ]]; then
-        echo "Xray $target_version 配方及共享生成器版本门槛检查通过。"
-        return 0
-    fi
-    if [[ ! -f "$patch_file" ]]; then
-        echo "错误：Xray 兼容补丁不存在：$patch_file" >&2
-        return 1
-    fi
-
-    # 独立 Git 根避免被上级仓库的路径前缀影响；全程验证后只原子发布一个文件。
-    temp_base=$(cd "${TMPDIR:-/tmp}" && pwd -P) || return 1
-    scratch=$(mktemp -d "$temp_base/xray-core-compat.XXXXXX") || return 1
-    trap 'case "$scratch" in "$temp_base"/xray-core-compat.*) rm -rf -- "$scratch" ;; esac; [[ -z "$temporary" ]] || rm -f -- "$temporary"' EXIT
-    git init -q "$scratch" || return 1
-    git -C "$scratch" config core.autocrlf false || return 1
-    cp -p "$recipe" "$scratch/Makefile" || return 1
-    if ! git -C "$scratch" apply --check "$patch_file" || ! git -C "$scratch" apply "$patch_file"; then
-        echo '错误：Xray 兼容补丁无法应用，原配方未改动。' >&2
-        return 1
-    fi
-    if [[ $(git hash-object --no-filters "$scratch/Makefile") != "$patched_blob" ]]; then
-        echo '错误：Xray 补丁结果与已审查的版本、下载来源和源码哈希不一致，原配方未改动。' >&2
-        return 1
-    fi
-    temporary=$(mktemp "$package_dir/.xray-core-compat.XXXXXX") || return 1
-    cp -p "$scratch/Makefile" "$temporary" || return 1
-    mv -f -- "$temporary" "$recipe" || return 1
-    temporary=''
-    echo "Xray 配方已更新到 $target_version，共享生成器和 Go 版本检查通过。"
+    echo "Xray fw876 $target_version 完整配方、补丁、共享生成器及 Go 版本门槛检查通过。"
 )

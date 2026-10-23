@@ -10,7 +10,10 @@ install_managed_package() {
 install_managed_custom_feed() {
     local target=$1 package
     local packages=(
-        xray-core sing-box luci-app-homeproxy oaf open-app-filter luci-app-oaf
+        luci-app-ssr-plus xray-core chinadns-ng dns2socks dns2tcp lua-neturl
+        microsocks mosdns shadowsocks-rust shadowsocksr-libev simple-obfs
+        tcping v2ray-plugin ipt2socks upx
+        sing-box luci-app-homeproxy oaf open-app-filter luci-app-oaf
         luci-app-istorex quickstart luci-app-quickstart luci-app-store
         taskd luci-lib-taskd luci-lib-xterm
     )

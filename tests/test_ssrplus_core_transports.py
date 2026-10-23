@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# Historical 190-r12 regression only; production v198.2 coverage is test_ssrplus_v198.py.
 """Run subscribed/selected SSR transports through the actual official Xray.
 
 Only UCI and host OS boundaries are adapted. Never contact a router or start
@@ -260,7 +261,7 @@ class SelectedTransportStartupRegressions(unittest.TestCase):
                             init = base / "init.sh"
                             init.write_text(self.init_code.replace(
                                 '${IPKG_INSTROOT:-}/usr/share/shadowsocksr/ssrp-runtime.sh',
-                                (ROOT / "wrt_core/compat/ssrplus/runtime.sh").as_posix()), encoding="utf-8")
+                                (ROOT / "tests/fixtures/ssrplus-legacy/wrt_core/compat/ssrplus/runtime.sh").as_posix()), encoding="utf-8")
                             retained = base / "retained-node.json"
                             retained.write_text(json.dumps(stale_transport_node(protocol, transport)), encoding="utf-8")
                             before = retained.read_bytes()
@@ -316,7 +317,7 @@ gen_config_file candidate v2ray "$TEST_ROLE_CODE" 1234 1080
                         with tempfile.TemporaryDirectory(prefix="ssr-unsupported-startup-") as temporary:
                             base = Path(temporary)
                             init = base / "init.sh"
-                            runtime = (ROOT / "wrt_core/compat/ssrplus/runtime.sh").as_posix()
+                            runtime = (ROOT / "tests/fixtures/ssrplus-legacy/wrt_core/compat/ssrplus/runtime.sh").as_posix()
                             init.write_text(self.init_code.replace(
                                 '${IPKG_INSTROOT:-}/usr/share/shadowsocksr/ssrp-runtime.sh', runtime),
                                 encoding="utf-8")

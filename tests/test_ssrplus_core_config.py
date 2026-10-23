@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# Historical 190-r12 regression only; production v198.2 coverage is test_ssrplus_v198.py.
 """Execute real subscription Lua through the real final core JSON generator.
 
 Only OS, UCI, JSON and nixio bindings are substituted. Both complete repaired
@@ -37,7 +38,7 @@ def generator_source():
     blob = b"blob " + str(len(source_bytes)).encode() + b"\0" + source_bytes
     if hashlib.sha1(blob).hexdigest() != GENERATOR_GIT_BLOB:
         raise AssertionError("unmodified public gen_config.lua Git blob changed")
-    patch = ROOT / "wrt_core/patches/ssrplus-core-transport.patch"
+    patch = ROOT / "tests/fixtures/ssrplus-legacy/wrt_core/patches/ssrplus-core-transport.patch"
     if not patch.exists():
         return source_bytes
     with tempfile.TemporaryDirectory(prefix="ssr-core-source-") as temporary:

@@ -2,17 +2,115 @@
   "schema_version": 1,
   "reviewed_on": "2026-10-23",
   "package": "xray-core",
-  "reason": "The retained current Passwall2 generator emits MASQUE, which Xray 26.7.11 cannot parse; upgrade the guarded build recipe and official config-validation core together.",
+  "reason": "Use the complete fw876 v198.2 Xray 26.10.21-r2 recipe and ten private-protocol patches as the sole shared production source for SSR and official Passwall2.",
   "recipe_source": {
-    "repository": "https://github.com/kenzok8/small-package.git",
-    "commit": "3d5609257639ed76aaacdeffe242343d51265fea",
-    "path": "xray-core/Makefile",
-    "before_git_blob": "481e0342987bde364588e00ec716c1f23a250512",
-    "after_git_blob": "cc538ed322a3a1bdc77463d7ff8208abbd30a065",
-    "before_version": "26.3.27",
-    "before_source_sha256": "992a4997e6bb846d11469435d687f99ef812fcde1e0a009bb8e95189ea20331d",
-    "patch": "xray-core-26.10.21.patch",
-    "source_url_template_unchanged": "https://codeload.github.com/XTLS/Xray-core/tar.gz/v$(PKG_VERSION)?"
+    "repository": "https://github.com/fw876/helloworld.git",
+    "tag": "v198.2",
+    "commit": "45893d778767f3bdb2fcb6e873cf8f9a667d94d4",
+    "path": "xray-core",
+    "tree": "312bb8c25a218135d0882762fb49652cbfa2fb41",
+    "version": "26.10.21",
+    "release": "2",
+    "managed_path": "wrt_core/managed/packages/xray-core",
+    "lock": "wrt_core/managed/sources.lock.json",
+    "upstream_manifest": "maintenance/plugins/manifests/ssrplus-v198.2.json",
+    "upstream_manifest_sha256": "274d46eadf5b1314b22cc0623491053c15737485fbdc2cd16097fdc4fbfd5beb",
+    "files": [
+      {
+        "path": "Makefile",
+        "mode": "100644",
+        "git_blob": "a61ff2c525917a000eaa3413ad20a14744031a80",
+        "sha256": "bf41f02251786f817d02c2922d73ab8791c2fd62a2efef1979f1382810732aaf",
+        "bytes": 4229
+      },
+      {
+        "path": "README.eip93.md",
+        "mode": "100644",
+        "git_blob": "7d573526483ab74a6093a7ce7bc2e44e6da60c17",
+        "sha256": "733e9681a213c3df4f58437202f7c073e2943f258e249e6fa8352d0a18707538",
+        "bytes": 5962
+      },
+      {
+        "path": "patches/100-restore-allow-insecure.patch",
+        "mode": "100644",
+        "git_blob": "56a1d32b4314c1d2f9f4712203fe7892b06f43b9",
+        "sha256": "bfa44529ca029e4cf72171fdc35b83c5ff81209555680cda6f2b32aec5001100",
+        "bytes": 5343
+      },
+      {
+        "path": "patches/110-add-anytls-proxy.patch",
+        "mode": "100644",
+        "git_blob": "4b3a1edadfe350d2da666f2d07339fc8726f2092",
+        "sha256": "46fa973c1d8c533aea6ef786a8abc7b458384b9b3b94c713ae934e79551c0c50",
+        "bytes": 39234
+      },
+      {
+        "path": "patches/120-restore-vmess-alterid-outbound.patch",
+        "mode": "100644",
+        "git_blob": "407ae19b73a2443049ad86b62f31dff65c72a3c6",
+        "sha256": "cbb62a940469f3b5baa3f619731e7358764efade52030226252e1e1f7cb89cc8",
+        "bytes": 25282
+      },
+      {
+        "path": "patches/130-add-naive-proxy.patch",
+        "mode": "100644",
+        "git_blob": "88bcc77adc6a85d552077de9b6246fb84e39b242",
+        "sha256": "9b5a4c8d805dc0dadeabe26134f1f0fec5a409b6aa02ad4bd2963e972e67635e",
+        "bytes": 58948
+      },
+      {
+        "path": "patches/140-add-shadowsocksr-proxy.patch",
+        "mode": "100644",
+        "git_blob": "093fb40ad310c9d6ccd1596103e95d5857b89a5f",
+        "sha256": "8d2e48067f1853af154379fbe7bc73b45f164284cdbe7ee902aa6febebcc0ef0",
+        "bytes": 183276
+      },
+      {
+        "path": "patches/150-add-tuic-proxy.patch",
+        "mode": "100644",
+        "git_blob": "216e3ce0fa23ae4a109bd48b739f72a5d52c6957",
+        "sha256": "823096b462e1cf08e8d686e645c35c88207b0742301f04e2d98ec3471ea65837",
+        "bytes": 96172
+      },
+      {
+        "path": "patches/160-add-snell-proxy.patch",
+        "mode": "100644",
+        "git_blob": "24bc66b1e281cd0ef133119cbd3efff51f19d519",
+        "sha256": "0ed1f117ffe630b33be691355a1960399f20f8270041cfbf392c31c6a05e02c6",
+        "bytes": 65027
+      },
+      {
+        "path": "patches/170-add-shadowtls-transport.patch",
+        "mode": "100644",
+        "git_blob": "06bd0dcf9ba787cfc722ef21996b47fd21b97912",
+        "sha256": "f66ccf0c66dca1e805825506629581ef4330444f13c326842d9ef364a2c1bbfe",
+        "bytes": 99227
+      },
+      {
+        "path": "patches/180-add-kcptun-transport.patch",
+        "mode": "100644",
+        "git_blob": "9800b7ba9b7cfe164f2953d9f63fd6b01be498aa",
+        "sha256": "a3d8a32d24697decbc56e5128676fb1cb27b72619117e7772edaf7ce28bda681",
+        "bytes": 78051
+      },
+      {
+        "path": "patches/190-an7581-eip93-aes-gcm.patch",
+        "mode": "100644",
+        "git_blob": "6ec6b548fb87b348ad9e38fd6c6fa1adeb0462e3",
+        "sha256": "1b3ca9054d23f6bc86dae376dd16577798d78d05db743f42ef756e7c4e1d7a67",
+        "bytes": 14021
+      }
+    ],
+    "required_host_dependencies": [
+      "golang/host",
+      "upx/host"
+    ],
+    "upx": {
+      "managed_path": "wrt_core/managed/packages/upx",
+      "version": "5.2.1",
+      "source_commit": "45893d778767f3bdb2fcb6e873cf8f9a667d94d4"
+    },
+    "validation": "The gate verifies every file, SHA-256, file kind and POSIX mode in the staged recipe against the immutable managed source lock; the full ten-patch set is mandatory."
   },
   "core_source": {
     "repository": "https://github.com/XTLS/Xray-core.git",
@@ -30,7 +128,8 @@
     "go_mod_sha256": "7034fa6ca85b9919e634c06c69bde4e181818d8423f7c8d0e44f68ea5c6f5e60",
     "archive_bytes": 1266749,
     "build_toolchain_minimum": "1.27.3",
-    "build_toolchain_minimum_reason": "The emergency release notes require Go 1.27.3 certificate filtering in addition to the source go.mod minimum of 1.27."
+    "build_toolchain_minimum_reason": "The emergency release notes require Go 1.27.3 certificate filtering in addition to the source go.mod minimum of 1.27.",
+    "scope": "Official base source before the fw876 recipe applies its ten patches; this archive alone does not identify the production customized core."
   },
   "reviewed_generators": [
     {
@@ -50,12 +149,12 @@
     "sha256": "304acf8db6ccf443d875451074e24f198a6db77c98f96ce4e5b931a676de49ec"
   },
   "validation_scope": [
-    "Official tag, release API metadata, source archive SHA256, go.mod and exact Go recipe commit inspected.",
-    "Managed raw recipe remains 26.3.27 with blob 481e0342987bde364588e00ec716c1f23a250512; only guarded build copies are patched.",
-    "Source URL, dependencies, build flags and install rules are preserved.",
-    "Build gate rechecks the retained Passwall2 minimum and both numeric Go version fields on every call, including an already patched recipe.",
-    "Official Windows 26.10.21 accepts six complete outputs from the reviewed current Passwall2 generator: VLESS/raw, Trojan/ws, MASQUE, Hysteria2, XHTTP and mKCP; an invalid protocol is rejected.",
-    "Linux archive and executable hashes are verified from official assets; Linux execution is left to CI.",
+    "Imported the complete selected fw876 package subtrees from v198.2, checking each captured blob size, SHA-256 and Git blob SHA-1 before writing managed inputs.",
+    "Production Xray remains the complete fw876 26.10.21-r2 recipe, README.eip93.md and ten patches. No official-only recipe upgrade patch is used.",
+    "The gate rejects missing, modified and extra patches and rechecks Passwall2 minimum Xray and unique literal Go >=1.27.3 declarations on every run.",
+    "The fw876 v198.2 x86_64 IPK was downloaded and its API digest and archive SHA-256 matched. Package, version and architecture fields and the extracted ELF SHA-256 were verified.",
+    "Linux CI requires the exact fw876 binary for the private-protocol generator checks. The Linux binary was not executed on the Windows authoring host.",
+    "Official Windows and Linux Xray test cores below remain generic configuration cross-checks and cannot establish fw876-specific protocol compatibility.",
     "No firmware cross-compilation, router operation or real network forwarding is established by this receipt."
   ],
   "official_test_cores": [
@@ -77,5 +176,27 @@
       "executable_sha256": "c77a00eb84fb93ae044c2d771a1cabcc033b81e487253fbc35b12df6879c1e15",
       "bytes": 15029603
     }
-  ]
+  ],
+  "fw876_test_core": {
+    "repository": "https://github.com/fw876/helloworld",
+    "tag": "v198.2",
+    "source_commit": "45893d778767f3bdb2fcb6e873cf8f9a667d94d4",
+    "platform": "linux-x86_64",
+    "asset": "xray-core_26.10.21-r2_x86_64.ipk",
+    "url": "https://github.com/fw876/helloworld/releases/download/v198.2/xray-core_26.10.21-r2_x86_64.ipk",
+    "api_digest": "sha256:790fd76aacedfb5ec75721470323050fe119de546b354c9fbfce0560acd49153",
+    "archive_sha256": "790fd76aacedfb5ec75721470323050fe119de546b354c9fbfce0560acd49153",
+    "executable_sha256": "8275f03f7715326c6de6b3e25e1f4fa6991738002ac33e620f114437b76236aa",
+    "package_identity": {
+      "Package": "xray-core",
+      "Version": "26.10.21-r2",
+      "Architecture": "x86_64"
+    },
+    "fetcher": "tests/fetch_fw876_xray.py",
+    "required_ci_environment": {
+      "REQUIRE_FW876_XRAY_TEST_CORE": "1",
+      "FW876_XRAY_TEST_BINARY": "path to verified extracted Linux ELF"
+    },
+    "execution_boundary": "Downloaded and verified on Windows; actual Linux private-protocol execution is required in CI."
+  }
 }

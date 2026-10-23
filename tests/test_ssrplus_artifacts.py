@@ -60,8 +60,8 @@ class ArtifactVerification(unittest.TestCase):
         target.chmod(0o755)
         self.mode = stat.S_IMODE(target.stat().st_mode)
         self.manifest = {
-            "source_commit": "2abdc9aa9e19607774dc9789709212b70b8607c6",
-            "repair_version": "190-r12",
+            "source_commit": "45893d778767f3bdb2fcb6e873cf8f9a667d94d4",
+            "repair_version": "198-r2",
             "patches": {"ssrplus-example.patch": "a" * 64},
             "files": {"/" + PROTECTED: {"sha256": hashlib.sha256(CONTENT).hexdigest(),
                                        "mode": f"{self.mode:04o}"}},
@@ -88,7 +88,7 @@ class ArtifactVerification(unittest.TestCase):
             self.assertIn("SSR artifact verification failed:", result.stderr)
         return result
 
-    def make_package(self, kind="ar", *, data=None, version="190-12", embedded=None, name="luci-app-ssr-plus"):
+    def make_package(self, kind="ar", *, data=None, version="198-2", embedded=None, name="luci-app-ssr-plus"):
         if data is None:
             data = [(PROTECTED, CONTENT, self.mode)]
         manifest = json.dumps(self.manifest if embedded is None else embedded).encode()
@@ -155,7 +155,7 @@ class ArtifactVerification(unittest.TestCase):
 
     def test_apk_v2_reads_payload_after_signature_and_control_gzip_streams(self):
         self.cli("package", "--manifest", self.expected, "--package",
-                 self.make_package("apk2", version="190-r12"))
+                 self.make_package("apk2", version="198-r2"))
 
     def test_package_missing_protected_file_fails(self):
         self.cli("package", "--manifest", self.expected, "--package", self.make_package(data=[]), success=False)
@@ -223,12 +223,12 @@ class ArtifactVerification(unittest.TestCase):
         patch.write_bytes(b"source repair\n")
         output = self.base / "generated.json"
         self.cli("manifest", "--root", self.root, "--output", output,
-                 "--source-commit", self.manifest["source_commit"], "--repair-version", "190-r12",
+                 "--source-commit", self.manifest["source_commit"], "--repair-version", "198-r2",
                  "--patch", patch, "--file", "/" + PROTECTED)
         result = json.loads(output.read_text(encoding="utf-8"))
         self.assertEqual(result["files"], self.manifest["files"])
         self.assertEqual(result["patches"], {patch.name: hashlib.sha256(b"source repair\n").hexdigest()})
-        self.assertEqual(result["repair_version"], "190-r12")
+        self.assertEqual(result["repair_version"], "198-r2")
 
     def initialization_files(self):
         files = [(PROTECTED, CONTENT, 0o755),
@@ -246,7 +246,7 @@ class ArtifactVerification(unittest.TestCase):
         patch.write_bytes(b"firstboot initialization repair\n")
         arguments = ["manifest", "--root", self.root, "--output", output,
                      "--source-commit", self.manifest["source_commit"],
-                     "--repair-version", "190-r12", "--patch", patch]
+                     "--repair-version", "198-r2", "--patch", patch]
         for target in targets:
             arguments.extend(("--file", "/" + target))
         return arguments
@@ -328,7 +328,7 @@ class ArtifactVerification(unittest.TestCase):
 
     def test_mixed_mode_initialization_assets_verify_in_all_package_containers(self):
         files = self.mixed_mode_manifest()
-        for kind, version in (("ar", "190-12"), ("tar", "190-12"), ("apk2", "190-r12")):
+        for kind, version in (("ar", "198-2"), ("tar", "198-2"), ("apk2", "198-r2")):
             with self.subTest(kind=kind):
                 package = self.make_package(kind, data=files, version=version)
                 self.cli("package", "--manifest", self.expected, "--package", package)
@@ -400,6 +400,7 @@ class WorkflowGates(unittest.TestCase):
         self.assertIn("from lupa.lua51 import LuaRuntime", scripts)
         self.assertIn("Lua 5.1", scripts)
         self.assertIn("sudo unshare -n bash tests/test_ssrplus_linux.sh", scripts)
+        self.assertIn("sudo unshare -n bash tests/test_ssrplus_v198_linux.sh", scripts)
 
     def test_all_models_release_inherits_callee_gate(self):
         workflow = self.read_workflow("release_wrt_all.yml")

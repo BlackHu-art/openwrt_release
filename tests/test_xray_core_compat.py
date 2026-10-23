@@ -4,13 +4,14 @@ import os
 from pathlib import Path
 import shutil
 import subprocess
+import sys
 import tempfile
 import unittest
 
 
 ROOT = Path(__file__).resolve().parents[1]
 MODULE = ROOT / "wrt_core/modules/xray_core_compat.sh"
-FIXTURE = ROOT / "tests/fixtures/proxy-cores/small-package-3d560925/xray-core/Makefile"
+FIXTURE = ROOT / "maintenance/plugins/ssrplus/upstream-v198.2/xray-core"
 BASH = os.environ.get("BASH") or shutil.which("bash")
 if os.name == "nt" and not BASH:
     BASH = "C:/Program Files/Git/bin/bash.exe"
@@ -23,9 +24,8 @@ class XrayRecipeCompatibility(unittest.TestCase):
         self.build = Path(self.temp.name)
         self.feed = self.build / "feeds/custom_feed"
         self.package = self.feed / "xray-core"
-        self.package.mkdir(parents=True)
+        shutil.copytree(FIXTURE, self.package)
         self.recipe = self.package / "Makefile"
-        shutil.copyfile(FIXTURE, self.recipe)
         self.generators = []
         for plugin in ("passwall2",):
             generator = self.feed / f"luci-app-{plugin}/luasrc/{plugin}/util_xray.lua"
@@ -38,11 +38,10 @@ class XrayRecipeCompatibility(unittest.TestCase):
         self.env = os.environ.copy()
         self.env.update(BASE_PATH=(ROOT / "wrt_core").as_posix(),
                         BUILD_DIR=self.build.as_posix(),
-                        XRAY_PACKAGE=self.package.as_posix())
+                        XRAY_PACKAGE=self.package.as_posix(), TEST_PYTHON=Path(sys.executable).as_posix())
 
     def apply(self):
-        # The no-op when absent reproduces the existing, unpatched source flow.
-        command = ('if [ -f "$BASE_PATH/modules/xray_core_compat.sh" ]; then '
+        command = ('python3() { "$TEST_PYTHON" "$@"; }; if [ -f "$BASE_PATH/modules/xray_core_compat.sh" ]; then '
                    '. "$BASE_PATH/modules/xray_core_compat.sh" || exit; '
                    'fix_xray_core_compat "$XRAY_PACKAGE"; fi')
         return subprocess.run([BASH, "--noprofile", "--norc", "-c", command],
@@ -60,17 +59,34 @@ class XrayRecipeCompatibility(unittest.TestCase):
         self.assertIn(expected, result.stderr)
         self.assertEqual(self.snapshot(), before)
 
-    def test_reviewed_recipe_gets_required_version_and_verified_archive_hash(self):
+    def test_reviewed_fw_recipe_and_all_private_protocol_patches_are_accepted_unchanged(self):
+        before = self.snapshot()
         result = self.apply()
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
-        recipe = self.recipe.read_text(encoding="utf-8")
-        self.assertIn("PKG_VERSION:=26.10.21\n", recipe)
-        self.assertIn("PKG_HASH:=44ef4874529a03848c90f1fdcfb763350fbc5f1de741ec90e0024d651df25650\n", recipe)
-        self.assertIn("PKG_SOURCE_URL:=https://codeload.github.com/XTLS/Xray-core/tar.gz/v$(PKG_VERSION)?\n", recipe)
-        expected = FIXTURE.read_bytes().replace(b"PKG_VERSION:=26.3.27", b"PKG_VERSION:=26.10.21").replace(
-            b"992a4997e6bb846d11469435d687f99ef812fcde1e0a009bb8e95189ea20331d",
-            b"44ef4874529a03848c90f1fdcfb763350fbc5f1de741ec90e0024d651df25650")
-        self.assertEqual(self.recipe.read_bytes(), expected)
+        self.assertEqual(len(list((self.package / "patches").glob("*.patch"))), 10)
+        self.assertEqual(self.snapshot(), before)
+
+    def test_every_private_protocol_patch_is_required_and_verified(self):
+        for patch in sorted((self.package / "patches").glob("*.patch")):
+            original = patch.read_bytes()
+            for mutation in ("missing", "modified"):
+                with self.subTest(patch=patch.name, mutation=mutation):
+                    if mutation == "missing":
+                        patch.unlink()
+                    else:
+                        patch.write_bytes(original + b"\n# unreviewed patch\n")
+                    self.assert_rejected_without_changes(patch.name)
+                    patch.write_bytes(original)
+
+    def test_extra_patch_is_rejected_before_build(self):
+        (self.package / "patches/999-unreviewed.patch").write_bytes(b"unreviewed")
+        self.assert_rejected_without_changes("999-unreviewed.patch")
+
+    def test_official_recipe_without_fw_patches_is_rejected(self):
+        shutil.rmtree(self.package / "patches")
+        official = ROOT / "tests/fixtures/proxy-cores/small-package-3d560925/xray-core/Makefile"
+        self.recipe.write_bytes(official.read_bytes())
+        self.assert_rejected_without_changes("xray-core")
 
     def test_passwall2_only_tree_needs_no_passwall1_source(self):
         self.assertFalse((self.feed / "luci-app-passwall").exists())
@@ -91,11 +107,11 @@ class XrayRecipeCompatibility(unittest.TestCase):
         self.recipe.write_bytes(self.recipe.read_bytes() + b"\n# unreviewed dependency change\n")
         self.assert_rejected_without_changes("Makefile")
 
-    def test_partial_upgrade_with_stale_hash_is_rejected(self):
-        self.recipe.write_bytes(self.recipe.read_bytes().replace(b"26.3.27", b"26.10.21"))
+    def test_changed_recipe_version_with_stale_hash_is_rejected(self):
+        self.recipe.write_bytes(self.recipe.read_bytes().replace(b"26.10.21", b"26.10.22"))
         self.assert_rejected_without_changes("Makefile")
 
-    def test_passwall2_minimum_is_checked_again_when_recipe_already_patched(self):
+    def test_passwall2_minimum_is_rechecked_after_successful_validation(self):
         result = self.apply()
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
         for generator in self.generators:
@@ -104,7 +120,7 @@ class XrayRecipeCompatibility(unittest.TestCase):
                 self.assert_rejected_without_changes("26.10.22")
                 generator.write_text('local xray_min_version = "26.7.11"\n', encoding="utf-8")
 
-    def test_newer_generator_requirement_rejects_unpatched_recipe_without_write(self):
+    def test_newer_generator_requirement_rejects_fw_recipe_without_write(self):
         self.generators[0].write_text('local xray_min_version = "26.10.22"\n', encoding="utf-8")
         self.assert_rejected_without_changes("26.10.22")
 
@@ -149,40 +165,19 @@ class XrayRecipeCompatibility(unittest.TestCase):
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
         self.assertIn(b"PKG_VERSION:=26.10.21\n", self.recipe.read_bytes())
 
-    def test_package_nested_in_git_repository_updates_the_actual_recipe(self):
+    def test_package_nested_in_git_repository_validates_the_actual_recipe(self):
         result = subprocess.run(["git", "init", "-q", str(self.build)], capture_output=True)
         self.assertEqual(result.returncode, 0, result.stderr)
         result = self.apply()
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
         self.assertIn(b"PKG_VERSION:=26.10.21\n", self.recipe.read_bytes())
 
-    def test_modified_patch_result_is_rejected_without_publishing_any_change(self):
-        base = self.build / "compat"
-        (base / "modules").mkdir(parents=True)
-        (base / "patches").mkdir()
-        shutil.copyfile(MODULE, base / "modules/xray_core_compat.sh")
-        patch = (ROOT / "wrt_core/patches/xray-core-26.10.21.patch").read_bytes()
-        (base / "patches/xray-core-26.10.21.patch").write_bytes(
-            patch.replace(b"+PKG_VERSION:=26.10.21", b"+PKG_VERSION:=26.10.22"))
-        self.env["BASE_PATH"] = base.as_posix()
-        self.assert_rejected_without_changes("Xray")
-
-    def test_missing_patch_is_rejected_without_publishing_any_change(self):
+    def test_missing_source_lock_is_rejected_without_publishing_any_change(self):
         base = self.build / "compat"
         (base / "modules").mkdir(parents=True)
         shutil.copyfile(MODULE, base / "modules/xray_core_compat.sh")
         self.env["BASE_PATH"] = base.as_posix()
         self.assert_rejected_without_changes("Xray")
-
-    def test_scratch_nested_inside_another_git_root_still_applies_patch(self):
-        subprocess.run(["git", "init", "-q", str(self.build)], check=True)
-        scratch = self.build / "scratch"
-        scratch.mkdir()
-        self.env["TMPDIR"] = scratch.as_posix()
-        result = self.apply()
-        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
-        self.assertIn(b"PKG_VERSION:=26.10.21\n", self.recipe.read_bytes())
-        self.assertEqual(list(scratch.iterdir()), [])
 
 
 class GoToolchainSourceUpdate(unittest.TestCase):

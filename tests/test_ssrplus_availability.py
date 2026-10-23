@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# Historical 190-r12 regression only; production v198.2 coverage is test_ssrplus_v198.py.
 """Exercise bounded resolution and replacement failure boundaries locally."""
 import subprocess
 import unittest
@@ -19,7 +20,7 @@ class AvailabilityTests(unittest.TestCase):
             runtime_cases.RUNTIME.as_posix(), anchor), encoding="utf-8", newline="\n")
         result = subprocess.run([
             "git", "-c", "core.autocrlf=false", "-C", str(init.parents[3]),
-            "apply", str(ROOT / "wrt_core/patches/ssrplus-availability.patch")],
+            "apply", str(ROOT / "tests/fixtures/ssrplus-legacy/wrt_core/patches/ssrplus-availability.patch")],
             capture_output=True, text=True, timeout=30)
         self.assertEqual(result.returncode, 0, result.stderr)
         init.write_text(init.read_text(encoding="utf-8").replace(

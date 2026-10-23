@@ -113,6 +113,39 @@ class ManagedPackages(unittest.TestCase):
             self.module.stage_package(self.sources, "missing", self.target, self.build)
         self.assertFalse(self.target.exists())
 
+    def test_verify_staged_rejects_missing_extra_and_changed_files_without_writing(self):
+        for mutation in ("missing", "extra", "changed"):
+            with self.subTest(mutation=mutation):
+                self.stage()
+                self.assertTrue(hasattr(self.module, "verify_staged"), "staged package gate is missing")
+                self.module.verify_staged(self.sources, "example", self.target)
+                if mutation == "missing":
+                    (self.target / "Makefile").unlink()
+                elif mutation == "extra":
+                    (self.target / "extra.patch").write_bytes(b"unreviewed")
+                else:
+                    (self.target / "Makefile").write_bytes(b"unreviewed")
+                before = {p.relative_to(self.target): p.read_bytes() for p in self.target.rglob("*") if p.is_file()}
+                with self.assertRaises(ValueError):
+                    self.module.verify_staged(self.sources, "example", self.target)
+                self.assertEqual(before, {p.relative_to(self.target): p.read_bytes() for p in self.target.rglob("*") if p.is_file()})
+
+    @unittest.skipIf(os.name == "nt", "POSIX modes and symlinks are checked in Linux CI")
+    def test_verify_staged_checks_file_modes_and_link_type(self):
+        self.files["translation"] = (b"root/etc/config/example", "120000")
+        self.write_sources()
+        self.stage()
+        self.module.verify_staged(self.sources, "example", self.target)
+        executable = self.target / "root/etc/init.d/example"
+        executable.chmod(0o644)
+        with self.assertRaises(ValueError):
+            self.module.verify_staged(self.sources, "example", self.target)
+        executable.chmod(0o755)
+        (self.target / "translation").unlink()
+        (self.target / "translation").write_bytes(b"root/etc/config/example")
+        with self.assertRaises(ValueError):
+            self.module.verify_staged(self.sources, "example", self.target)
+
 
 if __name__ == "__main__":
     unittest.main()

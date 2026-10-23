@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# Historical 190-r12 regression only; production v198.2 coverage is test_ssrplus_v198.py.
 """Run imported SSR initialization in a private filesystem; never access a router.
 
 All ordered patches are applied to blob-checked upstream fixtures. Only fixed
@@ -32,7 +33,7 @@ class FirstbootTests(unittest.TestCase):
         cls.prepared = tempfile.TemporaryDirectory(prefix="ssrp-firstboot-source-")
         cls.addClassCleanup(cls.prepared.cleanup)
         package = Path(cls.prepared.name)
-        for row in (ROOT / "wrt_core/compat/ssrplus/source-files.tsv").read_text().splitlines():
+        for row in (ROOT / "tests/fixtures/ssrplus-legacy/wrt_core/compat/ssrplus/source-files.tsv").read_text().splitlines():
             blob, target, fixture = row.split()
             data = (ROOT / "tests/fixtures" / fixture).read_bytes()
             actual = hashlib.sha1(b"blob " + str(len(data)).encode() + b"\0" + data).hexdigest()
@@ -41,11 +42,11 @@ class FirstbootTests(unittest.TestCase):
             path = package / target
             path.parent.mkdir(parents=True, exist_ok=True)
             path.write_bytes(data)
-        for name in (ROOT / "wrt_core/compat/ssrplus/patches.list").read_text().splitlines():
+        for name in (ROOT / "tests/fixtures/ssrplus-legacy/wrt_core/compat/ssrplus/patches.list").read_text().splitlines():
             if os.environ.get("SSRP_FIRSTBOOT_UNPATCHED") and name == "ssrplus-firstboot.patch":
                 continue
             result = subprocess.run(["git", "-c", "core.autocrlf=false", "-C", str(package),
-                                     "apply", str(ROOT / "wrt_core/patches" / name)],
+                                     "apply", str(ROOT / "tests/fixtures/ssrplus-legacy/wrt_core/patches" / name)],
                                     capture_output=True, text=True, timeout=20)
             if result.returncode:
                 raise AssertionError(name + ": " + result.stderr)
@@ -75,7 +76,7 @@ class FirstbootTests(unittest.TestCase):
         self.write("init.sh", self.relocate(self.init_code))
         self.write("defaults.sh", self.relocate(self.defaults_code), executable=True)
         self.write("fs/usr/share/shadowsocksr/ssrp-runtime.sh", self.relocate(
-            (ROOT / "wrt_core/compat/ssrplus/runtime.sh").read_text(encoding="utf-8")))
+            (ROOT / "tests/fixtures/ssrplus-legacy/wrt_core/compat/ssrplus/runtime.sh").read_text(encoding="utf-8")))
         self.template.write_bytes((FIXTURE / "shadowsocksr.config").read_bytes())
         # Load the real init once per invocation; only its rc.common dispatch
         # entry point is represented by this shim. The hook calls it externally.

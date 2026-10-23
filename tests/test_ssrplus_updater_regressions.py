@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# Historical 190-r12 regression only; production v198.2 coverage is test_ssrplus_v198.py.
 """Execute patched update.lua with real Lua 5.1 control flow and file I/O.
 
 Only LuCI/UCI and shell-program boundaries are substituted. Absolute router
@@ -53,12 +54,12 @@ class UpdaterRegressions(unittest.TestCase):
         for name in ("gfw2ipset.sh", "update.lua"):
             shutil.copyfile(fixtures / name, share / name)
         for arguments in (("init", "-q"),
-                          ("apply", str(ROOT / "wrt_core/patches/ssrplus-startup-lock.patch")),
-                          ("apply", str(ROOT / "wrt_core/patches/ssrplus-dns-transaction.patch"))):
+                          ("apply", str(ROOT / "tests/fixtures/ssrplus-legacy/wrt_core/patches/ssrplus-startup-lock.patch")),
+                          ("apply", str(ROOT / "tests/fixtures/ssrplus-legacy/wrt_core/patches/ssrplus-dns-transaction.patch"))):
             result = subprocess.run(["git", "-C", str(package), *arguments],
                                     capture_output=True, text=True, timeout=30)
             self.assertEqual(result.returncode, 0, result.stderr)
-        validation_patch = ROOT / "wrt_core/patches/ssrplus-updater-validation.patch"
+        validation_patch = ROOT / "tests/fixtures/ssrplus-legacy/wrt_core/patches/ssrplus-updater-validation.patch"
         if validation_patch.exists():
             result = subprocess.run(["git", "-C", str(package), "apply", str(validation_patch)],
                                     capture_output=True, text=True, timeout=30)

@@ -35,8 +35,9 @@ sync_sparse_packages_to_feed_dir() {
     local tmp_dir
     local missing_packages=()
     local clone_args=(clone --depth 1 --filter=blob:none --sparse)
-    local pkg source_revision
+    local pkg
 
+    python3 "$BASE_PATH/managed_plugins.py" assert-external "${packages[@]}" || return 1
     tmp_dir=$(mktemp -d)
 
     if [ -n "$repo_branch" ]; then
@@ -58,13 +59,8 @@ sync_sparse_packages_to_feed_dir() {
         return 1
     fi
 
-    source_revision=$(git -C "$tmp_dir" rev-parse HEAD) || return 1
-
     for pkg in "${packages[@]}"; do
         if [ -d "$tmp_dir/$pkg" ]; then
-            if [[ "$pkg" == luci-app-ssr-plus ]]; then
-                printf '%s\n' "$source_revision" > "$tmp_dir/$pkg/.ssrplus-upstream-commit" || return 1
-            fi
             rm -rf "$target_dir/$pkg"
             mv "$tmp_dir/$pkg" "$target_dir/"
         else
@@ -91,6 +87,7 @@ sync_repo_root_package_to_feed_dir() {
     local tmp_dir
     local clone_args=(clone --depth 1 --filter=blob:none)
 
+    python3 "$BASE_PATH/managed_plugins.py" assert-external "$package_name" || return 1
     tmp_dir=$(mktemp -d)
 
     if [ -n "$repo_branch" ]; then
@@ -161,9 +158,9 @@ install_custom_feed() {
     local custom_feed_name
 
     local base_custom_feed_packages=(
-        xray-plugin dns2tcp dns2socks haproxy hysteria \
-        naiveproxy shadowsocks-rust v2ray-core v2ray-geodata geoview v2ray-plugin \
-        tuic-client chinadns-ng ipt2socks tcping trojan-plus simple-obfs shadowsocksr-libev \
+        xray-plugin haproxy hysteria \
+        naiveproxy v2ray-core v2ray-geodata geoview \
+        tuic-client trojan-plus \
         v2dat adguardhome luci-app-adguardhome ddns-go \
         luci-app-ddns-go luci-app-cloudflarespeedtest netdata luci-app-netdata \
         lucky luci-app-lucky luci-app-openclash luci-app-amlogic \
@@ -197,9 +194,8 @@ install_custom_feed() {
     # 统一从外部仓库同步指定包，避免分散维护 feeds.conf。
     custom_feed_sources=(
         "kenzok8/small-package|https://github.com/kenzok8/small-package.git||${base_custom_feed_packages[*]}"
-        "sbwml/luci-app-mosdns|https://github.com/sbwml/luci-app-mosdns.git|v5|mosdns luci-app-mosdns"
+        "sbwml/luci-app-mosdns|https://github.com/sbwml/luci-app-mosdns.git|v5|luci-app-mosdns"
         "Openwrt-Passwall/openwrt-passwall2|https://github.com/Openwrt-Passwall/openwrt-passwall2.git|main|luci-app-passwall2"
-        "fw876/helloworld|https://github.com/fw876/helloworld.git|master|luci-app-ssr-plus"
         "sirpdboy/luci-app-partexp|https://github.com/sirpdboy/luci-app-partexp.git|main|luci-app-partexp"
         "nikkinikki-org/OpenWrt-nikki|https://github.com/nikkinikki-org/OpenWrt-nikki.git|main|nikki luci-app-nikki mihomo-meta"
     )

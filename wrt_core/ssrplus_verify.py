@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Verify compiled SSR Plus files against the trusted source repair manifest.
+"""Prepare pinned fw876 SSR and verify artifacts against its trusted manifest.
 
 IPK ar and OpenWrt tar containers and APK v2 are read without extraction.
 APK v3 requires a host apk-tools supporting adbdump JSON and extract; this
@@ -9,8 +9,10 @@ import argparse
 import hashlib
 import io
 import json
+import os
 from pathlib import Path, PurePosixPath
 import re
+import shutil
 import stat
 import subprocess
 import sys
@@ -19,6 +21,7 @@ import tempfile
 
 MANIFEST_TARGET = "/usr/share/shadowsocksr/ssrplus-build.json"
 PACKAGE_NAME = "luci-app-ssr-plus"
+SOURCE_COMMIT = "45893d778767f3bdb2fcb6e873cf8f9a667d94d4"
 
 
 class VerificationError(ValueError):
@@ -161,7 +164,7 @@ def ar_entries(data):
 def package_identity(name, version, expected_version):
     if name != PACKAGE_NAME:
         raise VerificationError("wrong compiled package name: " + str(name))
-    # opkg uses 190-11 while apk uses 190-r11 for the same recipe release.
+    # opkg uses 198-2 while apk uses 198-r2 for the same recipe release.
     normalize = lambda value: re.sub(r"-r([0-9]+)$", r"-\1", str(value))
     if normalize(version) != normalize(expected_version):
         raise VerificationError(f"compiled package version mismatch: expected {expected_version}, got {version}")
@@ -285,9 +288,114 @@ def create_manifest(arguments):
     Path(arguments.output).write_text(json.dumps(result, indent=2, sort_keys=True) + "\n", encoding="utf-8")
 
 
+def prepare_source(core, package):
+    """Apply only reviewed package integration, rejecting unknown upstream bytes.
+
+    Every original file is locked, including LuCI and updater sources. Reviewed
+    integration covers package dependencies/modes, Xray transport and updates;
+    init and DNS remain upstream bytes.
+    Work is staged in a private tree so drift never partially patches a feed.
+    """
+    core, package = Path(core).resolve(), Path(package).resolve()
+    table = core / "compat/ssrplus/source-files.tsv"
+    expected = {}
+    for line in table.read_text(encoding="utf-8").splitlines():
+        blob, relative, mode = line.split()
+        target_parts("/" + relative)
+        if relative in expected or not re.fullmatch(r"[0-9a-f]{40}", blob):
+            raise VerificationError("invalid or duplicate source lock: " + relative)
+        if mode not in ("-", "0644", "0755") or (mode == "-") == relative.startswith("root/"):
+            raise VerificationError("invalid installed source mode: " + relative)
+        expected[relative] = (blob, mode)
+    if not expected:
+        raise VerificationError("empty upstream source lock")
+    marker = package / ".ssrplus-upstream-commit"
+    if marker.exists() and marker.read_text().strip() != SOURCE_COMMIT:
+        raise VerificationError("SSR source commit differs from the pinned fw876 revision")
+    manifest_relative = "root" + MANIFEST_TARGET
+    allowed = set(expected) | {".ssrplus-upstream-commit", manifest_relative}
+    present = set()
+    for path in package.rglob("*"):
+        relative = path.relative_to(package).as_posix()
+        if path.is_symlink():
+            raise VerificationError("source must not use symlinks: " + relative)
+        if path.is_file():
+            if relative not in allowed:
+                raise VerificationError("unexpected source file: " + relative)
+            present.add(relative)
+    missing = set(expected) - present
+    if missing:
+        raise VerificationError("missing upstream source file: " + sorted(missing)[0])
+    patches = []
+    for name in (core / "compat/ssrplus/patches.list").read_text().splitlines():
+        if not name or "/" in name or "\\" in name or name in [p.name for p in patches]:
+            raise VerificationError("invalid integration patch name: " + name)
+        patch = core / "patches" / name
+        if not patch.is_file():
+            raise VerificationError("missing integration patch: " + name)
+        patches.append(patch)
+    with tempfile.TemporaryDirectory(prefix="ssrplus-v198-") as temporary:
+        staged = Path(temporary)
+        def git(*args, check=True):
+            result = subprocess.run(["git", "-C", str(staged), *args], capture_output=True,
+                                    text=True, encoding="utf-8", errors="replace", timeout=60)
+            if check and result.returncode:
+                raise VerificationError("SSR integration failed: " + result.stderr.strip())
+            return result.returncode == 0
+        git("init", "-q")
+        git("config", "core.autocrlf", "false")
+        for relative in expected:
+            target = staged / relative
+            target.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copyfile(root_file(package, "/" + relative), target)
+        for patch in reversed(patches):
+            if git("apply", "--reverse", "--check", str(patch), check=False):
+                git("apply", "--reverse", str(patch))
+        for relative, (blob, _mode) in expected.items():
+            data = (staged / relative).read_bytes()
+            actual = hashlib.sha1(b"blob " + str(len(data)).encode() + b"\0" + data).hexdigest()
+            if actual != blob:
+                raise VerificationError("unreviewed upstream source drift: " + relative)
+        for patch in patches:
+            git("apply", str(patch))
+        files = {}
+        for relative, (_blob, mode) in expected.items():
+            if mode != "-":
+                target = staged / relative
+                target.chmod(int(mode, 8))
+                files["/" + relative[5:]] = {"sha256": sha256(target.read_bytes()), "mode": mode}
+        manifest = validate_manifest({"source_commit": SOURCE_COMMIT, "repair_version": "198-r2",
+            "patches": {patch.name: sha256(patch.read_bytes()) for patch in patches}, "files": files})
+        current = package / manifest_relative
+        if current.exists() and json_object(current.read_bytes()) != manifest:
+            raise VerificationError("prepared source manifest drift")
+        (staged / manifest_relative).write_text(json.dumps(manifest, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+        for relative in [*expected, manifest_relative]:
+            source, destination = staged / relative, package / relative
+            mode = expected[relative][1] if relative in expected else "0644"
+            if not destination.exists() or source.read_bytes() != destination.read_bytes():
+                # mkstemp starts at 0600 on POSIX; preserve source modes for
+                # LuCI/recipe files instead of copying that temporary policy.
+                publish_mode = (stat.S_IMODE(destination.stat().st_mode)
+                                if mode == "-" else int(mode, 8))
+                descriptor, temporary_file = tempfile.mkstemp(prefix=destination.name + ".ssrfix.", dir=destination.parent)
+                try:
+                    with os.fdopen(descriptor, "wb") as output:
+                        output.write(source.read_bytes())
+                    os.chmod(temporary_file, publish_mode)
+                    os.replace(temporary_file, destination)
+                finally:
+                    Path(temporary_file).unlink(missing_ok=True)
+            if mode != "-":
+                destination.chmod(int(mode, 8))
+
+
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     commands = parser.add_subparsers(dest="command", required=True)
+    prepare = commands.add_parser("prepare", help="prepare pinned fw876 v198.2 with reviewed integration patches")
+    prepare.add_argument("--core", required=True)
+    prepare.add_argument("--package", required=True)
     manifest = commands.add_parser("manifest", help="record the reviewed source repair identity")
     manifest.add_argument("--root", required=True)
     manifest.add_argument("--output", required=True)
@@ -307,7 +415,9 @@ def main(argv=None):
             child.add_argument("--apk-tool", help="host apk-tools with adbdump JSON and extract for APK v3")
     arguments = parser.parse_args(argv)
     try:
-        if arguments.command == "manifest":
+        if arguments.command == "prepare":
+            prepare_source(arguments.core, arguments.package)
+        elif arguments.command == "manifest":
             create_manifest(arguments)
         else:
             expected = validate_manifest(json_object(Path(arguments.manifest).read_bytes()))

@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# Historical 190-r12 regression only; production v198.2 coverage is test_ssrplus_v198.py.
 """Exercise the imported SSR shell scripts in an isolated local filesystem.
 
 Never contacts a router. Dependency programs are replaced only at OS boundaries;
@@ -52,17 +53,17 @@ class RuntimeTests(unittest.TestCase):
         for patch in ("ssrplus-startup-lock.patch", "ssrplus-dns-transaction.patch"):
             result = subprocess.run([
                 shutil.which("git") or "git", "-c", "core.autocrlf=false",
-                "-C", str(self.package), "apply", str(ROOT / "wrt_core/patches" / patch),
+                "-C", str(self.package), "apply", str(ROOT / "tests/fixtures/ssrplus-legacy/wrt_core/patches" / patch),
             ], capture_output=True, text=True, encoding="utf-8", timeout=20)
             if result.returncode:
                 self.fail(result.stderr)
-        shutil.copyfile(ROOT / "wrt_core/compat/ssrplus/runtime.sh",
+        shutil.copyfile(ROOT / "tests/fixtures/ssrplus-legacy/wrt_core/compat/ssrplus/runtime.sh",
                         self.generator.parent / "ssrp-runtime.sh")
         # Relocate fixed system dependencies only. The scripts' function bodies
         # and their sequencing are exercised unmodified.
         text = self.init.read_text(encoding="utf-8")
         text = text.replace('${IPKG_INSTROOT:-}/usr/share/shadowsocksr/ssrp-runtime.sh',
-                            (ROOT / "wrt_core/compat/ssrplus/runtime.sh").as_posix())
+                            (ROOT / "tests/fixtures/ssrplus-legacy/wrt_core/compat/ssrplus/runtime.sh").as_posix())
         self.sourced_init = self.base / "init-test.sh"
         text = text.replace('LOG_FILE=/var/log/ssrplus.log', 'LOG_FILE="$TEST_ROOT/ssrplus.log"')
         text = text.replace('CRON_FILE=/etc/crontabs/root', 'CRON_FILE="$TEST_ROOT/crontab"')
@@ -132,7 +133,7 @@ uci_get_by_type() {
                          "start continued into its body after flock failed")
 
     def helper(self):
-        return (ROOT / "wrt_core/compat/ssrplus/runtime.sh").as_posix()
+        return (ROOT / "tests/fixtures/ssrplus-legacy/wrt_core/compat/ssrplus/runtime.sh").as_posix()
 
     def require_flock(self):
         if not shutil.which("flock", path=self.env["PATH"]):
@@ -455,7 +456,7 @@ uci_get_by_type() {
         busybox = shutil.which("busybox")
         if not busybox:
             self.skipTest("BusyBox ash is unavailable; Linux CI installs busybox")
-        for path in (self.init, self.generator, ROOT / "wrt_core/compat/ssrplus/runtime.sh"):
+        for path in (self.init, self.generator, ROOT / "tests/fixtures/ssrplus-legacy/wrt_core/compat/ssrplus/runtime.sh"):
             result = subprocess.run([busybox, "ash", "-n", str(path)],
                                     capture_output=True, text=True, timeout=10)
             self.assertEqual(result.returncode, 0, result.stderr)

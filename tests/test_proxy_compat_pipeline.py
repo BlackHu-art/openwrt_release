@@ -5,6 +5,7 @@ from pathlib import Path
 import re
 import shutil
 import subprocess
+import sys
 import tempfile
 import unittest
 
@@ -21,18 +22,12 @@ class ProxyCompatibilityPipeline(unittest.TestCase):
         self.addCleanup(self.temp.cleanup)
         self.build = Path(self.temp.name)
         self.feed = self.build / "feeds/custom_feed"
-        recipe = self.feed / "xray-core/Makefile"
-        recipe.parent.mkdir(parents=True)
-        shutil.copyfile(ROOT / "tests/fixtures/proxy-cores/small-package-3d560925/xray-core/Makefile", recipe)
+        shutil.copytree(ROOT / "wrt_core/managed/packages/xray-core", self.feed / "xray-core")
         self.packages = {}
         for plugin in tls_tests.PLUGINS:
             original = ROOT / "maintenance/plugins" / plugin / ("luci-app-" + plugin)
             package = self.feed / ("luci-app-" + plugin)
-            for relative in (f"luasrc/{plugin}/util_xray.lua", f"luasrc/{plugin}/util_sing-box.lua",
-                             f"root/usr/share/{plugin}/app.sh"):
-                target = package / relative
-                target.parent.mkdir(parents=True, exist_ok=True)
-                shutil.copyfile(original / relative, target)
+            shutil.copytree(original, package)
             self.packages[plugin] = (package, original)
         self.go_recipe = self.build / "feeds/packages/lang/golang/golang/Makefile"
         self.go_recipe.parent.mkdir(parents=True)
@@ -48,7 +43,8 @@ class ProxyCompatibilityPipeline(unittest.TestCase):
         commands = re.findall(r"^    ([a-z_][a-z_0-9]*)\b", stage, re.M)
         preserved = {"fix_xray_core_compat", "fix_passwall2_compat", "update_golang"}
         stubs = "\n".join(name + "() { :; }" for name in commands if name not in preserved)
-        script = '''source "$BASE_PATH/update.sh"
+        script = '''python3() { "$TEST_PYTHON" "$@"; }
+source "$BASE_PATH/update.sh"
 ''' + stubs + '''
 update_golang() {
     printf 'GO_VERSION_MAJOR_MINOR:=1.27\nGO_VERSION_PATCH:=3\n' > "$BUILD_DIR/feeds/packages/lang/golang/golang/Makefile"
@@ -56,7 +52,7 @@ update_golang() {
 stage_pre_install_source_fixes
 '''
         env = dict(os.environ, BASE_PATH=tls_tests.bash_path(ROOT / "wrt_core"),
-                   BUILD_DIR=tls_tests.bash_path(self.build))
+                   BUILD_DIR=tls_tests.bash_path(self.build), TEST_PYTHON=Path(sys.executable).as_posix())
         return subprocess.run([tls_tests.bash_executable(), "--noprofile", "--norc", "-c", script],
                               env=env, capture_output=True, text=True, timeout=60)
 
@@ -77,6 +73,12 @@ stage_pre_install_source_fixes
         self.assertEqual(before, {p.relative_to(self.feed): p.read_bytes()
                                  for p in self.feed.rglob("*") if p.is_file()})
         self.assertFalse((self.build / ".config").exists())
+
+    def test_pre_install_applies_shared_core_update_policy(self):
+        result = self.prepare()
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        com = (self.feed / 'luci-app-passwall2/luasrc/passwall2/com.lua').read_text(encoding='utf-8')
+        self.assertIn('fw876/helloworld', com)
 
     def test_unknown_plugin_source_stops_the_stage(self):
         package = self.packages["passwall2"][0]

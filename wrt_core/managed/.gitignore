@@ -1,0 +1,3 @@
+# Keep locked upstream tests despite the repository's generic test/ rule.
+!/packages/**/test/
+!/packages/**/test/**
