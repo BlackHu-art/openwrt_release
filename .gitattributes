@@ -12,6 +12,7 @@
 /tests/run_all.sh text eol=lf
 /tests/windows_test_env.py text eol=lf
 /tests/test_windows_test_env.py text eol=lf
+/tests/test_validation_gates.py text eol=lf
 /tests/windows-tests.ps1 text eol=lf
 /tests/test_custom_feed_plugins.sh text eol=lf
 /tests/test_plugin_runtime.sh text eol=lf
@@ -23,6 +24,11 @@
 /wrt_core/modules/build_steps.sh text eol=lf
 /wrt_core/modules/custom_feed.sh text eol=lf
 /wrt_core/modules/plugin_compat.sh text eol=lf
+/wrt_core/compat/adguardhome/** text eol=lf
+/tests/openclash_fixture.py text eol=lf
+/tests/test_openclash_* text eol=lf
+/tests/test_adguard_* text eol=lf
+/tests/fixtures/openclash/** text eol=lf whitespace=-blank-at-eol,-blank-at-eof,-space-before-tab
 /wrt_core/modules/xray_core_compat.sh text eol=lf
 /wrt_core/compat/proxy-cores/** text eol=lf
 /tests/*passwall* text eol=lf

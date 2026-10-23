@@ -29,8 +29,25 @@ UUID = "12345678-1234-1234-1234-123456789abc"
 REALITY_PUBLIC_KEY = "L-V9o0fNYkMVKNqsX7spBzD_9oSvxM_C7ZCZX1jLO3Q"
 TRANSPORTS = ("raw", "ws", "httpupgrade", "grpc")
 
+if os.environ.get("REQUIRE_XRAY_TEST_CORE") == "1" and not os.environ.get("XRAY_TEST_BINARY"):
+    raise RuntimeError("Xray is required by REQUIRE_XRAY_TEST_CORE; set XRAY_TEST_BINARY")
+
 if os.environ.get("XRAY_TEST_BINARY") and not ssr_subscription.LuaRuntime:
     raise RuntimeError("XRAY_TEST_BINARY requires lupa.lua51; refusing to skip the real core gate")
+
+
+def check_core_config(binary, config, path):
+    payload = json.dumps(config)
+    if os.name == "nt":
+        # The native Windows core can see different temporary-file bytes from
+        # Python on managed desktops. Feed the complete generated JSON through
+        # Xray's official stdin loader; Linux keeps testing file loading.
+        command = [binary, "run", "-test", "-config", "stdin:", "-format", "json"]
+        return subprocess.run(command, input=payload, capture_output=True, text=True,
+                              encoding="utf-8", timeout=20)
+    path.write_text(payload, encoding="utf-8")
+    return subprocess.run([binary, "run", "-test", "-config", str(path)],
+                          capture_output=True, text=True, encoding="utf-8", timeout=20)
 
 
 def _lua_function(source, name):
@@ -263,6 +280,15 @@ class SharedXrayGeneratorContracts(unittest.TestCase):
                 self.assertEqual(reality["streamSettings"]["realitySettings"]["shortId"], "0123456789abcdef")
 
     @unittest.skipUnless(os.environ.get("XRAY_TEST_BINARY"), "set XRAY_TEST_BINARY for real core config checks")
+    def test_official_shared_core_rejects_invalid_protocol(self):
+        binary = str(Path(os.environ["XRAY_TEST_BINARY"]).resolve())
+        with tempfile.TemporaryDirectory(prefix="shared-xray-invalid-") as temporary:
+            path = Path(temporary) / "invalid.json"
+            result = check_core_config(binary, {"outbounds": [{"protocol": "invalid-validation-control"}]}, path)
+            self.assertNotEqual(result.returncode, 0)
+            self.assertIn("unknown config id: invalid-validation-control", result.stdout + result.stderr)
+
+    @unittest.skipUnless(os.environ.get("XRAY_TEST_BINARY"), "set XRAY_TEST_BINARY for real core config checks")
     def test_official_shared_core_accepts_all_generated_configs(self):
         binary = str(Path(os.environ["XRAY_TEST_BINARY"]).resolve())
         version = subprocess.run([binary, "version"], capture_output=True, text=True, timeout=15)
@@ -272,9 +298,7 @@ class SharedXrayGeneratorContracts(unittest.TestCase):
             for index, (label, config) in enumerate(generated_configs().items()):
                 with self.subTest(config=label):
                     path = Path(temporary) / (str(index) + ".json")
-                    path.write_text(json.dumps(config), encoding="utf-8")
-                    result = subprocess.run([binary, "run", "-test", "-config", str(path)],
-                                            capture_output=True, text=True, timeout=20)
+                    result = check_core_config(binary, config, path)
                     self.assertEqual(result.returncode, 0, label + "\n" + result.stdout + result.stderr)
 
 

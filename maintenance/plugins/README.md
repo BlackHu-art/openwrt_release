@@ -1,6 +1,6 @@
 # 插件源码维护区
 
-这里保存第一批五组插件的六份原始源码快照，并追加 SSR Plus+ 的固定版本迁移评估。第一批来源沿用本项目当前构建脚本；SSR 专项另外保存 `v198.2` 原始仓库和当前 `190-r11` 的派生比较副本。当前构建不读取此目录，编译配置与 feeds 没有改变。
+这里保存第一批五组插件的六份原始源码快照，并追加 SSR Plus+ 的固定版本迁移评估。第一批来源沿用本项目当前构建脚本；SSR 专项另外保存 `v198.2` 原始仓库和当前 `190-r11` 的派生比较副本。固件构建仍由 `wrt_core/modules/` 与 `wrt_core/update.sh` 获取和处理源码，不从此目录取源码，编译配置与 feeds 没有改变。Passwall / Passwall2 的 TLS、启动入口、共享 Xray 及源码准备流程回归会读取这里的部分原始快照，维护快照更新后也需运行对应回归。
 
 获取日期：2026-10-22（Asia/Shanghai）。项目基线：`6d76ce124426086bbc5f90a9fcb9fcc0ba3b0a41`。完整来源、提交、Git tree、版本原始字段和内容清单入口见 [sources.lock.json](sources.lock.json)。
 
@@ -40,12 +40,14 @@
 | SmartDNS | [update_smartdns](../../wrt_core/modules/package_source_updates.sh)、[优化补丁](../../wrt_core/patches/100-smartdns-optimize.patch) | 尚无独立 SmartDNS fixture；本快照不是已完成的兼容验证 |
 | Passwall | [来源表](../../wrt_core/modules/custom_feed.sh)、[fix_passwall_compat](../../wrt_core/modules/plugin_compat.sh)、[apply_passwall_tweaks](../../wrt_core/modules/feed_source_fixes.sh) | 实际 Lua 生成器的 TLS、共享 Xray 配置及生成失败后停止启动回归；未做完整固件运行验收 |
 | Passwall2 | [来源表](../../wrt_core/modules/custom_feed.sh)、[fix_passwall_compat](../../wrt_core/modules/plugin_compat.sh) | 实际 Lua 生成器的 TLS、共享 Xray 配置及生成失败后停止启动回归；未做完整固件运行验收 |
-| OpenClash | [fix_openclash_compat](../../wrt_core/modules/plugin_compat.sh) 与两份 `openclash-*.patch` | [plugin-runtime](../../tests/fixtures/plugin-runtime/README.md) 的固定函数和启动片段 |
-| AdGuard Home | [update_adguardhome](../../wrt_core/modules/service_fixes.sh) 与 `adguardhome-update-safety.patch` | [plugin-runtime](../../tests/fixtures/plugin-runtime/README.md) 的固定更新器、下载配置及 Lua 控制器 |
+| OpenClash | [fix_openclash_compat](../../wrt_core/modules/plugin_compat.sh) 应用五份补丁：原有 WAN 子网、checksum，以及 Ruby AST、dashboard 状态、文件名/目录校验 | [plugin-runtime](../../tests/fixtures/plugin-runtime/README.md) 的下载函数与 [0.48.002 完整文件](../../tests/fixtures/openclash/0.48.002/README.md)；真实 Ruby、JavaScript、Lua 入口回归 |
+| AdGuard Home | [update_adguardhome](../../wrt_core/modules/service_fixes.sh) 获取源码后调用 `fix_adguardhome_compat`，应用稳定更新安全与无需更新时不执行 UPX 两份补丁；[三文件 blob 基线](../../wrt_core/compat/adguardhome/source-files.tsv) 在写入前校验 | [plugin-runtime](../../tests/fixtures/plugin-runtime/README.md) 的固定更新器、下载配置及 Lua 控制器；补丁组合、重复执行与源码漂移回归 |
 
 SSRPlus、HomeProxy 等已有固定测试基线继续保留在 `tests/fixtures/`，本次不重复搬迁。原始维护快照与已应用补丁的构建源码可能存在预期差异。源码获取成功和校验一致只说明快照完整，不代表新上游已通过固件构建或路由器运行验收。
 
 当前补丁行为与验证边界见 [插件兼容性说明](../../docs/plugin-compatibility.md)。Xray 配方版本调整的来源与哈希单独记录在 [共享核心版本记录](../../wrt_core/compat/proxy-cores/xray-26.7.11.json)，不改写本维护区的原始源码和来源锁文件。
+
+OpenClash 的 Ruby AST、dashboard 和文件名修复分别适配上游 `ac3c7bf`、`4983173`、`75d34d0`；AdGuard Home 无更新时的 UPX 修复适配 `81a7d33`。OpenClash WAN #5359 / `a4b7073` 暂缓，因自定义 WAN 与默认链共存时可能选错区域，且 fw3 仅枚举 IPv4 区域。维护快照和现有 WAN 子网补丁不代表已修复该问题；来源链接和具体行为见上述兼容性说明。
 
 ## 后续更新流程
 

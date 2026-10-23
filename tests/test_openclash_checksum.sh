@@ -20,9 +20,7 @@ fail() { echo "FAIL: $*" >&2; exit 1; }
 
 make_package() {
     local package=$1
-    mkdir -p "$package/root/etc/init.d" "$package/root/usr/share/openclash"
-    cp "$fixtures/openclash.init" "$package/root/etc/init.d/openclash"
-    cp "$fixtures/openclash_curl.sh" "$package/root/usr/share/openclash/openclash_curl.sh"
+    python "$repo_root/tests/openclash_fixture.py" "$package"
 }
 
 snapshot() {

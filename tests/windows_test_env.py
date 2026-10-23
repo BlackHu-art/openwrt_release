@@ -6,7 +6,7 @@ from datetime import datetime
 import hashlib
 import json
 import os
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 import platform
 import signal
 import struct
@@ -15,6 +15,7 @@ import sys
 import tempfile
 import time
 import urllib.request
+import zipfile
 
 # Keep imports from creating untracked bytecode in a clean checkout.
 sys.dont_write_bytecode = True
@@ -30,6 +31,23 @@ FLOCK_URL = "https://repo.msys2.org/msys/x86_64/" + FLOCK_PACKAGE
 FLOCK_ARCHIVE_SHA256 = "969edb185d37986e6feddb3c54807598e3cc6774b736fec3a27d5d27731f7fdd"
 FLOCK_EXE_SHA256 = "20ea2583f3c464a19dcb618141866c4f5794842952259edcc578feec79917b8a"
 XRAY_EXE_SHA256 = "4b43c5ef596f326b233717b585d31a85dd5cd5f77d8da872e75f7ebc00e99acb"
+RUBY_VERSION = "3.4.9"
+RUBY_RELEASE = "3.4.9-1"
+RUBY_DIRECTORY = "rubyinstaller-" + RUBY_RELEASE + "-x64"
+RUBY_ARCHIVE = RUBY_DIRECTORY + ".7z"
+RUBY_URL = ("https://github.com/oneclick/rubyinstaller2/releases/download/RubyInstaller-"
+            + RUBY_RELEASE + "/" + RUBY_ARCHIVE)
+RUBY_ARCHIVE_SHA256 = "4375268618b61dadf53bf8e54beaca74ea30580c90d3c47ea9f2a134bd3e494e"
+RUBY_EXE_SHA256 = "77e75784ff76f347ae316150b5b7b2f5eb91bb264ab39c6820600d1b3df6b6bb"
+# Complete bin+lib tree from the verified portable release, including Psych DLLs.
+RUBY_RUNTIME_SHA256 = "0480aa03bcbbd69919f0fccecb0000076081c8186100a6096c302cb304d211ee"
+NODE_VERSION = "22.23.4"
+NODE_DIRECTORY = "node-v" + NODE_VERSION + "-win-x64"
+NODE_ARCHIVE = NODE_DIRECTORY + ".zip"
+NODE_URL = "https://nodejs.org/download/release/v" + NODE_VERSION + "/" + NODE_ARCHIVE
+# Both hashes are published in the fixed release's official SHASUMS256.txt.
+NODE_ARCHIVE_SHA256 = "cbc74b5e0982c9dbb41525fd8fb5dcd32fbee237863f7829072f4639a1ce5f20"
+NODE_EXE_SHA256 = "dccc52de28d8df2ee22d2062424f8c563070d95d8ad70c54c4bf01d590dec14f"
 MAX_DOWNLOAD_BYTES = 64 * 1024 * 1024
 
 
@@ -52,6 +70,14 @@ class Layout:
         return self.dependencies / ("xray-" + XRAY_VERSION) / "xray.exe"
 
     @property
+    def ruby(self):
+        return self.dependencies / RUBY_DIRECTORY / "bin/ruby.exe"
+
+    @property
+    def node(self):
+        return self.dependencies / ("node-" + NODE_VERSION) / "node.exe"
+
+    @property
     def bash(self):
         return self.git / "bin/bash.exe"
 
@@ -67,10 +93,15 @@ def matches_hash(path, expected):
 def atomic_write(path, data):
     path = Path(path)
     path.parent.mkdir(parents=True, exist_ok=True)
-    with tempfile.TemporaryDirectory(prefix="verified-", dir=path.parent) as directory:
-        staged = Path(directory) / "content"
-        staged.write_bytes(data)
+    # MSYS flock cannot fork after a file first created without an .exe suffix
+    # is renamed to .exe. Preserve the suffix and the destination parent's ACL.
+    descriptor, staged = tempfile.mkstemp(prefix="verified-", suffix=path.suffix, dir=path.parent)
+    try:
+        with os.fdopen(descriptor, "wb") as output:
+            output.write(data)
         os.replace(staged, path)
+    finally:
+        Path(staged).unlink(missing_ok=True)
 
 
 def write_json(path, value):
@@ -103,6 +134,68 @@ def extract_flock(archive, tar, output):
     atomic_write(output, result.stdout)
 
 
+def tree_sha256(directory):
+    directory = Path(directory)
+    digest = hashlib.sha256()
+    for path in sorted(directory.rglob("*"), key=lambda item: item.relative_to(directory).as_posix()):
+        if path.is_symlink():
+            raise ValueError("Ruby runtime must not contain symbolic links: " + str(path))
+        if path.is_file():
+            digest.update(path.relative_to(directory).as_posix().encode("utf-8") + b"\0")
+            digest.update(bytes.fromhex(sha256(path)))
+    return digest.hexdigest()
+
+
+def extract_ruby(archive, tar, output):
+    # Validate archive names before native extraction, then retain only the
+    # runtime directories. Headers, gems for build tools, and docs are not needed.
+    members = subprocess.run([str(tar), "-tf", str(archive)], capture_output=True, check=True,
+                             text=True, encoding="utf-8", errors="strict", timeout=60)
+    for name in members.stdout.splitlines():
+        path = PurePosixPath(name.replace("\\", "/"))
+        if (path.is_absolute() or not path.parts or path.parts[0] != RUBY_DIRECTORY
+                or ".." in path.parts or any(":" in part for part in path.parts)):
+            raise ValueError("unsafe Ruby archive path: " + name)
+    output = Path(output)
+    if output.is_symlink():
+        raise ValueError("Ruby runtime directory must not be a symbolic link")
+    output.parent.mkdir(parents=True, exist_ok=True)
+    with tempfile.TemporaryDirectory(prefix="ruby-install-", dir=output.parent) as directory:
+        staged = Path(directory)
+        subprocess.run([str(tar), "-xf", str(archive), "-C", str(staged), "--",
+                        RUBY_DIRECTORY + "/bin", RUBY_DIRECTORY + "/lib"],
+                       capture_output=True, check=True, timeout=120)
+        runtime = staged / RUBY_DIRECTORY
+        if tree_sha256(runtime) != RUBY_RUNTIME_SHA256:
+            raise ValueError("Ruby runtime SHA-256 mismatch")
+        # Swap only this managed directory after the entire staged tree passes.
+        # Keep the old directory available for rollback until replacement succeeds.
+        previous = staged / "previous"
+        if output.exists():
+            output.rename(previous)
+        try:
+            runtime.rename(output)
+        except OSError:
+            if previous.exists():
+                previous.rename(output)
+            raise
+
+
+def extract_node(archive, output):
+    # Node's built-in modules need only node.exe. Never extract ZIP paths to disk.
+    try:
+        with zipfile.ZipFile(archive) as source:
+            member = source.getinfo(NODE_DIRECTORY + "/node.exe")
+            if member.file_size > 128 * 1024 * 1024:
+                raise ValueError("Node executable exceeds the bounded budget")
+            data = source.read(member)
+    except (KeyError, zipfile.BadZipFile) as error:
+        raise ValueError("invalid Node archive: " + str(error)) from error
+    if hashlib.sha256(data).hexdigest() != NODE_EXE_SHA256:
+        raise ValueError("Node executable SHA-256 mismatch")
+    atomic_write(output, data)
+
+
 def validate_dependency_location(repository, dependencies):
     repository, dependencies = Path(repository).resolve(), Path(dependencies).resolve()
     if dependencies == repository or repository in dependencies.parents:
@@ -111,13 +204,20 @@ def validate_dependency_location(repository, dependencies):
 
 def child_environment(layout, inherited=None):
     environment = dict(os.environ if inherited is None else inherited)
-    environment.pop("PYTHONPATH", None)
-    environment.pop("PYTHONHOME", None)
+    for name in ("PYTHONPATH", "PYTHONHOME", "RUBYOPT", "RUBYLIB", "GEM_HOME", "GEM_PATH",
+                 "NODE_OPTIONS", "NODE_PATH"):
+        environment.pop(name, None)
     paths = [layout.python.parent, layout.flock.parent, layout.git / "bin", layout.git / "usr/bin"]
     environment["PATH"] = os.pathsep.join([str(path) for path in paths] + [environment.get("PATH", "")])
     environment["SSRP_TEST_FLOCK_DIR"] = str(layout.flock.parent)
     environment["XRAY_TEST_BINARY"] = str(layout.xray)
+    environment["REQUIRE_XRAY_TEST_CORE"] = "1"
+    environment["RUBY"] = str(layout.ruby)
+    environment["NODE"] = str(layout.node)
+    environment["OPENCLASH_REQUIRE_RUBY34"] = "1"
+    environment["OPENCLASH_REQUIRE_NODE"] = "1"
     environment["PYTHONDONTWRITEBYTECODE"] = "1"
+    environment["PYTHONUTF8"] = "1"
     environment["BASH"] = str(layout.bash)
     return environment
 
@@ -137,10 +237,15 @@ def checked_output(command, environment, cwd):
 
 
 def check(layout):
-    require_files([layout.python, layout.bash, layout.git / "usr/bin/msys-2.0.dll", layout.flock, layout.xray])
-    for path, digest in [(layout.flock, FLOCK_EXE_SHA256), (layout.xray, XRAY_EXE_SHA256)]:
+    require_files([layout.python, layout.bash, layout.git / "usr/bin/msys-2.0.dll", layout.flock, layout.xray,
+                   layout.ruby, layout.node])
+    for path, digest in [(layout.flock, FLOCK_EXE_SHA256), (layout.xray, XRAY_EXE_SHA256),
+                         (layout.ruby, RUBY_EXE_SHA256), (layout.node, NODE_EXE_SHA256)]:
         if not matches_hash(path, digest):
             raise ValueError("SHA-256 mismatch: " + str(path) + "; rerun install to restore the pinned version")
+    ruby_digest = tree_sha256(layout.ruby.parent.parent)
+    if ruby_digest != RUBY_RUNTIME_SHA256:
+        raise ValueError("Ruby runtime SHA-256 mismatch; rerun install to restore the pinned version")
     environment = child_environment(layout)
     requirements = (layout.repository / "tests/requirements.txt").read_text(encoding="utf-8")
     expected = dict(line.split("==") for line in requirements.splitlines() if line and not line.startswith("#"))
@@ -175,6 +280,16 @@ flock --version
     core_version = checked_output([layout.xray, "version"], environment, layout.repository)
     if not core_version.startswith("Xray " + XRAY_VERSION + " "):
         raise ValueError("unexpected Xray version: " + core_version)
+    ruby_probe = "require 'yaml'; abort 'YAML check failed' unless YAML.safe_load('value: 7') == {'value'=>7}; puts RUBY_VERSION"
+    ruby_version = checked_output([layout.ruby, "-EUTF-8", "-e", ruby_probe], environment, layout.repository)
+    if ruby_version != RUBY_VERSION:
+        raise ValueError("unexpected Ruby version: " + ruby_version)
+    node_probe = ("const assert = require('node:assert/strict'); require('node:fs'); "
+                  "assert.equal(require('node:vm').runInNewContext('6 * 7'), 42); "
+                  "process.stdout.write(process.versions.node)")
+    node_version = checked_output([layout.node, "-e", node_probe], environment, layout.repository)
+    if node_version != NODE_VERSION:
+        raise ValueError("unexpected Node version: " + node_version)
     return {"python": str(layout.python), "python_packages": actual,
             "requirements_sha256": sha256(layout.repository / "tests/requirements.txt"),
             "flock": str(layout.flock), "flock_version": flock_version,
@@ -182,6 +297,11 @@ flock --version
             "flock_executable_sha256": sha256(layout.flock),
             "xray": str(layout.xray), "xray_version": core_version,
             "xray_archive_sha256": ASSETS["windows-amd64"][2], "xray_executable_sha256": sha256(layout.xray),
+            "ruby": str(layout.ruby), "ruby_version": ruby_version, "ruby_url": RUBY_URL,
+            "ruby_archive_sha256": RUBY_ARCHIVE_SHA256, "ruby_executable_sha256": sha256(layout.ruby),
+            "ruby_runtime_sha256": ruby_digest,
+            "node": str(layout.node), "node_version": node_version, "node_url": NODE_URL,
+            "node_archive_sha256": NODE_ARCHIVE_SHA256, "node_executable_sha256": sha256(layout.node),
             "git_msys_runtime_sha256": sha256(layout.git / "usr/bin/msys-2.0.dll")}
 
 
@@ -199,12 +319,27 @@ def install(layout):
         if not matches_hash(archive, FLOCK_ARCHIVE_SHA256):
             download_verified(FLOCK_URL, archive, FLOCK_ARCHIVE_SHA256)
         extract_flock(archive, tar, layout.flock)
+    else:
+        # Repair old installations with correct bytes but non-executable MSYS
+        # fork metadata left by the former suffixless temporary-file staging.
+        atomic_write(layout.flock, layout.flock.read_bytes())
     if not matches_hash(layout.xray, XRAY_EXE_SHA256):
         with tempfile.TemporaryDirectory(prefix="xray-install-", dir=layout.dependencies) as directory:
             executable, _ = fetch_core(Path(directory) / "xray.exe", "windows-amd64")
             if not matches_hash(executable, XRAY_EXE_SHA256):
                 raise ValueError("Xray executable SHA-256 mismatch")
             atomic_write(layout.xray, executable.read_bytes())
+    if (not matches_hash(layout.ruby, RUBY_EXE_SHA256)
+            or tree_sha256(layout.ruby.parent.parent) != RUBY_RUNTIME_SHA256):
+        archive = layout.dependencies / "downloads" / RUBY_ARCHIVE
+        if not matches_hash(archive, RUBY_ARCHIVE_SHA256):
+            download_verified(RUBY_URL, archive, RUBY_ARCHIVE_SHA256)
+        extract_ruby(archive, tar, layout.ruby.parent.parent)
+    if not matches_hash(layout.node, NODE_EXE_SHA256):
+        archive = layout.dependencies / "downloads" / NODE_ARCHIVE
+        if not matches_hash(archive, NODE_ARCHIVE_SHA256):
+            download_verified(NODE_URL, archive, NODE_ARCHIVE_SHA256)
+        extract_node(archive, layout.node)
     report = check(layout)
     write_json(layout.dependencies / "environment.json", report)
     return report
@@ -295,7 +430,13 @@ def main(argv=None):
         layout = Layout(ROOT, dependencies)
         print("Dependencies:", dependencies, flush=True)
         report = install(layout) if args.action == "install" else check(layout)
-        print("Environment verified:", report["flock_version"], "; Xray", XRAY_VERSION, flush=True)
+        print("Environment verified:", report["flock_version"], "; Xray", XRAY_VERSION,
+              "; Ruby", report["ruby_version"], "; Node", report["node_version"], flush=True)
+        for name in ("ruby", "node"):
+            print(name.capitalize() + " source:", report[name + "_url"],
+                  "\nArchive SHA-256:", report[name + "_archive_sha256"],
+                  "\nExecutable SHA-256:", report[name + "_executable_sha256"], flush=True)
+        print("Ruby runtime SHA-256:", report["ruby_runtime_sha256"], flush=True)
         if args.action == "run":
             run_dir = dependencies / "runs" / datetime.now().strftime("%Y%m%d-%H%M%S-%f")
             command = [str(layout.bash), "--noprofile", "--norc", "-x", "tests/run_all.sh"]

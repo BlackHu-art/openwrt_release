@@ -6,6 +6,7 @@ cd "$repo_root"
 
 python tests/verify_upstream_sync.py
 python tests/test_windows_test_env.py
+python tests/test_validation_gates.py
 python tests/test_plugin_selection.py
 python tests/test_xray_core_compat.py
 python tests/test_passwall_tls.py
@@ -16,6 +17,9 @@ bash tests/test_custom_feed_plugins.sh
 bash tests/test_plugin_runtime.sh
 bash tests/test_openclash_checksum.sh
 bash tests/test_adguard_channel.sh
+python tests/test_adguard_compat.py
+python tests/test_openclash_backports.py
+python tests/test_openclash_filename.py
 bash tests/test_banner.sh
 bash tests/test_repo_checkout.sh
 bash tests/test_homeproxy_compat.sh

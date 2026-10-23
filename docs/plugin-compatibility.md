@@ -9,6 +9,10 @@
 `jdcloud_ipq60xx_libwrt.config` 启用 OpenClash/ADG，SSR 需由最终配置选中；
 本次不改变各机型的插件选择。
 
+固件源码由 `wrt_core/modules/` 中的来源更新逻辑和 `wrt_core/update.sh` 获取、处理；
+`maintenance/plugins/` 保存审查快照，不作为固件源码来源。部分 Passwall / Passwall2
+回归会读取维护快照，修改快照后也需运行相应回归。
+
 ## Passwall、Passwall2 与共享 Xray
 
 两套插件继续从 `Openwrt-Passwall` 各自仓库的 `main` 获取。维护区保存的原始源码不改写；
@@ -35,7 +39,7 @@
 不继续使用不兼容配方；重复执行也会重新检查版本条件。
 
 Passwall、Passwall2 和 SSR Plus 共用 `/usr/bin/xray`，因此此次配方调整也影响选用 Xray 的
-SSR Plus 节点。新增回归执行三者真实生成器，覆盖 53 份最终配置，包括 VLESS / Trojan / SS
+SSR Plus 节点。共享核心回归执行三者真实生成器，覆盖 53 份最终配置，包括 VLESS / Trojan / SS
 的 raw、WebSocket、HTTPUpgrade、gRPC 与 TLS，以及 VMess WebSocket/TLS、VLESS Reality、
 透明代理、DNS、分流和辅助代理入口。
 SSR Plus 用例先执行实际订阅器再生成配置。`xray-plugin` 是独立软件包及二进制，不随此配方改版。
@@ -74,23 +78,45 @@ SSR Plus 用例先执行实际订阅器再生成配置。`xray-plugin` 是独立
   r4/r5 原始清单保持九个目标，r6/r7/r8 保持十一个，r9/r10 分别保持二十一/二十三份补丁和十二个目标。
 
 细节见 [SSR 兼容性说明](ssrplus-compatibility.md)。
+维护区的 `v198.2` 仅用于迁移评估，当前构建仍使用上述 master 来源及 `190-r11` 修复集。
 
 ## OpenClash
 
 从当前 `kenzok8/small-package` 获取包，在 feeds install 前调用
-`fix_openclash_compat`。保留现有 WAN 子网修复，替换旧校验匹配补丁，
-对照 [91d7370](https://github.com/vernesong/OpenClash/commit/91d73707a6bcd0f8ec96a57095d72b1b4357cbe7)
-按完整 basename 精确匹配 SHA-256 清单，处理路径前缀、星号、CRLF 和大写哈希。
-文件内容不匹配时拒绝；没有有效校验值时保留上游的警告并跳过校验行为。
+`fix_openclash_compat`，在已审查的 `0.48.002` 源码上应用以下五份补丁：
 
-标准构建每次刷新 custom feed 后应用补丁。手工保留的旧匹配补丁状态不自动
-迁移；与已审查原始或当前补丁状态不匹配的源码会停止构建，需重新审查。
+- `openclash-wan-subnets.patch`：保留原有 WAN 子网修复。
+- `openclash-checksum-filename.patch`：对照
+  [91d7370](https://github.com/vernesong/OpenClash/commit/91d73707a6bcd0f8ec96a57095d72b1b4357cbe7)，
+  按完整 basename 精确匹配 SHA-256 清单，处理路径前缀、星号、CRLF 和大写哈希。
+  文件内容不匹配时拒绝；没有有效校验值时保留上游的警告并跳过校验行为。
+- `openclash-ruby-ast.patch`：回移
+  [ac3c7bf](https://github.com/vernesong/OpenClash/commit/ac3c7bf13ddc7faa6c2b82739d9bce8934c1342d)，
+  接受 Ruby 3.4 的数值、正则等 AST 节点及仍受方法白名单约束的无括号调用，继续拒绝危险调用。
+- `openclash-dashboard-switch.patch`：回移
+  [4983173](https://github.com/vernesong/OpenClash/commit/4983173bb2ff403e64a9b7754ca160c514b36301)，
+  切换成功、失败和删除操作的状态写入实际点击的 dashboard 卡片。
+- `openclash-filename-safety.patch`：回移并适配
+  [75d34d0](https://github.com/vernesong/OpenClash/commit/75d34d00482833f0a1ad939d7fc1647c98984fed)，
+  在 Lua 与 JavaScript 入口统一文件名规则，保留中文和空格，拒绝路径、shell 特殊字符、
+  点号开头、空白名称及超长名称；新建和重命名只允许插件指定目录。
+  覆写模块与重启标记改用名称摘要，避免不同名称经字符替换后串用标记。
+
+标准构建每次刷新 custom feed 后应用补丁。当前五份补丁的任意完整子集（共 32 种组合）
+均可补齐，包括原始源码、原有两份完整补丁和五份完整补丁状态。
+更早不同版本的 checksum 补丁、不完整 hunk 状态或无法通过补丁上下文校验的源码变化会停止构建，需重新审查。
+OpenClash 此处校验补丁上下文，并非 SSR、ADG 所采用的完整受保护文件 blob 校验。
+
+WAN 上游修复 [#5359 / a4b7073](https://github.com/vernesong/OpenClash/commit/a4b7073)
+暂不回移：自定义 WAN 区域与默认链共存时可选错区域，且 fw3 分支仅枚举 IPv4 区域，
+存在遗漏纯 IPv6 区域的风险。现有 WAN 子网补丁保留，不据此声称上述问题已经修复。
 
 ## AdGuard Home
 
 feeds install 后，`wrt_core/modules/service_fixes.sh` 的 `update_adguardhome`
 获取 `ZqinKing/luci-app-adguardhome`，随即调用 `fix_adguardhome_compat`。
-更新器与默认下载链接一起修复：
+该入口依次应用 `adguardhome-update-safety.patch` 和 `adguardhome-noop-update.patch`。
+第一份补丁修复更新器与默认下载链接：
 
 - 默认先下载 GitHub 指定稳定标签，再尝试官方稳定镜像。
 - 旧固件保留的 `links.txt` 自定义配置仍可使用；稳定更新跳过其中已知的
@@ -102,27 +128,44 @@ feeds install 后，`wrt_core/modules/service_fixes.sh` 的 `update_adguardhome`
 
 默认链接变化只影响新配置；运行时检查也覆盖被固件升级保留的旧链接配置。
 
+第二份补丁适配回移 kenzok78 的
+[81a7d33](https://github.com/kenzok78/luci-app-adguardhome/commit/81a7d330896027b82b4d13f368ebcdc8b0237d21)：
+已安装核心等于或新于目标版本、无需更新时，即使配置了 UPX，也不停止服务、压缩或替换现有核心。
+真正下载候选及显式 force 更新继续保留原有 UPX 行为。
+
+这两份补丁的上下文有重叠，入口先在临时副本中逆序归一化完整补丁，再按
+[三文件基线](../wrt_core/compat/adguardhome/source-files.tsv) 检查 `update_core.sh`、`links.txt`
+和 `AdGuardHome.lua` 的原始 Git blob，最后顺序应用补丁并发布受保护文件。
+原始源码、单份完整补丁和两份完整补丁状态均可收敛；未审查漂移、残缺补丁或缺失清单在实际源码写入前拒绝。
+重复执行保留相同文件的字节和修改时间，用户配置不在这三个受保护程序文件中。
+
 ## 验证与适用范围
 
 `tests/run_all.sh` 包含插件专项回归及现有完整回归。Passwall TLS 与启动入口回归覆盖旧核心
 拒绝指纹、受支持核心保留指纹、无指纹配置、隐式 TLS 协议、生成失败后停止启动，以及补丁重复应用。
 Xray 配方回归覆盖源码与补丁哈希、版本及 Go 门槛、重复执行和失败时不写入原配方；
 源码准备阶段回归另外验证实际接入顺序。
+OpenClash 回归执行真实 Ruby AST/覆写入口、模板 JavaScript 和 Lua 文件入口；
+ADG 回归覆盖无需更新时不触碰核心、实际下载及 force 控制、四种完整补丁状态、重复执行与漂移拒绝。
 `.github/workflows/test_ssrplus.yml` 在 Linux 上执行该入口，并在隔离网络
 命名空间内用真实 nft/dnsmasq 验证生成配置与生命周期。
 标准固件构建及发布工作流继续依赖测试门禁。
+CI 配置 Ruby `3.4`、Node.js `22`，并强制要求 Ruby 3.4 AST、Node.js 和真实 Xray 核心检查；
+相关插件补丁、兼容基线和测试所读维护快照的变更纳入测试工作流触发范围。
 
 共享 Xray 回归通过 `XRAY_TEST_BINARY` 调用官方核心的 `run -test` 检查最终配置。
 CI 使用 [固定版本下载器](../tests/fetch_xray_test_core.py) 校验归档 SHA-256 后设置该变量；
 本地未设置时会明确跳过实际核心校验，但仍运行生成器检查。Windows 与 Linux amd64 的
 官方测试归档分别锁定哈希。该校验不启动代理监听，也不能证明真实 TLS 握手或数据转发成功。
+Windows 使用官方 `stdin:` 加载完整生成 JSON，Linux 继续验证文件加载；两者均包含非法协议拒绝对照，
+不将本机临时文件访问问题误判为生成器或核心兼容问题。
 
 测试执行实际打补丁后的程序，下载、服务和外部网络边界在测试中替换。
 首次初始化测试通过限定的 UCI 边界提交实际配置，再由真实 sed 和 Lua 5.1
 订阅器处理，覆盖最终核心选择和 WebSocket 参数；订阅传输回归继续执行真实
 上游 `gen_config.lua` 检查最终 JSON。这不替代目标 UCI 或核心握手的验收。
-源码补丁支持重复执行，补丁或 SSR 源码校验不匹配时在写入前拒绝。Windows 的 SSR 首次初始化
+源码补丁支持重复执行，补丁或受保护源码校验不匹配时在写入前拒绝。Windows 的 SSR 首次初始化
 回归也需要真实 `flock`；只有 Git Bash 时会因缺少该命令失败，可通过现有 `SSRP_TEST_FLOCK_DIR`
-指定可用工具目录。Windows 本地验证不能替代 Linux 可执行权限及 nft/dnsmasq 检查；
-这些仍需在 Linux CI 验证。
+指定可用工具目录。完整 Windows 依赖安装与检查见 [本地测试说明](windows-testing.md)。
+Windows 本地验证不能替代 Linux 可执行权限及 nft/dnsmasq 检查；这些仍需在 Linux CI 验证。
 以上不代表已完成完整固件交叉编译或路由器实机验收。

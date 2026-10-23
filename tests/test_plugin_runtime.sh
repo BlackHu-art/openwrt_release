@@ -88,9 +88,7 @@ test_adguard() {
 
 test_openclash() {
     local package="$test_root/openclash"
-    mkdir -p "$package/root/etc/init.d" "$package/root/usr/share/openclash"
-    cp "$fixtures/openclash.init" "$package/root/etc/init.d/openclash"
-    cp "$fixtures/openclash_curl.sh" "$package/root/usr/share/openclash/openclash_curl.sh"
+    python "$repo_root/tests/openclash_fixture.py" "$package"
     # Sparse feed transfer removes the package's own .git directory in production.
     git init -q "$test_root"
     git -C "$test_root" config core.autocrlf false

@@ -1,0 +1,28 @@
+Subject: AdGuard Home: leave equal and newer installed cores untouched
+
+Backport the no-update UPX removal from kenzok78
+81a7d330896027b82b4d13f368ebcdc8b0237d21 to ZqinKing 3610820.
+Compression remains part of actual downloads, including explicit force updates.
+A no-update check must not stop, compress, or replace the installed core.
+
+--- a/root/usr/share/AdGuardHome/update_core.sh
++++ b/root/usr/share/AdGuardHome/update_core.sh
+@@ -39,17 +39,2 @@
+-		if [ ! -z "$upxflag" ]; then
+-			filesize=$(ls -l $binpath | awk '{ print $5 }')
+-			if [ $filesize -gt 8000000 ]; then
+-				echo -e "start upx may take a long time"
+-				doupx
+-				mkdir -p "/tmp/AdGuardHomeupdate/AdGuardHome" >/dev/null 2>&1
+-				rm -fr /tmp/AdGuardHomeupdate/AdGuardHome/${binpath##*/}
+-				/tmp/upx-${upx_latest_ver}-${Arch}_linux/upx $upxflag $binpath -o /tmp/AdGuardHomeupdate/AdGuardHome/${binpath##*/}
+-				rm -rf /tmp/upx-${upx_latest_ver}-${Arch}_linux
+-				/etc/init.d/AdGuardHome stop nobackup
+-				rm $binpath
+-				mv -f /tmp/AdGuardHomeupdate/AdGuardHome/${binpath##*/} $binpath
+-				/etc/init.d/AdGuardHome start
+-				echo -e "finished"
+-			fi
+-		fi
++		# Compress downloaded candidates only; leave the installed core untouched.
+ 		EXIT 0

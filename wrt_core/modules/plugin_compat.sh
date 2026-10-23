@@ -44,13 +44,65 @@ apply_plugin_compat_patches() {
     echo "$label 兼容补丁检查完成，新增 ${#pending[@]} 项。"
 }
 
-fix_adguardhome_compat() {
-    apply_plugin_compat_patches "$1" "AdGuard Home" adguardhome-update-safety.patch
-}
+fix_adguardhome_compat() (
+    local package_dir=$1 table="$BASE_PATH/compat/adguardhome/source-files.tsv"
+    local temp_base scratch patch_file path blob temporary i
+    local patches=(adguardhome-update-safety.patch adguardhome-noop-update.patch) files=()
+    [[ -d "$package_dir" && -s "$table" ]] || {
+        echo '错误：AdGuard Home 源码或基线清单不存在。' >&2; return 1;
+    }
+    for patch_file in "${patches[@]}"; do
+        [[ -s "$BASE_PATH/patches/$patch_file" ]] || {
+            echo "错误：AdGuard Home 补丁不存在：$patch_file" >&2; return 1;
+        }
+    done
+    temp_base=$(cd "${TMPDIR:-/tmp}" && pwd -P) || return 1
+    scratch=$(mktemp -d "$temp_base/adguard-compat.XXXXXX") || return 1
+    case "$scratch" in
+        "$temp_base"/adguard-compat.*) trap 'rm -rf -- "$scratch"' EXIT ;;
+        *) echo '错误：AdGuard Home 临时目录不在指定范围内。' >&2; return 1 ;;
+    esac
+    git init -q "$scratch" || return 1
+    git -C "$scratch" config core.autocrlf false || return 1
+    while read -r blob path; do
+        [[ -n "$blob" && -n "$path" && -f "$package_dir/$path" ]] || return 1
+        files+=("$path")
+        mkdir -p "$scratch/$(dirname "$path")" || return 1
+        cp -p "$package_dir/$path" "$scratch/$path" || return 1
+    done < "$table"
+    [[ ${#files[@]} -eq 3 ]] || return 1
+    # The UPX removal overlaps the older patch's context. Normalize complete
+    # patches in reverse order in scratch, never in the real source package.
+    for ((i=${#patches[@]}-1; i>=0; i--)); do
+        patch_file="$BASE_PATH/patches/${patches[$i]}"
+        if git -C "$scratch" apply --reverse --check "$patch_file" >/dev/null 2>&1; then
+            git -C "$scratch" apply --reverse "$patch_file" || return 1
+        fi
+    done
+    while read -r blob path; do
+        if [[ $(git hash-object --no-filters "$scratch/$path") != "$blob" ]]; then
+            echo "错误：AdGuard Home 上游文件发生未审查或不完整的变化：$path" >&2
+            return 1
+        fi
+    done < "$table"
+    for patch_file in "${patches[@]}"; do
+        git -C "$scratch" apply "$BASE_PATH/patches/$patch_file" || return 1
+    done
+    for path in "${files[@]}"; do
+        cmp -s "$scratch/$path" "$package_dir/$path" && continue
+        temporary=$(mktemp "$package_dir/$path.adgfix.XXXXXX") || return 1
+        if ! cp -p "$scratch/$path" "$temporary" || ! mv -f "$temporary" "$package_dir/$path"; then
+            rm -f -- "$temporary"
+            return 1
+        fi
+    done
+    echo 'AdGuard Home 兼容补丁与受保护源码检查完成。'
+)
 
 fix_openclash_compat() {
     apply_plugin_compat_patches "$1" "OpenClash" \
-        openclash-wan-subnets.patch openclash-checksum-filename.patch
+        openclash-wan-subnets.patch openclash-checksum-filename.patch \
+        openclash-ruby-ast.patch openclash-dashboard-switch.patch openclash-filename-safety.patch
 }
 
 fix_passwall_compat() {

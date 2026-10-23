@@ -14,11 +14,16 @@ on:
       - 'wrt_core/update.sh'
       - 'wrt_core/modules/**'
       - 'wrt_core/patches/ssrplus-*.patch'
+      - 'wrt_core/patches/openclash-*.patch'
+      - 'wrt_core/patches/adguardhome-*.patch'
+      - 'wrt_core/compat/adguardhome/**'
       - 'wrt_core/patches/passwall*-singbox-*.patch'
       - 'wrt_core/patches/xray-core-*.patch'
       - 'wrt_core/compat/proxy-cores/**'
       - 'maintenance/plugins/passwall/**'
       - 'maintenance/plugins/passwall2/**'
+      - 'maintenance/plugins/manifests/**'
+      - 'wrt_core/patches/homeproxy-*.patch'
       - 'wrt_core/patches/.gitattributes'
       - 'tests/**'
   push:
@@ -34,11 +39,16 @@ on:
       - 'wrt_core/update.sh'
       - 'wrt_core/modules/**'
       - 'wrt_core/patches/ssrplus-*.patch'
+      - 'wrt_core/patches/openclash-*.patch'
+      - 'wrt_core/patches/adguardhome-*.patch'
+      - 'wrt_core/compat/adguardhome/**'
       - 'wrt_core/patches/passwall*-singbox-*.patch'
       - 'wrt_core/patches/xray-core-*.patch'
       - 'wrt_core/compat/proxy-cores/**'
       - 'maintenance/plugins/passwall/**'
       - 'maintenance/plugins/passwall2/**'
+      - 'maintenance/plugins/manifests/**'
+      - 'wrt_core/patches/homeproxy-*.patch'
       - 'wrt_core/patches/.gitattributes'
       - 'tests/**'
   workflow_dispatch:
@@ -51,8 +61,19 @@ jobs:
   regression:
     runs-on: ubuntu-24.04
     timeout-minutes: 15
+    env:
+      REQUIRE_XRAY_TEST_CORE: '1'
+      OPENCLASH_REQUIRE_RUBY34: '1'
+      OPENCLASH_REQUIRE_NODE: '1'
     steps:
       - uses: actions/checkout@v7.0.0
+      - uses: ruby/setup-ruby@e1bd6146574da5e0795075b5319b300edb30c5b0 # v1
+        with:
+          ruby-version: '3.4'
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: '22'
+          package-manager-cache: false
       - name: Install Linux validation dependencies
         run: |
           sudo apt-get update
@@ -72,6 +93,8 @@ jobs:
           echo "XRAY_TEST_BINARY=$RUNNER_TEMP/shared-xray/xray" >> "$GITHUB_ENV"
       - name: Run project regression tests
         run: |
+          ruby --version
+          node --version
           bash tests/run_all.sh
       - name: Validate generated DNS and nft configuration in an isolated namespace
         run: sudo unshare -n bash tests/test_ssrplus_linux.sh

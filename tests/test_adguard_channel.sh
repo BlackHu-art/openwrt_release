@@ -47,7 +47,7 @@ cat > "$fake_bin/uci" <<'EOF'
 #!/usr/bin/env bash
 case "$*" in
     'get AdGuardHome.AdGuardHome.binpath') printf '%s/core\n' "$ADG_TEST_ROOT" ;;
-    'get AdGuardHome.AdGuardHome.upxflag') : ;;
+    'get AdGuardHome.AdGuardHome.upxflag') cat "$ADG_TEST_ROOT/upxflag" ;;
     *) exit 90 ;;
 esac
 EOF
@@ -77,9 +77,15 @@ if [[ $url == https://api.github.com/repos/AdguardTeam/AdGuardHome/releases/late
     cat "$ADG_TEST_ROOT/metadata"
     exit
 fi
+if [[ $url == https://api.github.com/repos/upx/upx/releases/latest ]]; then
+    [[ $output == - ]] || exit 92
+    cat "$ADG_TEST_ROOT/upx-metadata"
+    exit
+fi
 while IFS=$'\t' read -r expected payload; do
     if [[ $url == "$expected" ]]; then
-        [[ $output == "$ADG_TEST_ROOT"/tmp/AdGuardHomeupdate/* ]] || exit 93
+        [[ $output == "$ADG_TEST_ROOT"/tmp/AdGuardHomeupdate/* ||
+           $output == "$ADG_TEST_ROOT"/tmp/upx-4.2.0-amd64_linux.tar.xz ]] || exit 93
         printf '%s\n' "$payload" > "$output"
         exit 0
     fi
@@ -88,6 +94,12 @@ exit 22
 EOF
 cat > "$fake_bin/tar" <<'EOF'
 #!/usr/bin/env bash
+if [[ $# == 3 && $1 == -x && $2 == -C ]]; then
+    [[ $3 == "$ADG_TEST_ROOT"/tmp && $(cat) == upx-test-archive ]] || exit 98
+    mkdir -p "$3/upx-4.2.0-amd64_linux"
+    cp "$ADG_TEST_BIN/upx" "$3/upx-4.2.0-amd64_linux/upx"
+    exit
+fi
 [[ $# == 4 && $1 == -zxf && $3 == -C ]] || exit 94
 [[ $2 == "$ADG_TEST_ROOT"/tmp/AdGuardHomeupdate/* &&
    $4 == "$ADG_TEST_ROOT"/tmp/AdGuardHomeupdate/ ]] || exit 95
@@ -103,6 +115,20 @@ else
         "$payload" > "$4/AdGuardHome/AdGuardHome"
 fi
 EOF
+cat > "$fake_bin/xz" <<'EOF'
+#!/usr/bin/env bash
+[[ $# == 3 && $1 == -d && $2 == -c &&
+   $3 == "$ADG_TEST_ROOT"/tmp/upx-4.2.0-amd64_linux.tar.xz ]] || exit 99
+cat "$3"
+EOF
+cat > "$fake_bin/upx" <<'EOF'
+#!/usr/bin/env bash
+[[ $1 == -9 && ( $# == 2 || ( $# == 4 && $3 == -o ) ) ]] || exit 100
+printf '%s\n' "$*" >> "$ADG_TEST_ROOT/upx-calls"
+[[ $(cat "$ADG_TEST_ROOT/upx-exit") == 0 ]] || exit 1
+if [[ $# == 4 ]]; then cp "$2" "$4"; target=$4; else target=$2; fi
+printf '\n# compressed by test UPX\n' >> "$target"
+EOF
 chmod +x "$fake_bin"/*
 
 github='https://github.com/AdguardTeam/AdGuardHome/releases/download/v1.0.0/AdGuardHome_linux_amd64.tar.gz'
@@ -115,6 +141,7 @@ setup_case() {
     cp "$package/root/usr/share/AdGuardHome/links.txt" "$case_root/usr/share/AdGuardHome/links.txt"
     printf '{"tag_name":"v1.0.0","prerelease":false}\n' > "$case_root/metadata"
     : > "$case_root/responses"
+    : > "$case_root/upxflag"
     printf '#!/usr/bin/env bash\n[[ $1 == --version ]] || exit 97\nprintf "AdGuard Home, version %%s\\n" "%s"\n' \
         "${2:-v0.9.0}" > "$case_root/core"
     chmod +x "$case_root/core"
@@ -212,6 +239,44 @@ test_version_ordering() {
     run_updater 0 "$mode"
     if [[ $expected == update ]]; then installed_stable; else preserved_core; fi
 }
+
+setup_upx() {
+    printf '%s\n' '-9' > "$case_root/upxflag"
+    printf '{"tag_name":"v4.2.0"}\n' > "$case_root/upx-metadata"
+    printf '%s\n' "${1:-0}" > "$case_root/upx-exit"
+    response 'https://github.com/upx/upx/releases/download/v4.2.0/upx-4.2.0-amd64_linux.tar.xz' upx-test-archive
+}
+
+test_no_update_with_upx() {
+    local current=$1 upx_exit=$2
+    setup_case "no-update-upx-${current}-${upx_exit}" "$current"
+    setup_upx "$upx_exit"
+    # The real size check must be satisfied; padding is a shell comment so the
+    # installed executable continues reporting its version normally.
+    printf '\n#' >> "$case_root/core"
+    head -c 8000001 /dev/zero | tr '\0' x >> "$case_root/core"
+    [[ $(wc -c < "$case_root/core") -gt 8000000 ]] || fail 'large-core setup failed'
+    cp "$case_root/core" "$case_root/old-core"
+    cp "$case_root/upxflag" "$case_root/old-upxflag"
+    cp "$case_root/usr/share/AdGuardHome/links.txt" "$case_root/old-links"
+    run_updater 0
+    preserved_core
+    [[ ! -e "$case_root/upx-calls" ]] || fail 'unchanged core was compressed'
+    [[ $(wc -l < "$case_root/downloads") == 1 ]] || fail 'no-update check fetched UPX or a core'
+    cmp "$case_root/upxflag" "$case_root/old-upxflag" || fail 'no-update check changed compression setting'
+    cmp "$case_root/usr/share/AdGuardHome/links.txt" "$case_root/old-links" || fail 'no-update check changed user links'
+}
+
+test_actual_update_with_upx() {
+    local current=$1 mode=$2
+    setup_case "actual-update-upx-${current}-${mode:-automatic}" "$current"
+    setup_upx
+    response "$github" v1.0.0
+    run_updater 0 "$mode"
+    installed_stable
+    [[ $(wc -l < "$case_root/upx-calls") == 1 ]] || fail 'actual update skipped or repeated UPX'
+    grep -Fq '# compressed by test UPX' "$case_root/core" || fail 'actual update did not install the compressed candidate'
+}
 test_invalid_metadata() {
     local tag=$1
     setup_case "metadata-${tag:-empty}"
@@ -244,6 +309,13 @@ check 'higher prerelease with build metadata does not downgrade' test_version_or
 check 'higher stable does not downgrade automatically' test_version_ordering v1.0.1 '' preserve
 check 'equal stable is unchanged' test_version_ordering v1.0.0 '' preserve
 check 'force retains explicit downgrade override' test_version_ordering v1.1.0-b.1 force update
+check 'equal stable with large core and UPX is unchanged' test_no_update_with_upx v1.0.0 0
+check 'higher stable with large core and UPX is unchanged' test_no_update_with_upx v1.0.1 0
+check 'higher prerelease with large core and UPX is unchanged' test_no_update_with_upx v1.1.0-b.1 0
+check 'equal stable never invokes failing UPX' test_no_update_with_upx v1.0.0 1
+check 'higher stable never invokes failing UPX' test_no_update_with_upx v1.0.1 1
+check 'actual upgrade still compresses downloaded core' test_actual_update_with_upx v0.9.0 ''
+check 'forced downgrade still compresses downloaded core' test_actual_update_with_upx v1.1.0-b.1 force
 check 'prerelease metadata is rejected' test_invalid_metadata v1.0.0-b.1
 check 'malformed metadata is rejected' test_invalid_metadata v1.0
 check 'missing metadata is rejected' test_invalid_metadata ''
