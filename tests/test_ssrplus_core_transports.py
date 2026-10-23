@@ -11,7 +11,9 @@ import os
 from pathlib import Path
 import subprocess
 import tempfile
+from types import SimpleNamespace
 import unittest
+from unittest import mock
 
 import test_ssrplus_core_config as core
 import test_ssrplus_subscription as subscription
@@ -219,7 +221,35 @@ class SelectedTransportStartupRegressions(unittest.TestCase):
         cls.addClassCleanup(firstboot.FirstbootTests.doClassCleanups)
         cls.init_code = firstboot.FirstbootTests.init_code
 
+    def test_posix_shell_boundary_for_both_startup_scenarios(self):
+        # Simulate Linux selection on Windows without changing pathlib's host.
+        # Validate the real callers' argv, then execute every original assertion
+        # through the available native shell instead of faking its result.
+        native_run, native_shell = subprocess.run, firstboot.SHELL
+        native_prefix = [native_shell] + (["--noprofile", "--norc"] if os.name == "nt" else [])
+        observed = []
+
+        def run_posix_boundary(command, **kwargs):
+            observed.append(command)
+            self.assertEqual(command[:2], ["/usr/bin/sh", "-c"],
+                             "POSIX sh received Bash-only startup options")
+            self.assertEqual(len(command), 3)
+            return native_run(native_prefix + command[1:], **kwargs)
+
+        with mock.patch(__name__ + ".os", SimpleNamespace(name="posix", environ=os.environ)), \
+             mock.patch.object(firstboot, "SHELL", "/usr/bin/sh"), \
+             mock.patch.object(subprocess, "run", side_effect=run_posix_boundary):
+            for scenario, expected_calls in (
+                    (self.test_effective_network_allows_each_selected_role_and_dispatch_without_rewriting_nodes, 16),
+                    (self.test_start_and_restart_reject_every_selected_legacy_role_before_replacement, 24)):
+                before = len(observed)
+                scenario()
+                self.assertEqual(len(observed) - before, expected_calls)
+
     def test_effective_network_allows_each_selected_role_and_dispatch_without_rewriting_nodes(self):
+        shell_command = [firstboot.SHELL]
+        if os.name == "nt":
+            shell_command += ["--noprofile", "--norc"]
         for protocol in ("wireguard", "hysteria2"):
             for transport in ("h2", "quic"):
                 for role, code in (("global_server", "1"), ("udp_relay_server", "2"),
@@ -237,7 +267,7 @@ class SelectedTransportStartupRegressions(unittest.TestCase):
                             environment = dict(os.environ, TEST_ROOT=base.as_posix(), TEST_INIT=init.as_posix(),
                                 TEST_PROTOCOL=protocol, TEST_TRANSPORT=transport, TEST_ROLE=role,
                                 TEST_ROLE_CODE=code, MSYS_NO_PATHCONV="1")
-                            result = subprocess.run([firstboot.SHELL, "--noprofile", "--norc", "-c", r'''
+                            result = subprocess.run(shell_command + ["-c", r'''
 . "$TEST_INIT" || exit
 switch_server=
 TMP_PATH="$TEST_ROOT"
@@ -276,6 +306,9 @@ gen_config_file candidate v2ray "$TEST_ROLE_CODE" 1234 1080
                             self.assertEqual(retained.read_bytes(), before)
 
     def test_start_and_restart_reject_every_selected_legacy_role_before_replacement(self):
+        shell_command = [firstboot.SHELL]
+        if os.name == "nt":
+            shell_command += ["--noprofile", "--norc"]
         for command in ("start", "restart"):
             for role in ("global_server", "udp_relay_server", "netflix_server", "socks"):
                 for transport in ("h2", "http", "quic"):
@@ -293,7 +326,7 @@ gen_config_file candidate v2ray "$TEST_ROLE_CODE" 1234 1080
                             environment.update(TEST_ROOT=base.as_posix(), TEST_INIT=init.as_posix(),
                                 TEST_ROLE=role, TEST_TRANSPORT=transport, TEST_COMMAND=command,
                                 MSYS_NO_PATHCONV="1")
-                            result = subprocess.run([firstboot.SHELL, "--noprofile", "--norc", "-c", r'''
+                            result = subprocess.run(shell_command + ["-c", r'''
 . "$TEST_INIT" || exit
 switch_server=
 LOCK_FILE="$TEST_ROOT/lifecycle.lock"
