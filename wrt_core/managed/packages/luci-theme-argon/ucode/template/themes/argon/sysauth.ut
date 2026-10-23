@@ -1,0 +1,58 @@
+{#
+	Argon is a clean HTML5 theme for LuCI. It is based on luci-theme-bootstrap and MUI and Argon Template
+
+	luci-theme-argon
+	Copyright 2020 Jerryk <jerrykuku@gmail.com>
+
+	Have a bug? Please create an issue here on GitHub!
+	https://github.com/jerrykuku/luci-theme-argon/issues
+
+	luci-theme-bootstrap:
+	Copyright 2008 Steven Barth <steven@midlink.org>
+	Copyright 2008-2016 Jo-Philipp Wich <jow@openwrt.org>
+	Copyright 2012 David Menting <david@nut-bolt.nl>
+
+	MUI:
+	https://github.com/muicss/mui
+
+	Argon Theme
+	https://demos.creative-tim.com/argon-dashboard/index.html
+
+	Licensed to the public under the Apache License 2.0
+-#}
+
+{% include("themes/" + theme + "/out_header_login") %}
+{%
+	import * as fs from 'fs';
+	import { cursor } from 'uci';
+	import { get_branding } from 'luci.argon-branding';
+
+	let cfg = cursor();
+	// Only known layouts may select login page styles; old configs stay classic.
+	let login_style = 'classic';
+	if (fs.access('/etc/config/argon')) {
+		let configured_style = cfg.get_first('argon', 'global', 'login_style');
+		if (configured_style == 'classic' || configured_style == 'centered')
+			login_style = configured_style;
+	}
+
+	const boardinfo = ubus.call("system", "board");
+	const hostname = striptags(boardinfo?.hostname ?? '?');
+	const branding = get_branding();
+	const logo_url = branding.logo ? media + '/branding/' + branding.logo : media + '/img/argon.svg';
+
+%}
+<!-- Login Page Start -->
+<div class="login-page" data-login-style="{{ login_style }}">
+	{% include('themes/' + theme + '/login_background', { cfg: cfg }) %}
+	<!-- Login Container Start -->
+	<div class="login-container">
+		<div class="login-form">
+			<!-- Logo Start -->
+			<a class="brand" href="/"><img src="{{ logo_url }}" class="icon" alt="" data-fallback="{{ media }}/img/argon.svg" onerror="this.onerror=null;this.src=this.dataset.fallback">
+				<span class="brand-text">{{ hostname }}</span>
+			</a>
+			<!-- Logo End -->
+			<!-- Login Form Start -->
+			{% include('themes/' + theme + '/login_form') %}
+{% include("themes/" + theme + "/footer_login") %}

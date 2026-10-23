@@ -1,0 +1,331 @@
+# Update log for master branch
+
+## v3.1.0 [ 2026.10.22 ]
+
+### Added / 新功能
+
+- Add stable release checks and online theme installation under **System → Argon Config → Theme updates**, using the firmware's native APK or OPKG package manager and preserving Argon settings.
+- Verify package SHA256 and size before installation, reject downgrades, and show installation progress and logs with monitoring that resumes after a page refresh.
+
+- 新增稳定版检查与在线安装，可在**系统 → Argon 配置 → 主题更新**中通过固件原生 APK 或 OPKG 包管理器升级，并保留 Argon 设置。
+- 新增安装包校验、降级保护、安装进度和日志，刷新页面后可继续跟踪安装状态。
+
+### Changed / 改进
+
+- Improve compatibility with stable OpenWrt firmware.
+
+- 改善稳定版 OpenWrt 固件上的兼容性。
+
+### Fixed / 修复
+
+- Fix dashboard action spacing and overview layouts.
+- Fix dynamic list controls and custom IP/MAC input borders across narrow screens, light/dark modes and RTL layouts.
+
+- 修复 Dashboard 操作区间距和概览布局。
+- 修复动态列表控件及自定义 IP/MAC 输入框边框，兼顾窄屏、亮暗色和 RTL 布局。
+
+### Upgrade notes / 升级说明
+
+**First upgrade:** users on v3.0.0 or earlier must install v3.1.0 manually once. Later releases can be installed through Theme updates. Online installation updates the theme package; install separate translation packages in the usual way.
+
+**首次升级：** v3.0.0 及更早版本用户需先手动安装一次 v3.1.0，之后可使用主题更新功能在线升级。在线安装仅更新主题主包，独立语言包仍按原方式安装。
+
+### Installation / 安装说明
+
+| Firmware / 固件 | Package / 安装包 |
+| --- | --- |
+| Native `opkg`, including OpenWrt 23.05 / 24.10 and GL.iNet firmware based on them / 原生使用 `opkg` 的固件 | `.ipk` → `opkg install` |
+| Native APK v3 with `apk-tools 3.x` / 原生使用 APK v3 的固件 | `.apk` → `apk add --allow-untrusted` |
+
+APK assets use **APK v3** and cannot be read by `apk-tools 2.x`, including `2.14.0`. Having an `apk` command installed on an opkg-based firmware does not make it APK v3 compatible. `--allow-untrusted` does not change format compatibility, and `apk` cannot install IPK files.
+
+APK 附件采用 **APK v3 格式**，`apk-tools 2.x`（包括 `2.14.0`）无法读取。在原生使用 opkg 的固件上额外安装 `apk`，并不会让固件兼容 APK v3；`--allow-untrusted` 不能解决格式不兼容，`apk` 也不能安装 IPK。
+
+APK builds use the OpenWrt **25.12.5 stable SDK**. Theme templates are shipped as source to avoid snapshot-specific ucode bytecode requirements. If an older APK reports `ucode>=2026.02.27`, use a package rebuilt with the [#715 fix](https://github.com/jerrykuku/luci-theme-argon/issues/715); bypassing dependency checks does not make that bytecode compatible.
+
+APK 使用 OpenWrt **25.12.5 稳定版 SDK** 构建，主题模板保留源码，避免 snapshot 的 ucode 字节码版本限制。若旧 APK 提示需要 `ucode>=2026.02.27`，请使用包含 [#715 修复](https://github.com/jerrykuku/luci-theme-argon/issues/715) 的重新构建包；绕过依赖检查不能解决字节码不兼容。
+
+Download the theme and required language packages in the **same format**. Use the exact asset filenames below. For GL.iNet / OpenWrt 23.05, use IPK files with the firmware's existing `opkg`.
+
+主题和需要的语言包应选择**相同格式**，以本页附件实际文件名为准。GL.iNet / OpenWrt 23.05 请下载 IPK 并使用固件原有的 `opkg` 安装。
+
+#### Argon 3.0 settings integration / 设置集成
+
+Settings are included in `luci-theme-argon`. Fresh installations need only the theme and desired `luci-i18n-argon-config-*` translations.
+
+设置已内置主题，新安装无需配置插件。已有旧插件时，先单独安装本次发行的 `luci-app-argon-config` 空兼容包，再安装主题；该顺序会保留旧配置并完成文件归属交接。
+
+For an existing configuration plugin, install this release's empty `luci-app-argon-config` compatibility package first, then install the theme in a separate command. Do not install both in one transaction or force overwrites.
+
+
+**Full Changelog**: https://github.com/jerrykuku/luci-theme-argon/compare/v3.0.0...v3.1.0
+
+## v3.0.0 [ 2026.10.16 ]
+
+### Argon 3.0
+
+- Integrate Argon Config, wallpaper uploads and custom branding into the theme package, with a compatibility package for existing installations.
+- Add classic-sidebar and centered-card login layouts, persistent light/dark/system appearance switching, and automatic dark accent colors.
+- Improve desktop and mobile layouts, shared controls, tables, tabs, dialogs and most third-party LuCI applications.
+- Replace icon fonts with SVG menu/control icons and complete Argon Config translations.
+- Refresh the English/Chinese README, desktop demo, screenshots and development guides.
+- Fix translation package versions and upgrade ordering; verify every language package before publication.
+- Reduce package size with a WebP login background and optimized WOFF2 fonts, retaining all font characters and rendering instructions.
+
+- 将 Argon Config、背景上传和自定义图标集成到主题，提供旧版配置插件迁移包。
+- 提供经典侧栏、居中卡片两套登录布局，持久化亮色／暗色／跟随系统切换，以及自动暗色配色。
+- 优化桌面与手机布局、通用控件、表格、标签页、弹窗和大多数第三方 LuCI 应用的适配。
+- 使用 SVG 菜单／控件图标替代图标字体，补全 Argon Config 翻译。
+- 更新中英文 README、桌面演示动画、截图和开发说明。
+- 修复语言包版本及升级顺序，发布前逐包核验全部语言包版本。
+- 使用 WebP 登录背景并精简 WOFF2 字体，保留全部字符和渲染指令，减小安装包体积。
+
+This v3.0.0 rebuild uses package revision **2**: IPK `3.0.0-2`, APK `3.0.0-r2`. Translation versions are `v3.0.0-2` (IPK) and `3.0.0-r2` (APK), allowing normal upgrades from the original `unknown` / `0` language packages.
+
+本次 v3.0.0 重发采用安装包修订号 **2**：IPK 为 `3.0.0-2`，APK 为 `3.0.0-r2`。语言包分别为 `v3.0.0-2`（IPK）和 `3.0.0-r2`（APK），可从原 `unknown`／`0` 语言包正常升级。
+
+### Installation / 安装说明
+
+| Firmware / 固件 | Package / 安装包 |
+| --- | --- |
+| Native `opkg`, including OpenWrt 23.05 / 24.10 and GL.iNet firmware based on them / 原生使用 `opkg` 的固件 | `.ipk` → `opkg install` |
+| Native APK v3 with `apk-tools 3.x` / 原生使用 APK v3 的固件 | `.apk` → `apk add --allow-untrusted` |
+
+APK assets use **APK v3** and cannot be read by `apk-tools 2.x`, including `2.14.0`. Having an `apk` command installed on an opkg-based firmware does not make it APK v3 compatible. `--allow-untrusted` does not change format compatibility, and `apk` cannot install IPK files.
+
+APK 附件采用 **APK v3 格式**，`apk-tools 2.x`（包括 `2.14.0`）无法读取。在原生使用 opkg 的固件上额外安装 `apk`，并不会让固件兼容 APK v3；`--allow-untrusted` 不能解决格式不兼容，`apk` 也不能安装 IPK。
+
+APK builds use the OpenWrt **25.12.5 stable SDK**. Theme templates are shipped as source to avoid snapshot-specific ucode bytecode requirements. If an older APK reports `ucode>=2026.02.27`, use a package rebuilt with the [#715 fix](https://github.com/jerrykuku/luci-theme-argon/issues/715); bypassing dependency checks does not make that bytecode compatible.
+
+APK 使用 OpenWrt **25.12.5 稳定版 SDK** 构建，主题模板保留源码，避免 snapshot 的 ucode 字节码版本限制。若旧 APK 提示需要 `ucode>=2026.02.27`，请使用包含 [#715 修复](https://github.com/jerrykuku/luci-theme-argon/issues/715) 的重新构建包；绕过依赖检查不能解决字节码不兼容。
+
+Download the theme and required language packages in the **same format**. Use the exact asset filenames below. For GL.iNet / OpenWrt 23.05, use IPK files with the firmware's existing `opkg`.
+
+主题和需要的语言包应选择**相同格式**，以本页附件实际文件名为准。GL.iNet / OpenWrt 23.05 请下载 IPK 并使用固件原有的 `opkg` 安装。
+
+### Argon 3.0 settings integration / 设置集成
+
+Settings are included in `luci-theme-argon`. Fresh installations need only the theme and desired `luci-i18n-argon-config-*` translations.
+
+设置已内置主题，新安装无需配置插件。已有旧插件时，先单独安装本次发行的 `luci-app-argon-config` 空兼容包，再安装主题；该顺序会保留旧配置并完成文件归属交接。
+
+For an existing configuration plugin, install this release's empty `luci-app-argon-config` compatibility package first, then install the theme in a separate command. Do not install both in one transaction or force overwrites.
+
+
+### What's Changed
+* fix(cascade): add bottom spacing for argon config form by @TuringTrail in https://github.com/jerrykuku/luci-theme-argon/pull/709
+* feat(sysauth): render Authentication Login plugins on the login page by @FuSan21 in https://github.com/jerrykuku/luci-theme-argon/pull/710
+* fix(sysauth): avoid blue outline on focused login inputs by @TuringTrail in https://github.com/jerrykuku/luci-theme-argon/pull/712
+
+### New Contributors
+* @TuringTrail made their first contribution in https://github.com/jerrykuku/luci-theme-argon/pull/709
+
+**Full Changelog**: https://github.com/jerrykuku/luci-theme-argon/compare/v2.4.7...v3.0.0
+
+## v2.4.8 [ 2026.10.08 ]
+
+### v2.4.8 r2 rebuild / 修订版重发
+
+Republished on 2026-10-09 with package revision 2: APK packages use `2.4.8-r2`; IPK packages use `2.4.8-2` so both package managers recognize the update.
+
+2026-10-09 重发，主题及配置插件包修订号更新为 2：APK 版本为 `2.4.8-r2`，IPK 版本为 `2.4.8-2`，便于从旧包升级。
+
+- Fix stable OpenWrt 25.12 APK installation (#715): build with SDK 25.12.5 and ship template source.
+- Improve dark sysupgrade dialog contrast and wrapping (`1055e79`).
+- Correct notification banner positioning and spacing (`c70ed6b`).
+- Keep the configuration plugin at `9bafffa`; login-page layout selection and custom favicon/Logo settings are not included.
+
+- 修复稳定版 OpenWrt 25.12 的 APK 安装问题（#715）：使用 25.12.5 SDK，模板保留源码。
+- 修复深色升级弹窗的对比度与换行（`1055e79`）。
+- 修复通知横幅位置和内部间距（`c70ed6b`）。
+- 配置插件固定为 `9bafffa`，不包含登录页样式切换及自定义网站图标／Logo 设置。
+
+### Installation / 安装说明
+
+| Firmware / 固件 | Package / 安装包 |
+| --- | --- |
+| Native `opkg`, including OpenWrt 23.05 / 24.10 and GL.iNet firmware based on them / 原生使用 `opkg` 的固件 | `.ipk` → `opkg install` |
+| Native APK v3 with `apk-tools 3.x` / 原生使用 APK v3 的固件 | `.apk` → `apk add --allow-untrusted` |
+
+APK assets use **APK v3** and cannot be read by `apk-tools 2.x`, including `2.14.0`. Having an `apk` command installed on an opkg-based firmware does not make it APK v3 compatible. `--allow-untrusted` does not change format compatibility, and `apk` cannot install IPK files.
+
+APK 附件采用 **APK v3 格式**，`apk-tools 2.x`（包括 `2.14.0`）无法读取。在原生使用 opkg 的固件上额外安装 `apk`，并不会让固件兼容 APK v3；`--allow-untrusted` 不能解决格式不兼容，`apk` 也不能安装 IPK。
+
+APK builds use the OpenWrt **25.12.5 stable SDK**. Theme templates are shipped as source to avoid snapshot-specific ucode bytecode requirements. If an older APK reports `ucode>=2026.02.27`, use a package rebuilt with the [#715 fix](https://github.com/jerrykuku/luci-theme-argon/issues/715); bypassing dependency checks does not make that bytecode compatible.
+
+APK 使用 OpenWrt **25.12.5 稳定版 SDK** 构建，主题模板保留源码，避免 snapshot 的 ucode 字节码版本限制。若旧 APK 提示需要 `ucode>=2026.02.27`，请使用包含 [#715 修复](https://github.com/jerrykuku/luci-theme-argon/issues/715) 的重新构建包；绕过依赖检查不能解决字节码不兼容。
+
+Download the theme, configuration plugin, and required language packages in the **same format**. Use the exact asset filenames below. For GL.iNet / OpenWrt 23.05, use IPK files with the firmware's existing `opkg`.
+
+主题、配置插件和需要的语言包应选择**相同格式**，以本页附件实际文件名为准。GL.iNet / OpenWrt 23.05 请下载 IPK 并使用固件原有的 `opkg` 安装。
+
+
+### What's Changed
+* fix(cascade): add bottom spacing for argon config form by @TuringTrail in https://github.com/jerrykuku/luci-theme-argon/pull/709
+* feat(sysauth): render Authentication Login plugins on the login page by @FuSan21 in https://github.com/jerrykuku/luci-theme-argon/pull/710
+* fix(sysauth): avoid blue outline on focused login inputs by @TuringTrail in https://github.com/jerrykuku/luci-theme-argon/pull/712
+
+### New Contributors
+* @TuringTrail made their first contribution in https://github.com/jerrykuku/luci-theme-argon/pull/709
+
+**Full Changelog**: https://github.com/jerrykuku/luci-theme-argon/compare/v2.4.7...v2.4.8
+
+## v2.4.7 [ 2026.08.24 ]
+
+### What's Changed
+* fix(openclash): correct form spacing and custom table styles by @Aethersailor in https://github.com/jerrykuku/luci-theme-argon/pull/698
+* fixed: Issue where browser tabs were displayed incorrectly. by @smallprogram in https://github.com/jerrykuku/luci-theme-argon/pull/700
+* refactor(openclash): unify Argon theme integration by @Aethersailor in https://github.com/jerrykuku/luci-theme-argon/pull/702
+
+### New Contributors
+* @smallprogram made their first contribution in https://github.com/jerrykuku/luci-theme-argon/pull/700
+
+**Full Changelog**: https://github.com/jerrykuku/luci-theme-argon/compare/v2.4.6...v2.4.7
+## v2.4.6 [ 2026.07.31 ]
+
+### What's Changed
+* 修改警告提示对比度弱、系统设置按钮组间距，新增新版隐藏按钮样式 by @sydnkj in https://github.com/jerrykuku/luci-theme-argon/pull/688
+* fix(openclash): normalize config switcher tab height by @Aethersailor in https://github.com/jerrykuku/luci-theme-argon/pull/689
+* fix(pr) 修复#688，仅修改了编译产物，没有修改less源代码的问题 by @sydnkj in https://github.com/jerrykuku/luci-theme-argon/pull/692
+* fix(issues) 解决#691提到的暗黑主题白色线问题 by @sydnkj in https://github.com/jerrykuku/luci-theme-argon/pull/693
+
+
+**Full Changelog**: https://github.com/jerrykuku/luci-theme-argon/compare/v2.4.5...v2.4.6
+## v2.4.5 [ 2026.07.18 ]
+
+### What's Changed
+* 修复输入框显示不全 by @Rain-Maple in https://github.com/jerrykuku/luci-theme-argon/pull/684
+* fix(apk): avoid replacing uclient-fetch with wget-nossl by @jelipo in https://github.com/jerrykuku/luci-theme-argon/pull/685
+* fix(openclash): align CBI zebra row spacing by @Aethersailor in https://github.com/jerrykuku/luci-theme-argon/pull/686
+
+### New Contributors
+* @Rain-Maple made their first contribution in https://github.com/jerrykuku/luci-theme-argon/pull/684
+* @jelipo made their first contribution in https://github.com/jerrykuku/luci-theme-argon/pull/685
+* @Aethersailor made their first contribution in https://github.com/jerrykuku/luci-theme-argon/pull/686
+
+**Full Changelog**: https://github.com/jerrykuku/luci-theme-argon/compare/v2.4.4...v2.4.5
+## v2.4.4 [ 2026.07.16 ]
+
+### What's Changed
+* Dynlist indicate drop target by @jjm2473 in https://github.com/jerrykuku/luci-theme-argon/pull/590
+* feat(online_wallpaper): get rid of curl by @1715173329 in https://github.com/jerrykuku/luci-theme-argon/pull/603
+* chore(template): rewrite into ucode by @msylgj in https://github.com/jerrykuku/luci-theme-argon/pull/602
+* fix some css style error by @msylgj in https://github.com/jerrykuku/luci-theme-argon/pull/607
+* WIP: fix(css): fix some css issues by @msylgj in https://github.com/jerrykuku/luci-theme-argon/pull/617
+* 修复luci-app-poweroffdevice、admin-system-reboot的按钮宽度问题，修复首页/状态页的 Hide、Show 按钮 by @yhl452493373 in https://github.com/jerrykuku/luci-theme-argon/pull/622
+* 修复两处样式异常 by @guowenju in https://github.com/jerrykuku/luci-theme-argon/pull/632
+* Wallhaven.cc loading fix by @AcidSlide in https://github.com/jerrykuku/luci-theme-argon/pull/634
+* MWAN3 specific only - css fix by @AcidSlide in https://github.com/jerrykuku/luci-theme-argon/pull/633
+* 优化openclash的公告栏边距 by @yhl452493373 in https://github.com/jerrykuku/luci-theme-argon/pull/637
+* fix(nlbw): 修复`带宽监控`页面选择器并优化按钮布局 by @guowenju in https://github.com/jerrykuku/luci-theme-argon/pull/649
+* fix: smartdns: fix padding loss in layout style by @sydnkj in https://github.com/jerrykuku/luci-theme-argon/pull/650
+* luci-static/menu-argon: add missing ModeMenu handling by @feckert in https://github.com/jerrykuku/luci-theme-argon/pull/651
+* fix(nftables): 修复`检测到旧版规则` `alert-message` 弹窗点击关闭按钮无效的问题 by @guowenju in https://github.com/jerrykuku/luci-theme-argon/pull/652
+* 修复某些弹窗loading图标位置问题 by @yhl452493373 in https://github.com/jerrykuku/luci-theme-argon/pull/659
+* Comment out X-Frame-Options meta tag by @yws112358 in https://github.com/jerrykuku/luci-theme-argon/pull/663
+* 修复在最新openwrt上的一些问题 by @yhl452493373 in https://github.com/jerrykuku/luci-theme-argon/pull/666
+* 修复OpenWrt 25.12主页样式异常 by @guowenju in https://github.com/jerrykuku/luci-theme-argon/pull/658
+* 修复一些发现的问题 by @yhl452493373 in https://github.com/jerrykuku/luci-theme-argon/pull/668
+* Fix Safari rendering issues on login and LuCI pages by @Nonosword in https://github.com/jerrykuku/luci-theme-argon/pull/670
+* Update LUCI_DEPENDS to use wget-any by @1-1-2 in https://github.com/jerrykuku/luci-theme-argon/pull/671
+* Revert "Update LUCI_DEPENDS to use wget-any" by @jerrykuku in https://github.com/jerrykuku/luci-theme-argon/pull/673
+* 修复主页(dashboard)DHCP设备表格布局异常 by @guowenju in https://github.com/jerrykuku/luci-theme-argon/pull/674
+* fix(css): remove transform on tooltip by @ckorber in https://github.com/jerrykuku/luci-theme-argon/pull/678
+
+### New Contributors
+* @1715173329 made their first contribution in https://github.com/jerrykuku/luci-theme-argon/pull/603
+* @guowenju made their first contribution in https://github.com/jerrykuku/luci-theme-argon/pull/632
+* @sydnkj made their first contribution in https://github.com/jerrykuku/luci-theme-argon/pull/650
+* @feckert made their first contribution in https://github.com/jerrykuku/luci-theme-argon/pull/651
+* @yws112358 made their first contribution in https://github.com/jerrykuku/luci-theme-argon/pull/663
+* @Nonosword made their first contribution in https://github.com/jerrykuku/luci-theme-argon/pull/670
+* @1-1-2 made their first contribution in https://github.com/jerrykuku/luci-theme-argon/pull/671
+* @ckorber made their first contribution in https://github.com/jerrykuku/luci-theme-argon/pull/678
+
+**Full Changelog**: https://github.com/jerrykuku/luci-theme-argon/compare/v2.4.3...v2.4.4
+## v2.4.3 [ 2025.07.22 ]
+
+- **Refactor**: Remove jQuery dependency, fully replace with vanilla JavaScript
+- **Modernize**: Upgrade HTML meta tags for better security and compatibility
+- **Security**: Add security-related HTTP headers (CSP, XSS protection, clickjacking protection, etc.)
+- **Font System**: Modernize font system with Google Sans font support
+- **Font Optimization**: Replace legacy font formats (eot/svg/ttf) with woff2 for better performance
+- **CSS Upgrade**: Upgrade Pure CSS to v3.0.0
+- **Menu Enhancement**: Improve menu animations, remove jQuery dependency and sync animation timing
+- **Style Improvement**: Add dockerman related style support
+- **Mobile Optimization**: Optimize mobile and PWA related meta tag configurations
+- **Icon Organization**: Reorganize website icon links following modern standards
+- **Accessibility**: Improve web accessibility by allowing user scaling
+- **Code Structure**: Optimize code structure with logical grouping comments
+
+## v2.3.1 [ 2023.04.20 ]
+
+- Fixed the issue where the dropdown menu was being clipped.
+- Fixed the problem where the exit icon was replaced with the app store icon.
+- Fixed the issue where some colors were out of control in dark mode.
+- Fixed the problem where the local startup script textarea could not be scrolled in the startup item.
+- Fixed the problem where the Passwall node list button was misaligned.
+- Fixed the text overflow problem in dynlist 
+- Support wallpaper from Unsplashargon
+- Fix menu style mis-match on macOS+Chrome
+- Fixed the issue of the login page icon becoming larger
+- Support wallpaper from wallhaven
+  > open footer links in new tab
+- Remake theme icon
+
+## v2.3 [ 2023.04.03 ]
+
+- Updated the style of Loading.
+- Fixed a large number of CSS style errors and made the overall more uniform.
+- Fixed the problem of uncontrolled individual colors in dark mode.
+
+## v2.2.9
+
+- Unify the settings of css spacing
+- Refactored the code of the login page
+- Fix the problem that the Minify Css option is turned on when compiling, which causes the
+- Fix the problem that the menu could not pop up in mobile mode
+- Unify the settings of css spacing
+- Refactored the code of the login page
+
+## v2.2.8
+
+- Fix the problem that the Minify Css option is turned on when compiling, which causes the frosted glass effect to be invalid and the logo font is lost.
+
+## v2.2.5
+
+- New config app for argon theme. You can set the blur and transparency of the login page of argon theme, and manage the background pictures and videos.[Chrome is recommended] [Download](https://github.com/jerrykuku/luci-app-argon-config/releases/download/v0.8-beta/luci-app-argon-config_0.8-beta_all.ipk)
+- Automatically set as the default theme when compiling.
+- Modify the file structure to adapt to luci-app-argon-config. The old method of turning on dark mode is no longer applicable, please use it with luci-app-argon-config.
+- Adapt to Koolshare lede 2.3.6。
+- Fix some Bug。
+
+## v2.2.4
+
+- Fix the problem that the login background cannot be displayed on some phones.
+- Remove the dependency of luasocket.
+
+## v2.2.3
+
+- Fix Firmware flash page display error in dark mode.
+- Update font icon, add a default icon of undefined menu.
+
+## v2.2.2
+
+- Add custom login background,put your image (allow png jpg gif) or MP4 video into /www/luci-static/argon/background, random change.
+- Add force dark mode, login ssh and type "touch /etc/dark" to open dark mode.
+- Add a volume mute button for video background, default is muted.
+- fix login page when keyboard show the bottom text overlay the button on mobile.
+- fix select color in dark mode,and add a style for scrollbar.
+- jquery update to v3.5.1.
+- change request bing api method form wget to luasocket (DEPENDS).
+
+## v2.2.1
+
+- Add blur effect for login form.
+- New login theme, Request background imge from bing.com, Auto change everyday.
+- New theme icon.
+- Add more menu category icon.
+- Fix font-size and padding margin.
+- Restructure css file.
+- Auto adapt to dark mode.

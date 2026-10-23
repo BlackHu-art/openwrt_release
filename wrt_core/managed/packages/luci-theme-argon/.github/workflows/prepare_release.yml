@@ -1,0 +1,105 @@
+name: Prepare release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Stable release version, e.g. v2.5.0. For previews, tag this repository directly."
+        required: true
+        type: string
+      branch:
+        description: "Source branch to prepare and tag"
+        required: true
+        default: 'master'
+        type: string
+      notes_en:
+        description: "Optional English changelog content"
+        required: false
+        type: string
+      notes_zh:
+        description: "Optional Chinese changelog content"
+        required: false
+        type: string
+
+permissions:
+  contents: write
+
+env:
+  TZ: Asia/Shanghai
+
+jobs:
+  checks:
+    uses: ./.github/workflows/check.yml
+
+  prepare:
+    needs: checks
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout release source
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ inputs.branch }}
+          fetch-depth: 0
+
+      - name: Normalize version
+        id: version
+        env:
+          INPUT_VERSION: ${{ inputs.version }}
+        run: |
+          tag="${INPUT_VERSION}"
+          case "${tag}" in
+            v*) ;;
+            *) tag="v${tag}" ;;
+          esac
+
+          prerelease="$(python3 .github/scripts/release_metadata.py "$tag" --field prerelease)"
+          if [ "$prerelease" = true ]; then
+            echo "::error::For previews, tag this repository directly."
+            exit 1
+          fi
+          python3 .github/scripts/release_metadata.py "$tag" >> "$GITHUB_OUTPUT"
+
+      - name: Ensure tag does not already exist
+        run: |
+          if git rev-parse "${{ steps.version.outputs.tag }}" >/dev/null 2>&1; then
+            echo "::error::Tag '${{ steps.version.outputs.tag }}' already exists locally."
+            exit 1
+          fi
+
+          if git ls-remote --exit-code --tags origin "refs/tags/${{ steps.version.outputs.tag }}" >/dev/null 2>&1; then
+            echo "::error::Tag '${{ steps.version.outputs.tag }}' already exists on origin."
+            exit 1
+          fi
+
+      - name: Resolve release dates
+        id: date
+        run: |
+          echo "release_date=$(TZ='${{ env.TZ }}' date +%Y.%m.%d)" >> "${GITHUB_OUTPUT}"
+          echo "pkg_release_date=$(TZ='${{ env.TZ }}' date +%Y%m%d)" >> "${GITHUB_OUTPUT}"
+
+      - name: Update release files
+        env:
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          RELEASE_DATE: ${{ steps.date.outputs.release_date }}
+          PKG_RELEASE_DATE: ${{ steps.date.outputs.pkg_release_date }}
+          NOTES_EN: ${{ inputs.notes_en }}
+          NOTES_ZH: ${{ inputs.notes_zh }}
+        run: |
+          bash .github/scripts/prepare_release_commit.sh "${{ steps.version.outputs.tag }}"
+
+      - name: Commit and tag release
+        env:
+          RELEASE_BRANCH: ${{ inputs.branch }}
+        run: |
+          if git diff --quiet -- Makefile compat/luci-app-argon-config/Makefile README.md README_ZH.md RELEASE.md RELEASE_ZH.md; then
+            echo "::error::No release metadata changes were generated."
+            exit 1
+          fi
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add Makefile compat/luci-app-argon-config/Makefile README.md README_ZH.md RELEASE.md RELEASE_ZH.md
+          git commit -m "release: ${{ steps.version.outputs.tag }}"
+          git tag -a "${{ steps.version.outputs.tag }}" -m "${{ steps.version.outputs.tag }}"
+          git push origin "HEAD:${RELEASE_BRANCH}"
+          git push origin "${{ steps.version.outputs.tag }}"

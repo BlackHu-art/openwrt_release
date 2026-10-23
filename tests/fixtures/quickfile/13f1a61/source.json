@@ -1,0 +1,8 @@
+{
+  "repository": "https://github.com/sbwml/luci-app-quickfile",
+  "commit": "13f1a61d962e3a7790f7ab9898543be2ee5835cb",
+  "files": {
+    "quickfile/Makefile": "da03783804831e2ddf1a673b4ec17ced2ab9603363be707e82e3f4ebf06f5dee",
+    "luci-app-quickfile/Makefile": "1aef0d690b577157f8eac21745b2518b149393e4ce8606c0f30258ff853f7376"
+  }
+}

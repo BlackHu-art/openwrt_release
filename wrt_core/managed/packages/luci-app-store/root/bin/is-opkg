@@ -1,0 +1,564 @@
+#!/bin/sh
+# this script MUST supports executting without luci-app-store installed,
+# so we can use this script to install luci-app-store itself
+
+action=${1}
+shift
+if [ "${action:0:9}" = "AUTOCONF=" ]; then
+    export "ISTORE_${action}"
+    exec "$0" "$@"
+fi
+
+IS_ROOT=/tmp/is-root
+TMP_SELF_COPY=/var/run/cloned-is-opkg
+USE_APK=false
+DISABLE_MIRROR=false
+if [[ -s /etc/apk/arch ]]; then
+    USE_APK=true
+fi
+
+if $USE_APK; then
+    LISTS_DIR=${IS_ROOT}/apk
+    APK_CONF=${IS_ROOT}/etc/apk.conf
+    FEEDS_SERVER=https://istore.istoreos.com/repo-apk
+    FEEDS_SERVER_MIRRORS="https://repo.istoreos.com/repo-apk"
+    ISTORE_INDEX=$FEEDS_SERVER/all/store/packages.adb
+    META_DIR=/lib/apk
+
+    ARCH=`cat /rom/etc/apk/arch /etc/apk/arch 2>/dev/null | head -1`
+else
+    LISTS_DIR_O=/tmp/opkg-lists
+    LISTS_DIR=${IS_ROOT}${LISTS_DIR_O}
+    OPKG_CONF_DIR=${IS_ROOT}/etc/opkg
+    OPKG_CONF_DIR_M=${IS_ROOT}/etc/opkg_m
+    FEEDS_SERVER=https://istore.istoreos.com/repo
+    FEEDS_SERVER_MIRRORS="https://repo.istoreos.com/repo"
+    ISTORE_INDEX=$FEEDS_SERVER/all/store/Packages.gz
+    META_DIR=/usr/lib/opkg
+
+    ARCH=`sed -n -e 's/^Architecture: *\([^ ]\+\) *$/\1/p' /rom/usr/lib/opkg/info/libc.control /usr/lib/opkg/info/libc.control 2>/dev/null | head -1`
+fi
+
+# for istore self upgrade
+ISTORE_PKG=luci-app-store
+ISTORE_DEP_PKGS="luci-lib-taskd luci-lib-xterm taskd"
+
+NEWLINE=$'\n'
+
+is_init() {
+    mkdir -p ${LISTS_DIR} ${IS_ROOT}/etc ${IS_ROOT}/var
+    if $USE_APK; then
+        return 0
+    fi
+
+    cat /etc/opkg.conf | grep -Fv lists_dir | grep -Fv check_signature > ${IS_ROOT}/etc/opkg.conf
+
+    cp ${IS_ROOT}/etc/opkg.conf ${IS_ROOT}/etc/opkg_o.conf
+
+    echo >> ${IS_ROOT}/etc/opkg.conf
+    echo "lists_dir ext ${LISTS_DIR}" >> ${IS_ROOT}/etc/opkg.conf
+    # create opkg_o.conf for executting 'opkg update' with offline-root, so we don't overwrite system opkg list
+    echo >> ${IS_ROOT}/etc/opkg_o.conf
+    echo "lists_dir ext ${LISTS_DIR_O}" >> ${IS_ROOT}/etc/opkg_o.conf
+
+    cp -au /etc/opkg ${IS_ROOT}/etc/
+    [ -e ${IS_ROOT}/var/lock ] || ln -s /var/lock ${IS_ROOT}/var/lock
+}
+
+apk_wrap() {
+    APK_CONFIG=${APK_CONF} apk "$@"
+}
+
+opkg_wrap() {
+    OPKG_CONF_DIR=${OPKG_CONF_DIR} opkg -f ${IS_ROOT}/etc/opkg.conf "$@"
+}
+
+simple_apk_opkg() {
+    local action="$1"
+    shift
+    if $USE_APK; then
+        case "$action" in
+            "install")
+                action=add
+            ;;
+            "remove")
+                action=del
+            ;;
+        esac
+        apk_wrap "$action" "$@"
+    else
+        opkg_wrap "$action" "$@"
+    fi
+}
+
+do_in_mirrors() {
+    local server
+    if ! $DISABLE_MIRROR; then
+        local newpath="/usr/libexec/istore/mirror-bin:$PATH"
+        for server in $FEEDS_SERVER_MIRRORS ; do
+            echo "Try mirror server $server"
+            PATH="$newpath" IS_ORIG_SERVER=$FEEDS_SERVER IS_MIRROR_SERVER=$server "$@" && return 0
+        done
+        DISABLE_MIRROR=true
+    fi
+    echo "Try origin server $FEEDS_SERVER"
+    "$@"
+}
+
+apk_wrap_mirrors() {
+    do_in_mirrors apk_wrap "$@"
+}
+
+opkg_wrap_mirrors() {
+    do_in_mirrors opkg_wrap "$@"
+}
+
+do_install_in_mirrors() {
+    if $USE_APK; then
+        apk_wrap_mirrors add "$@"
+    else
+        opkg_wrap_mirrors install "$@"
+    fi
+}
+
+do_upgrade_in_mirrors() {
+    if $USE_APK; then
+        apk_wrap_mirrors upgrade "$@"
+    else
+        opkg_wrap_mirrors upgrade "$@"
+    fi
+}
+
+
+alias fcurl='curl -L --fail --show-error'
+
+check_space() {
+    local free="$((`df -kP / | awk 'NR==2 {print $4}'` >> 10 ))"
+    if [ "$free" -lt 1 ]; then
+        echo "Root disk full!" >&2
+        exit 1
+    fi
+    return 0
+}
+
+update() {
+    if [ -z "${ARCH}" ]; then
+        echo "Get architecture failed" >&2
+        return 1
+    fi
+
+    echo "Fetch feed list for ${ARCH}"
+    if $USE_APK; then
+        rm -rf ${IS_ROOT}/var/tmp ${IS_ROOT}/etc/arch ${IS_ROOT}/etc/istore.pem
+        mkdir -p ${IS_ROOT}/var/tmp
+        fcurl --no-progress-meter -o ${IS_ROOT}/var/tmp/meta.conf "${FEEDS_SERVER}/all/meta.conf" && \
+          fcurl --no-progress-meter -o ${IS_ROOT}/var/tmp/all.conf "${FEEDS_SERVER}/all/isfeeds.conf" && \
+          fcurl --no-progress-meter -o ${IS_ROOT}/var/tmp/arch.conf "${FEEDS_SERVER}/${ARCH}/isfeeds.conf" && \
+          fcurl --no-progress-meter -o ${IS_ROOT}/etc/arch "${FEEDS_SERVER}/${ARCH}/archlist.conf" || \
+          return 1
+        echo "cache-dir $LISTS_DIR" > ${APK_CONF}
+        cat ${IS_ROOT}/var/tmp/arch.conf ${IS_ROOT}/var/tmp/all.conf ${IS_ROOT}/var/tmp/meta.conf >> ${APK_CONF}
+        local line
+        while read -r line; do
+            if [[ -n "$line" ]]; then
+                grep -Fxq "$line" /etc/apk/arch || echo "$line" >> /etc/apk/arch
+            fi
+        done < ${IS_ROOT}/etc/arch
+        sync /etc/apk/arch
+        if [[ ! -s /etc/apk/keys/istore.pem && ! -s /etc/apk/keys/istore-tmp.pem ]]; then
+            fcurl --no-progress-meter -o ${IS_ROOT}/etc/istore.pem "${FEEDS_SERVER}/istore-apk.pem" && \
+              cp -a ${IS_ROOT}/etc/istore.pem /etc/apk/keys/istore-tmp.pem || \
+              return 1
+        fi
+    else
+        fcurl --no-progress-meter -o ${OPKG_CONF_DIR}/meta.conf "${FEEDS_SERVER}/all/meta.conf" && \
+          fcurl --no-progress-meter -o ${OPKG_CONF_DIR}/all.conf "${FEEDS_SERVER}/all/isfeeds.conf" && \
+          fcurl --no-progress-meter -o ${OPKG_CONF_DIR}/arch.conf "${FEEDS_SERVER}/${ARCH}/isfeeds.conf" || \
+          return 1
+    fi
+
+    echo "Update feeds index"
+    if $USE_APK; then
+        apk_wrap update
+    else
+        opkg -f ${IS_ROOT}/etc/opkg_o.conf --offline-root ${IS_ROOT} update
+    fi
+    return 0
+}
+
+update_if_outdate() {
+    local idle_t=$((`date '+%s'` - `date -r ${IS_ROOT}/.last_force_ts '+%s' 2>/dev/null || echo '0'`))
+    [ $idle_t -gt ${1:-120} ] || return 2
+    update || return 1
+    touch ${IS_ROOT}/.last_force_ts
+    return 0
+}
+
+get_online_version() {
+    local index="$1"
+    local pkg="$2"
+    if $USE_APK; then
+        apk --cache-dir $LISTS_DIR --cache-max-age 0 --repositories-file /dev/null --repository "$index" update >/dev/null 2>&1
+        apk --cache-dir $LISTS_DIR --cache-max-age 0 --repositories-file /dev/null --repository "$index" query --available --fields version "$pkg" 2>/dev/null | grep -Fm1 'Version: ' | sed 's/^Version: //'
+    else
+        curl --connect-timeout 2 --max-time 5 -s "$index" | gunzip | grep -FA10 "Package: $pkg" | grep -Fm1 'Version: ' | sed 's/^Version: //'
+    fi
+}
+
+get_local_version() {
+    local pkg="$1"
+    if $USE_APK; then
+        apk query --installed --fields version "$pkg" 2>/dev/null | grep -Fm1 'Version: ' | sed 's/^Version: //'
+    else
+        grep -Fm1 'Version: ' /usr/lib/opkg/info/$pkg.control 2>/dev/null | sed 's/^Version: //'
+    fi
+}
+
+check_self_upgrade() {
+    local newest=`get_online_version "$ISTORE_INDEX" "$ISTORE_PKG"`
+    local current=`get_local_version "$ISTORE_PKG"`
+    if [ "v$newest" = "v" -o "v$current" = "v" ]; then
+        echo "Check version failed!" >&2
+        exit 255
+    fi
+    if [ "$newest" != "$current" ]; then
+        echo "$newest"
+    fi
+    return 0
+}
+
+do_self_upgrade_0() {
+    simple_apk_opkg upgrade ${ISTORE_DEP_PKGS} && simple_apk_opkg upgrade ${ISTORE_PKG}
+}
+
+do_self_upgrade() {
+    check_mtime || return 1
+    local newest=`get_online_version "$ISTORE_INDEX" "$ISTORE_PKG"`
+    local current=`get_local_version "$ISTORE_PKG"`
+    if [ "v$newest" = "v" -o "v$current" = "v" ]; then
+        echo "Check version failed!" >&2
+        return 1
+    fi
+    if [ "$newest" = "$current" ]; then
+        echo "Already the latest version!" >&2
+        return 1
+    fi
+    if $USE_APK || opkg_wrap info ${ISTORE_PKG} | grep -qFm1 "Version: $newest"; then
+        do_self_upgrade_0 && return 0
+        update_if_outdate || return 1
+        do_self_upgrade_0
+    else
+        update_if_outdate || return 1
+        do_self_upgrade_0
+    fi
+}
+
+check_mtime() {
+    local file
+    if $USE_APK; then
+        file=${APK_CONF}
+    else
+        file=${OPKG_CONF_DIR}/arch.conf
+    fi
+    find "$file" -mtime -1 2>/dev/null | grep -q .  || update
+}
+
+wrapped_in_update() {
+    check_mtime || return 1
+    eval "$@" && return 0
+    update_if_outdate || return 1
+    eval "$@"
+}
+
+refresh_installed() {
+    local pkg
+    for pkg in $@; do
+        [[ $pkg == app-meta-* ]] || continue
+        pkg="$META_DIR/meta/${pkg#app-meta-}.json"
+        [[ -f "$pkg" ]] && touch "$pkg"
+    done
+    return 0
+}
+
+step_upgrade() {
+    local pkg
+    local pkgs=""
+    local metapkg=""
+    for pkg in $@; do
+        if [[ $pkg == app-meta-* ]]; then
+            metapkg="$metapkg $pkg"
+        else
+            pkgs="$pkgs $pkg"
+        fi
+    done
+    if [ -n "$pkgs" ]; then
+        do_upgrade_in_mirrors $pkgs || return 1
+    fi
+    if [ -n "$metapkg" ]; then
+        do_upgrade_in_mirrors $metapkg || return 1
+        refresh_installed $metapkg
+    fi
+    return 0
+}
+
+new_upgrade() {
+    check_mtime || return 1
+    local metapkg=`echo "$@" | sed 's/ /\n/g' | grep -F app-meta-`
+    if [[ -z "$metapkg" ]] || [[ -z "$(get_local_version $metapkg)" ]]; then
+        true
+    else
+        update_if_outdate
+    fi
+    wrapped_in_update step_upgrade "$@"
+}
+
+remove() {
+    if $USE_APK; then
+        apk_wrap del -r "$@"
+    else
+        opkg_wrap --autoremove --force-removal-of-dependent-packages remove "$@"
+    fi
+}
+
+autoconf_to_env() {
+    local autoconf path enable
+    eval "local autoconf=$ISTORE_AUTOCONF"
+    export -n ISTORE_AUTOCONF
+    export -n ISTORE_DONT_START
+    export -n ISTORE_CONF_DIR
+    export -n ISTORE_CACHE_DIR
+    export -n ISTORE_PUBLIC_DIR
+    export -n ISTORE_DL_DIR
+
+    ISTORE_AUTOCONF=$autoconf
+
+    if [ -n "$path" ]; then
+        export ISTORE_CONF_DIR="$path/Configs"
+        export ISTORE_CACHE_DIR="$path/Caches"
+        export ISTORE_PUBLIC_DIR="$path/Public"
+        export ISTORE_DL_DIR="$ISTORE_PUBLIC_DIR/Downloads"
+    fi
+    [ "$enable" = 0 ] && export ISTORE_DONT_START="1"
+}
+
+try_autoconf() {
+    [ -n "$ISTORE_AUTOCONF" ] || return 0
+    autoconf_to_env
+    [ -n "$ISTORE_AUTOCONF" ] || return 1
+    echo "Auto configure $ISTORE_AUTOCONF"
+    PATH="$CLEANPATH" /usr/libexec/istorea/${ISTORE_AUTOCONF}.sh
+}
+
+
+try_upgrade_depends() {
+    local pkg="$1"
+    if [[ $pkg == app-meta-* ]]; then
+        local deps
+        if $USE_APK; then
+            deps=$(apk --repositories-file /dev/null info -R "$pkg" | tail +2 | grep -vFw libc | xargs echo)
+        else
+            deps=$(grep '^Depends: ' "/usr/lib/opkg/info/$pkg.control" | busybox sed -e 's/^Depends: //' -e 's/,/\n/g' -e 's/ //g' | grep -vFw libc | xargs echo)
+        fi
+        [ -z "$deps" ] || do_install_in_mirrors $deps
+    fi
+    return 0
+}
+
+if $USE_APK; then
+    CMD_INSTALLED="apk --repositories-file /dev/null info | cut -d' ' -f1 | sort -u"
+    CMD_INSTALL="apk add --allow-untrusted"
+else
+    CMD_INSTALLED="opkg list-installed | cut -d' ' -f1 | sort -u"
+    CMD_INSTALL="opkg install"
+fi
+
+dotrun() {
+    local path="$1"
+    [ -f "$path" ] || { echo "file not found: $path" >&2; return 1; }
+    ls -l "$path"
+    local md5=$(md5sum "$path" 2>/dev/null | cut -d' ' -f1)
+    local ts=$(date '+%s')
+    #local date=$(date '+%Y-%m-%d_%H-%M-%S')
+    echo "MD5: $md5"
+    echo "Save installed pkg list before installing"
+    sh -c "$CMD_INSTALLED" > "/tmp/is-root/tmp/pre_$md5.txt"
+    if echo "$path" | grep -q '\.run$'; then
+        echo "Executing .run file"
+        chmod 0755 "$path" && "$path"
+    else
+        echo "Installing pkg file"
+        $CMD_INSTALL "$path"
+    fi
+    local RET=$?
+    rm -f "$path"
+    if [ -s "/tmp/is-root/tmp/pre_$md5.txt" ]; then
+        echo "Save installed pkg list after installing"
+        sh -c "$CMD_INSTALLED" > "/tmp/is-root/tmp/post_$md5.txt"
+        grep -Fxf "/tmp/is-root/tmp/pre_$md5.txt" -v "/tmp/is-root/tmp/post_$md5.txt" > "/tmp/is-root/tmp/added_$md5.txt"
+        if [ -s "/tmp/is-root/tmp/added_$md5.txt" ]; then
+            echo "The following packages were added:"
+            cat "/tmp/is-root/tmp/added_$md5.txt"
+            mkdir -p /usr/share/istore/run-records
+            path="${path##*/}"
+            path="${path//\\/\\\\}" #\
+            path="${path//\"/\\\"}" #"
+            path="${path//$NEWLINE/\\n}" # \n
+            path="${path//^M/\\r}" # \r
+            echo "{\"id\":\"$ts-$md5\",\"ts\":$ts,\"md5\":\"$md5\",\"file\":\"$path\"}" > /usr/share/istore/run-records/$ts-$md5.txt
+            cat "/tmp/is-root/tmp/added_$md5.txt" >> /usr/share/istore/run-records/$ts-$md5.txt
+        fi
+    fi
+    rm -f "/tmp/is-root/tmp/pre_$md5.txt" "/tmp/is-root/tmp/post_$md5.txt" "/tmp/is-root/tmp/added_$md5.txt"
+    return $RET
+}
+
+run_records() {
+    local record
+    local file
+    echo "["
+    for record in /usr/share/istore/run-records/*.txt; do
+        [ -f "$record" ] || continue
+        echo "`head -1 "$record"`,"
+    done | head -c -2
+    echo ""
+    echo "]"
+}
+
+
+if $USE_APK; then
+    CMD_REMOVE="apk del"
+else
+    CMD_REMOVE="opkg --autoremove remove"
+fi
+
+unrun() {
+    local id="$1"
+    [ -s "/usr/share/istore/run-records/$id.txt" ] || { echo "record not found: $id" >&2; return 1; }
+    mkdir -p /tmp/is-root/tmp
+    echo "The following packages will be removed:"
+    tail -n +2 "/usr/share/istore/run-records/$id.txt" > "/tmp/is-root/tmp/to_unrun_$id.txt"
+    cat "/tmp/is-root/tmp/to_unrun_$id.txt"
+    local round max_round=6
+    for round in `seq 1 $max_round`; do
+        if [ $round == $max_round ]; then
+            $CMD_REMOVE `cat "/tmp/is-root/tmp/to_unrun_$id.txt"`
+        else
+            $CMD_REMOVE `cat "/tmp/is-root/tmp/to_unrun_$id.txt"` 2>/dev/null && break
+        fi
+    done
+    sh -c "$CMD_INSTALLED" > "/tmp/is-root/tmp/post_unrun_$id.txt"
+    grep -Fxf "/tmp/is-root/tmp/post_unrun_$id.txt" "/tmp/is-root/tmp/to_unrun_$id.txt" > "/tmp/is-root/tmp/remain_unrun_$id.txt"
+    if [ -s "/tmp/is-root/tmp/remain_unrun_$id.txt" ]; then
+        echo "The following packages failed to be removed:"
+        cat "/tmp/is-root/tmp/remain_unrun_$id.txt"
+    else
+        echo "All packages removed successfully."
+        rm -f "/usr/share/istore/run-records/$id.txt"
+    fi
+    rm -f "/tmp/is-root/tmp/to_unrun_$id.txt" "/tmp/is-root/tmp/post_unrun_$id.txt" "/tmp/is-root/tmp/remain_unrun_$id.txt"
+    return 0
+}
+
+
+usage() {
+    echo "usage: is-opkg sub-command [arguments...]"
+    echo "where sub-command is one of:"
+    echo "      update                          Update list of available packages"
+    echo "      upgrade <pkgs>                  Upgrade package(s)"
+    echo "      install <pkgs>                  Install package(s)"
+    echo "      remove <pkgs|regexp>            Remove package(s)"
+    echo "      info [pkg|regexp]               Display all info for <pkg>"
+    echo "      list-upgradable                 List installed and upgradable packages"
+    echo "      check_self_upgrade              Check iStore upgrade"
+    echo "      do_self_upgrade                 Upgrade iStore"
+    echo "      arch                            Show libc architecture"
+    echo "      opkg                            sys opkg wrap"
+    echo "      dotrun {path}                   install .run/.ipk/.apk"
+    echo "      run_records                     list .run/.ipk/.apk install records"
+    echo "      del_record {id}                 delete .run/.ipk/.apk install record"
+    echo "      unrun {id}                      Remove installed packages by .run/.ipk/.apk"
+    exit 1
+}
+
+if [[ "$action" = "do_self_upgrade" && "$0" != "$TMP_SELF_COPY" ]]; then
+    echo "copy self $0 to $TMP_SELF_COPY when self upgrade"
+    cp -af "$0" "$TMP_SELF_COPY" || exit 1
+    exec "$TMP_SELF_COPY" do_self_upgrade "$@" || exit 1
+fi
+
+is_init >/dev/null 2>&1
+
+CLEANPATH="$PATH"
+
+case $action in
+    "update"|"install"|"upgrade"|"opkg"|"check_self_upgrade"|"do_self_upgrade"|"dotrun")
+        if [[ "`uci -q get istore.istore.ipv4`" = "1" ]]; then
+            export PATH="/usr/libexec/istore/ipv4-bin:$CLEANPATH"
+        fi
+    ;;
+esac
+
+case $action in
+    "update")
+        update
+    ;;
+    "install")
+        check_space
+        wrapped_in_update do_install_in_mirrors "$@" && refresh_installed "$1" && try_upgrade_depends "$1" && try_autoconf
+    ;;
+    "autoconf")
+        try_autoconf
+    ;;
+    "upgrade")
+        new_upgrade "$@"
+    ;;
+    "remove")
+        remove "$@" || remove "$@"
+    ;;
+    "info")
+        if $USE_APK; then
+            apk_wrap query "$@"
+        else
+            opkg_wrap info "$@"
+        fi
+    ;;
+    "list-upgradable")
+        if $USE_APK; then
+            apk_wrap query --upgradable --summarize package '*'
+        else
+            opkg_wrap list-upgradable
+        fi
+    ;;
+    "check_self_upgrade")
+        check_self_upgrade
+    ;;
+    "do_self_upgrade")
+        check_space
+        do_self_upgrade
+    ;;
+    "arch")
+        echo "$ARCH"
+    ;;
+    "opkg")
+        opkg_wrap "$@"
+    ;;
+    "dotrun")
+        dotrun "$@"
+    ;;
+    "run_records")
+        run_records
+    ;;
+    "del_record")
+        rm -f "/usr/share/istore/run-records/$1.txt"
+    ;;
+    "unrun")
+        unrun "$1"
+    ;;
+    "link_meta")
+        [[ -d "$META_DIR/meta" ]] || mkdir -p "$META_DIR/meta"
+        [ -e /tmp/run/istore-meta ] || ln -sf "$META_DIR" /tmp/run/istore-meta
+    ;;
+    *)
+        usage
+    ;;
+esac

@@ -145,7 +145,13 @@ S20M 支持同步自构建上游 [`90a9591`](https://github.com/ZqinKing/wrt_rel
 
 ## 7. 三方插件
 
-三方插件主要通过 feeds 机制加入，其中 small-package 源自：
+三方插件通过受管本地源码和外部 feeds 共同加入。当前有 16 个顶层源码单元固定在
+[`wrt_core/managed/`](wrt_core/managed/README.md)，来源、完整提交和逐文件校验记录在
+[`sources.lock.json`](wrt_core/managed/sources.lock.json)。其中 13 个写入 `custom_feed`，
+Argon、Aurora 主题仍写入 `feeds/luci/themes/`，Aurora 配置包写入 `feeds/luci/applications/`。
+Argon 内嵌的空 `luci-app-argon-config` 兼容包随主题保留，不另拷贝一份源码。
+
+其余 small-package 软件包继续从以下外部源获取：
 
 ```text
 https://github.com/kenzok8/small-package.git
@@ -153,11 +159,16 @@ https://github.com/kenzok8/small-package.git
 
 相关增删和同步逻辑位于 `wrt_core/update.sh` 编排的 `wrt_core/modules/` 静态阶段。配置片段只选择 Kconfig，不负责 clone 仓库、修改 feeds 或安装 feeds。
 
-Argon 3.x 已内置主题设置和 `argon-config` 翻译。构建检测到上游的 `config-integrated` 标记后，移除旧版独立配置插件源码，使用主题仓库内的空兼容包保留 `luci-app-argon-config` 包名，避免文件和翻译包冲突。旧版主题仍配套独立配置插件；集成版缺少兼容包时会提前停止构建。
+Argon 3.1.0 已内置主题设置和 `argon-config` 翻译。构建使用锁定主题内的空兼容包保留
+`luci-app-argon-config` 包名，并移除旧版独立配置插件源码，让配置文件、界面和翻译由主题唯一提供。
+集成标记或兼容包缺失时停止构建。Aurora 主题 1.4.0 与配置包 1.2.5 仍分别维护。
 
-HomeProxy 从官方仓库更新后、最终 feeds 索引刷新和安装前，会应用 [PR #673 第一提交 `7c6ded7`](https://github.com/immortalwrt/homeproxy/commit/7c6ded7b99953c7148f3f4a2edf69a592a4f424e) 的 sing-box 1.14 配置兼容修复，并在包的 `LUCI_DEPENDS` 中补齐 `ucode-mod-math`，使选用 HomeProxy 的固件和生成的安装包都包含正确依赖。未引入该 PR 第二提交的接口选择改动。
+HomeProxy 从本地锁定的官方源码复制到构建目录后、最终 feeds 索引刷新和安装前，继续应用
+[PR #673 第一提交 `7c6ded7`](https://github.com/immortalwrt/homeproxy/commit/7c6ded7b99953c7148f3f4a2edf69a592a4f424e)
+对应的 sing-box 1.14 配置兼容修复，并在 `LUCI_DEPENDS` 中补齐 `ucode-mod-math`。
+未引入该 PR 第二提交的接口选择改动。
 
-已兼容上游 [`fadaa676`](https://github.com/immortalwrt/homeproxy/commit/fadaa676104f59ff6ace480a780a258d846d0aec)：上游已迁移 sniff 配置并移除 `sniff_override`、`independent_cache` 的界面和迁移残留，构建时自动选择新版剩余补丁，继续移除 `disable_expire` 和 resolver 中无效的 `action`，保留 300ms sniff 超时。旧版源码仍使用原补丁。翻译和规则数据更新随官方仓库拉取，无需另行复制。
+当前锁定上游 [`fadaa676`](https://github.com/immortalwrt/homeproxy/commit/fadaa676104f59ff6ace480a780a258d846d0aec)：上游已迁移 sniff 配置并移除 `sniff_override`、`independent_cache` 的界面和迁移残留，构建时选择新版剩余补丁，继续移除 `disable_expire` 和 resolver 中无效的 `action`，保留 300ms sniff 超时。兼容模块仍保留旧版补丁选择能力；翻译和规则数据随受管源码一起固定，刷新来源时一并审查。
 
 同时应用以下固定提交的上游补丁：
 
@@ -166,9 +177,20 @@ HomeProxy 从官方仓库更新后、最终 feeds 索引刷新和安装前，会
 
 补丁保存在 `wrt_core/patches/homeproxy-*.patch`。构建时从两个兼容补丁版本中选择一个，再预检 ACL 和特性缓存补丁，全部通过后才修改源码；已应用的补丁逐份跳过。遇到无法匹配的上游源码变化会停止构建，需检查并更新补丁，避免静默编出有兼容问题的 HomeProxy。
 
+共享 Xray 保留已审查的 `26.3.27` 原始 recipe，由现有 guard 和补丁在构建副本中产出
+`26.7.11`；sing-box 固定为 `1.14.3`，没有跟随 small-package 滚动到 `26.10.21` 的 Xray 配方。
+iStoreX 的七个组件及 `istore_backend.lua` 兼容文件也改从本地受管输入复制。
+
+QuickFile 仍从外部上游获取，不属于这 16 个受管单元。已核对的 `2.0.8` 使用 Rust 源码包，
+官方归档 SHA-256 与 recipe 一致；旧架构 sed 已失效且静默无改动，并非已证明的编译失败。
+构建已移除旧改写，并用结构检查要求安装目标 Rust 产物；Rust 源码归档仍按上游哈希外部下载。
+具体兼容行为、来源刷新和验证边界见 [插件兼容性说明](docs/plugin-compatibility.md)。
+
 ## 8. 项目结构说明
 
-完整目录职责、插件源码维护与构建之间的关系见 [项目文件布局](docs/project-layout.md)。第一批插件的原始源码、来源提交和更新说明见 [插件源码维护区](maintenance/plugins/README.md)。
+完整目录职责见 [项目文件布局](docs/project-layout.md)。实际参与构建的本地输入见
+[受管源码说明](wrt_core/managed/README.md)；第一批参考快照及 SSR 专项评估见
+[插件源码维护区](maintenance/plugins/README.md)。
 
 - `build.sh`：主编译入口，负责设备选择、模式选择、配置组合、容器构建和固件收集。
 - `firmware/`：完整构建后的固件输出目录，由脚本自动创建和刷新。
@@ -179,6 +201,7 @@ HomeProxy 从官方仓库更新后、最终 feeds 索引刷新和安装前，会
 - `wrt_core/deconfig/`：设备和共享默认配置 `.config`。
 - `wrt_core/deconfig/fragments/`：可组合配置片段。
 - `wrt_core/modules/`：模块化脚本，包括仓库准备、网络重试、feeds/custom_feed、源码修正、LuCI 修正、服务修正、验证、Docker 等静态职责模块。
+- `wrt_core/managed/`：16 个实际参与构建的本地受管源码单元、固定兼容文件及来源锁；`managed_plugins.py` 校验内容后在 Linux 构建目录恢复权限与符号链接。
 - `wrt_core/patches/`：补丁、默认设置、Wi-Fi 初始化、NSS 诊断、PBR 规则和其他构建时注入文件。
 - `maintenance/plugins/`：独立的插件源码维护区，保存原始上游快照、提交与文件校验记录；当前构建不从这里读取源码。
 - `tests/fixtures/`：用于回归测试的固定源码和补丁基线，与维护区中获取的新上游快照分别管理。
@@ -187,6 +210,11 @@ HomeProxy 从官方仓库更新后、最终 feeds 索引刷新和安装前，会
 ## 9. OAF（应用过滤）功能使用说明
 
 使用 OAF（应用过滤）功能前，需先完成以下操作：
+
+当前受管源码保持 OAF 7 的 `fwx` 配置结构。新安装默认将应用过滤、MAC 过滤、记录三项开关
+及 `disable_hnat` 设为 0，并由 `99_disable_oaf` 停用服务；已有显式 `fwx` 值保留。
+本次使用前提是尚未使用 OAF 规则，不承诺旧 OAF 6 规则自动迁移。ACL 合并为单一文件所有者，
+界面控制仍以用户手动启用、启动服务为前提。
 
 1. 打开系统设置 → 启动项 → 定位到「appfilter」
 2. 将「appfilter」当前状态从已禁用更改为已启用

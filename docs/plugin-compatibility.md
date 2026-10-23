@@ -9,9 +9,30 @@
 `jdcloud_ipq60xx_libwrt.config` 启用 OpenClash/ADG，SSR 需由最终配置选中；
 本次不改变各机型的插件选择。
 
-固件源码由 `wrt_core/modules/` 中的来源更新逻辑和 `wrt_core/update.sh` 获取、处理；
-`maintenance/plugins/` 保存审查快照，不作为固件源码来源。部分 Passwall / Passwall2
+固件源码由 `wrt_core/update.sh` 编排本地受管输入和外部来源，再由 `wrt_core/modules/`
+应用兼容处理。实际参与构建的本地输入位于 [`wrt_core/managed/`](../wrt_core/managed/README.md)；
+`maintenance/plugins/` 继续保存 reference-only 审查快照。部分 Passwall / Passwall2
 回归会读取维护快照，修改快照后也需运行相应回归。
+
+## 受管源码与构建接入
+
+[`sources.lock.json`](../wrt_core/managed/sources.lock.json) 固定 16 个顶层源码单元，
+记录完整提交、原始路径、Git mode、文件集合和 SHA-256。Argon 内嵌的空配置兼容包
+随主题保留，不作为第 17 份独立源码再次复制。
+
+- `custom_feed` 的 13 个本地单元：xray-core、sing-box、luci-app-homeproxy、oaf、
+  open-app-filter、luci-app-oaf，以及 iStoreX 的七个组件。
+- 原 `feeds/luci/themes/` 路径的两个主题：luci-theme-argon、luci-theme-aurora；
+  luci-app-aurora-config 沿用 `feeds/luci/applications/` 路径。
+
+`managed_plugins.py` 先验证本地文件集合、哈希和安全路径，再在构建副本中恢复执行权限及符号链接。
+Windows 仓库中的 `120000` 链接保存为目标文本，不能把这些文本文件当作已还原的 Linux 链接。
+受管输入不从网络回退；其余插件和 recipe 指向的核心源码、发行归档仍按现有来源下载。
+HomeProxy、OAF 和主题兼容处理只作用于构建副本，不改写受管原始快照。
+
+刷新来源时需要一起审查源码、锁文件、补丁/compat、fixture 和回归；仅更新
+`maintenance/plugins/` 的参考快照不会使本地受管输入发生变化。完整步骤见
+[受管源码说明](../wrt_core/managed/README.md)。
 
 ## Passwall、Passwall2 与共享 Xray
 
@@ -26,12 +47,14 @@
 - 旧核心上使用证书指纹的节点现在会被拒绝，需要使用支持该字段的核心，或由用户明确重新配置
   证书验证方式。补丁不自动删除指纹、改成公有 CA 校验或将证书指纹冒充公钥指纹。
 
-两套插件生成的 Xray JSON 声明 `version.min=26.7.11`。当前 small-package 的 `26.3.27`
+两套插件生成的 Xray JSON 声明 `version.min=26.7.11`。受管输入保留 small-package
+已审查提交 `3d5609257639` 的原始 `26.3.27` recipe，该版本
 会拒绝这类配置，因此通过 [Xray 配方补丁](../wrt_core/patches/xray-core-26.7.11.patch)
 仅调整版本与源码 SHA-256，继续使用原有 XTLS 下载来源、依赖、构建参数和安装规则。
 `26.7.11` 的[官方发布](https://github.com/XTLS/Xray-core/releases/tag/v26.7.11)标记为预发布；
 本次选择的是满足最低要求的版本，不将其称为稳定版。来源、提交、源码哈希及审查时的 Go
 配方记录在 [版本记录](../wrt_core/compat/proxy-cores/xray-26.7.11.json)。
+本次没有采用 small-package 后续滚动的 `26.10.21` recipe；sing-box 固定为 `1.14.3`。
 
 [fix_xray_core_compat](../wrt_core/modules/xray_core_compat.sh) 在现有 `update_golang` 之后执行，
 检查本轮实际获取的 Go 配方至少为 `1.26`，并读取两套插件实际生成器的最低 Xray 版本。
@@ -43,6 +66,58 @@ SSR Plus 节点。共享核心回归执行三者真实生成器，覆盖 53 份�
 的 raw、WebSocket、HTTPUpgrade、gRPC 与 TLS，以及 VMess WebSocket/TLS、VLESS Reality、
 透明代理、DNS、分流和辅助代理入口。
 SSR Plus 用例先执行实际订阅器再生成配置。`xray-plugin` 是独立软件包及二进制，不随此配方改版。
+
+## HomeProxy、主题与 iStoreX
+
+HomeProxy 固定官方 `fadaa676104f59ff6ace480a780a258d846d0aec` 的完整包源码，
+继续经过 `fix_homeproxy_compat` 的补丁预检、重复执行和未知变化拒绝逻辑，并补齐
+`ucode-mod-math` 依赖。现有 sing-box 1.14 兼容、ACL 域名应用和特性缓存补丁仍保留，
+未随本地接管移除。翻译和规则数据也随该源码提交固定。
+
+Argon 3.1.0 的设置、RPC 和翻译由主题唯一提供。主题内部的空
+`compat/luci-app-argon-config` 保留包名与升级兼容；构建移除旧独立配置目录，
+缺少集成标记或兼容 recipe 时停止。Aurora 主题 1.4.0 与配置 1.2.5 继续分别安装，
+主题沿用 `feeds/luci/themes/`，配置包沿用 `feeds/luci/applications/`，各自源码保持独立。
+
+iStoreX 本地接管七个组件：luci-app-istorex、quickstart、luci-app-quickstart、
+luci-app-store、taskd、luci-lib-taskd、luci-lib-xterm。库 `luci-lib-taskd 1.0.26`
+满足 iStoreX 的 `>=1.0.15` 和商店的 `>=1.0.19`；`taskd 1.0.3-r2` 满足库的
+`taskd >=1.0.3`，这两个包的版本不能混比。taskd 依赖的 `script-utils` 由目标核心的
+util-linux recipe 提供，其他标准依赖仍由目标核心和 feeds 解析。
+
+原 `fix_quickstart` 继续处理存储依赖，但其 `istore_backend.lua` 不再由浮动 raw URL 覆盖。
+本地兼容文件固定 gist revision `51ae1464e068fadc348c0b577f8ffd338bbd7ee5`，
+SHA-256 为 `5eb5e0524a42b62895ee8163d50bf1d78999db7c1321646fdcca3c99c26249e2`。
+来源与许可说明保存在锁文件中；保留来源不表示获得了 gist 的额外授权，聚合仓库的
+Apache-2.0 文件也不能作为该独立 gist 的许可证明。quickstart 二进制与 istore-ui
+发行归档仍按各 recipe 的固定版本和哈希外部下载。
+
+## OAF 7 默认状态与配置边界
+
+本次保持受管 OAF 7 / `fwx` schema，适用前提是用户确认尚未使用 OAF 规则。
+`oaf_compat.py` 校验已审查原始字节后，在构建副本中为新安装准备
+`fwx.appfilter.enable`、`fwx.macfilter.enable`、`fwx.record.enable` 三项 0，
+并保留 `disable_hnat=0`；上游既有文件检查继续保留已有显式 `fwx` 值。
+`99_disable_oaf` 仅在三项均为 0 时禁用并停止服务，不重写运行中的 UCI 配置。
+
+后端与 LuCI 重复的同名 ACL 合并到后端包，由一个文件所有者提供全部已审查权限。
+使用者仍需按主 README 的流程手动 enable/start appfilter，之后界面才可使用控制面。
+本次不承诺旧 OAF 6 的 `appfilter` 规则自动迁移到 `fwx`，也未验证旧规则的语义转换。
+
+## QuickFile 外部源码检查
+
+QuickFile 不在上述 16 个受管单元内，仍从 sbwml/luci-app-quickfile 获取源码。
+当前已核对提交 `13f1a61d962e3a7790f7ab9898543be2ee5835cb` 的核心为 `2.0.8-r1`，
+官方 `quickfile-src-2.0.8.tar.xz` 实测 SHA-256 与 recipe 的
+`05596624c46331418296a86a4f0a457a9b5f8ff2d9bd81e0f4e8cb6a3933b7db` 一致。
+LuCI recipe 依赖 luci-nginx 和 quickfile；核心通过 rust/host、rust-package.mk
+及目标架构规则编译，并安装 `PKG_INSTALL_DIR/bin/quickfile`。
+
+旧 `ARCH_PACKAGES` sed 对该 recipe 没有匹配对象，只是静默 no-op，不能作为已证明的
+编译失败根因。现在删除旧架构改写，`quickfile_verify.py` 在候选源码替换已有目录前检查
+Rust 构建和安装结构；不符合该结构的旧预编译 recipe 会被拒绝，失败向调用阶段传播。
+这属于结构检查，不是固定整个上游提交或为未知代码背书；Rust 源码归档仍按 recipe 哈希外部下载。
+固定 fixture 和测试范围见 [QuickFile 基线说明](../tests/fixtures/quickfile/README.md)。
 
 ## SSR Plus
 
@@ -140,6 +215,10 @@ feeds install 后，`wrt_core/modules/service_fixes.sh` 的 `update_adguardhome`
 重复执行保留相同文件的字节和修改时间，用户配置不在这三个受保护程序文件中。
 
 ## 验证与适用范围
+
+受管输入检查、loader 的权限/链接恢复、实际模块接入、OAF 默认状态和 QuickFile
+结构拒绝已加入专项回归入口。测试入口描述覆盖范围，不表示本轮全套回归已经执行并通过；
+完整交叉编译、最终 IPK/APK/rootfs 内容和路由器功能仍需单独验收。
 
 `tests/run_all.sh` 包含插件专项回归及现有完整回归。Passwall TLS 与启动入口回归覆盖旧核心
 拒绝指纹、受支持核心保留指纹、无指纹配置、隐式 TLS 协议、生成失败后停止启动，以及补丁重复应用。

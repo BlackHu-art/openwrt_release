@@ -1,0 +1,64 @@
+name: LuCI App Aurora Config Build & Release
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: build luci-app-aurora-config ${{ matrix.sdk }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        sdk: ["24.10.4", "25.12.5"]
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+      - id: slug
+        run: echo "ref=${GITHUB_REF_NAME//\//-}" >> "$GITHUB_OUTPUT"
+      - id: build
+        uses: eamonxg/build-luci-package@v2
+        with:
+          sdk: ${{ matrix.sdk }}
+          packages: '[{"pkg":"luci-app-aurora-config","path":".","langs":["zh-cn","zh-tw","de","es","fr","id","it","ja","ko","nl","pl","ru","tr","uk","vi"]}]'
+      - uses: actions/upload-artifact@v6
+        with:
+          name: luci-app-aurora-config-${{ steps.slug.outputs.ref }}-${{ steps.build.outputs.pkg_type }}
+          path: out/*.[ai]pk
+      - uses: eamonxg/build-luci-package/release@v2
+        with:
+          name: luci-app-aurora-config
+          files: out/*.[ai]pk
+          body_repo: eamonxg/assets
+          body_path: aurora/docs/config/changelog/${{ github.ref_name }}.md
+
+  notify-feed:
+    name: notify openwrt-cloud
+    runs-on: ubuntu-latest
+    needs: build
+    if: github.ref_type == 'tag'
+    steps:
+      - name: Dispatch feed rebuild
+        env:
+          GH_TOKEN: ${{ secrets.FEED_DISPATCH_TOKEN }}
+        run: |
+          if [ -z "$GH_TOKEN" ]; then
+            echo "::error::FEED_DISPATCH_TOKEN is not set, so openwrt-cloud was never told about this release."
+            echo "The feed only rebuilds ahead of its daily schedule on this dispatch — without it the tag" >&2
+            echo "ships to GitHub Releases but never reaches the feed. Create a fine-grained PAT" >&2
+            echo "scoped to eamonxg/openwrt-cloud with Contents: read and write, then store it as" >&2
+            echo "the FEED_DISPATCH_TOKEN secret in this repository." >&2
+            exit 1
+          fi
+          gh api repos/eamonxg/openwrt-cloud/dispatches \
+            -f event_type=package-released \
+            -f 'client_payload[repo]=${{ github.repository }}' \
+            -f 'client_payload[tag]=${{ github.ref_name }}'
+

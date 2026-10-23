@@ -1,0 +1,5 @@
+/packages/** -text -filter -ident -working-tree-encoding whitespace=-blank-at-eol,-blank-at-eof,-space-before-tab
+/compat/** -text -filter -ident -working-tree-encoding whitespace=-blank-at-eol,-blank-at-eof,-space-before-tab
+/licenses/** -text -filter -ident -working-tree-encoding
+/sources.lock.json text eol=lf
+/README.md text eol=lf

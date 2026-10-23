@@ -17,6 +17,7 @@ BASE_PATH=${BASE_PATH:-$SCRIPT_DIR}
 source "$SCRIPT_DIR/modules/network.sh"
 source "$SCRIPT_DIR/modules/repo.sh"
 source "$SCRIPT_DIR/modules/feeds.sh"
+source "$SCRIPT_DIR/modules/managed_plugins.sh"
 source "$SCRIPT_DIR/modules/custom_feed.sh"
 source "$SCRIPT_DIR/modules/verify.sh"
 source "$SCRIPT_DIR/modules/docker.sh"
@@ -86,10 +87,10 @@ stage_pre_install_source_fixes() {
     update_dnsmasq_conf
     add_backup_info_to_sysupgrade
     update_mosdns_deconfig
-    fix_quickstart
-    update_oaf_deconfig
+    fix_quickstart || return 1
+    update_oaf_deconfig || return 1
     add_timecontrol
-    add_quickfile
+    add_quickfile || return 1
     update_lucky
     fix_rust_compile_error
     update_smartdns
@@ -98,10 +99,10 @@ stage_pre_install_source_fixes() {
     update_dockerman
     set_nginx_default_config
     update_uwsgi_limit_as
-    update_argon
-    update_argon_config
-    update_aurora
-    update_aurora_config
+    update_argon || return 1
+    update_argon_config || return 1
+    update_aurora || return 1
+    update_aurora_config || return 1
     update_nginx_ubus_module
     check_default_settings
     install_opkg_distfeeds

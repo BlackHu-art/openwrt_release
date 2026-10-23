@@ -3,6 +3,7 @@ set -euo pipefail
 repo_root=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
 BASE_PATH="$repo_root/wrt_core"
 source "$BASE_PATH/modules/feed_source_fixes.sh"
+source "$BASE_PATH/modules/plugin_compat.sh"
 temp_base=$(cd "${TMPDIR:-/tmp}" && pwd -P)
 test_root=$(mktemp -d "$temp_base/homeproxy-routing.XXXXXX")
 cleanup() {

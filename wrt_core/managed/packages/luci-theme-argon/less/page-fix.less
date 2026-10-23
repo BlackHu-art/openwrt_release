@@ -1,0 +1,70 @@
+// out: false
+// Page and plugin adapters. Keep imports in their established cascade order.
+// Maintain page rules in pages/ and reusable controls in components/.
+
+// System administration
+@import "pages/autoreboot.less";
+@import "pages/system.less";
+@import "pages/syscontrol.less";
+@import "pages/password.less";
+@import "pages/sshkeys.less";
+@import "pages/repokeys.less";
+@import "pages/argon-config.less";
+@import "pages/package-manager.less";
+@import "pages/startup.less";
+@import "pages/crontab.less";
+@import "pages/crontabhelper.less";
+@import "pages/partexp.less";
+@import "pages/diskman.less";
+@import "pages/filemanager.less";
+@import "pages/attendedsysupgrade.less";
+@import "pages/flash.less";
+@import "pages/filetransfer.less";
+@import "pages/fileassistant.less";
+@import "pages/package-manager-legacy.less";
+@import "pages/power.less";
+
+// Network configuration
+@import "pages/routes.less";
+@import "pages/dns.less";
+@import "pages/firewall.less";
+@import "pages/interfaces.less";
+@import "pages/switch-vlan.less";
+@import "pages/dhcp.less";
+@import "pages/diagnostics.less";
+@import "pages/rule-editors.less";
+
+// Status and monitoring
+@import "pages/dashboard.less";
+@import "pages/processes.less";
+@import "pages/overview.less";
+@import "pages/realtime.less";
+@import "pages/channel-analysis.less";
+@import "pages/iptables.less";
+@import "pages/nftables.less";
+@import "pages/logs.less";
+@import "pages/nlbwmon.less";
+
+// Services
+@import "pages/ddns.less";
+@import "pages/ttyd.less";
+@import "pages/dockerman.less";
+@import "pages/smartdns.less";
+@import "pages/docker.less";
+@import "pages/npc.less";
+@import "pages/openclash.less";
+
+// VPN
+@import "pages/passwall.less";
+@import "pages/passwall2.less";
+@import "pages/openvpn.less";
+@import "pages/easytier.less";
+
+// Additional pages and legacy compatibility
+@import "pages/vssr.less";
+@import "pages/wireless.less";
+@import "pages/samba.less";
+@import "pages/status-legacy.less";
+@import "pages/firewall-legacy.less";
+@import "pages/commands.less";
+@import "pages/mwan3.less";

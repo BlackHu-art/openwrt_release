@@ -1,0 +1,407 @@
+name: Release packages
+
+on:
+  push:
+    tags:
+      - "*"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  TZ: Asia/Shanghai
+
+jobs:
+  metadata:
+    name: Resolve release version
+    runs-on: ubuntu-24.04
+    outputs:
+      prerelease: ${{ steps.version.outputs.prerelease }}
+      apk_version: ${{ steps.version.outputs.apk_version }}
+      ipk_version: ${{ steps.version.outputs.ipk_version }}
+      package_release: ${{ steps.version.outputs.package_release }}
+      apk_i18n_version: ${{ steps.version.outputs.apk_i18n_version }}
+      ipk_i18n_version: ${{ steps.version.outputs.ipk_i18n_version }}
+      docs_branch: ${{ steps.branch.outputs.name }}
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Resolve release version
+        id: version
+        run: python3 .github/scripts/release_metadata.py "$GITHUB_REF_NAME" >> "$GITHUB_OUTPUT"
+
+      - name: Select documentation branch
+        id: branch
+        env:
+          DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+        run: |
+          printf 'name=%s\n' "$DEFAULT_BRANCH" >> "$GITHUB_OUTPUT"
+
+  checks:
+    uses: ./.github/workflows/check.yml
+
+  build:
+    name: Build ${{ matrix.package_format }} packages
+    needs: [checks, metadata]
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - package_format: ipk
+            sdk_base_url: https://downloads.openwrt.org/releases/23.05.5/targets/x86/64
+            sdk_pattern: openwrt-sdk-23.05.5-x86-64_.*Linux-x86_64.tar.xz
+          - package_format: apk
+            sdk_base_url: https://downloads.openwrt.org/releases/25.12.5/targets/x86/64
+            sdk_pattern: openwrt-sdk-25.12.5-x86-64_.*Linux-x86_64.tar.zst
+
+    steps:
+      - name: Checkout theme
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Install build dependencies
+        run: |
+          sudo -E apt-get update
+          sudo -E apt-get install -y \
+            build-essential \
+            bison \
+            clang \
+            curl \
+            file \
+            flex \
+            g++ \
+            g++-multilib \
+            gawk \
+            gcc-multilib \
+            gettext \
+            git \
+            libncurses-dev \
+            libssl-dev \
+            python3 \
+            python3-setuptools \
+            python3-venv \
+            rsync \
+            unzip \
+            wget \
+            xz-utils \
+            zlib1g-dev \
+            zstd
+
+      - name: Resolve OpenWrt SDK metadata
+        id: sdk
+        env:
+          SDK_BASE_URL: ${{ matrix.sdk_base_url }}
+          SDK_PATTERN: ${{ matrix.sdk_pattern }}
+        run: |
+          checksums="$(mktemp)"
+          trap 'rm -f "${checksums}"' EXIT
+          curl --http1.1 -fsSL --retry 5 --retry-all-errors \
+            --connect-timeout 30 --max-time 120 \
+            "${SDK_BASE_URL}/sha256sums" -o "${checksums}"
+
+          sdk_line="$(
+            grep -E "[[:space:]]+\\*?${SDK_PATTERN}$" "${checksums}" |
+              head -n 1
+          )"
+
+          if [ -z "${sdk_line}" ]; then
+            echo "::error::Unable to find SDK matching '${SDK_PATTERN}' at ${SDK_BASE_URL}."
+            exit 1
+          fi
+
+          sdk_sha256="$(printf '%s\n' "${sdk_line}" | awk '{print $1}')"
+          sdk_file="$(printf '%s\n' "${sdk_line}" | awk '{print $2}' | sed 's/^\*//')"
+
+          echo "sdk_file=${sdk_file}" >> "${GITHUB_OUTPUT}"
+          echo "sdk_sha256=${sdk_sha256}" >> "${GITHUB_OUTPUT}"
+          echo "sdk_cache_key=openwrt-sdk-${{ matrix.package_format }}-${sdk_sha256}" >> "${GITHUB_OUTPUT}"
+
+      - name: Cache OpenWrt SDK archive
+        id: cache-sdk
+        uses: actions/cache@v6
+        with:
+          path: .cache/openwrt-sdk/${{ steps.sdk.outputs.sdk_file }}
+          key: ${{ steps.sdk.outputs.sdk_cache_key }}
+
+      - name: Download OpenWrt SDK
+        env:
+          SDK_BASE_URL: ${{ matrix.sdk_base_url }}
+          SDK_FILE: ${{ steps.sdk.outputs.sdk_file }}
+          SDK_SHA256: ${{ steps.sdk.outputs.sdk_sha256 }}
+        run: |
+          mkdir -p .cache/openwrt-sdk
+          sdk_archive=".cache/openwrt-sdk/${SDK_FILE}"
+          sdk_partial="${sdk_archive}.part"
+          trap 'rm -f "${sdk_partial}"' EXIT
+
+          if [ -f "${sdk_archive}" ] && ! printf '%s  %s\n' "${SDK_SHA256}" "${sdk_archive}" | sha256sum -c -; then
+            echo "::warning::Cached SDK checksum mismatch; downloading it again."
+            rm -f "${sdk_archive}"
+          fi
+
+          if [ ! -f "${sdk_archive}" ]; then
+            # Avoid HTTP/2 stream failures and retry interrupted downloads.
+            # Only a checksum-verified archive may enter the SDK cache.
+            curl --http1.1 -fL --retry 5 --retry-all-errors \
+              --connect-timeout 30 --max-time 1800 \
+              "${SDK_BASE_URL}/${SDK_FILE}" -o "${sdk_partial}"
+            printf '%s  %s\n' "${SDK_SHA256}" "${sdk_partial}" | sha256sum -c -
+            mv "${sdk_partial}" "${sdk_archive}"
+          fi
+
+          mkdir -p sdk
+          case "${SDK_FILE}" in
+            *.tar.zst)
+              tar --zstd -xf "${sdk_archive}" -C sdk --strip-components=1
+              ;;
+            *.tar.xz)
+              tar -xJf "${sdk_archive}" -C sdk --strip-components=1
+              ;;
+            *)
+              echo "::error::Unsupported SDK archive: ${SDK_FILE}"
+              exit 1
+              ;;
+          esac
+
+      - name: Prepare OpenWrt feeds
+        working-directory: sdk
+        run: |
+          cp feeds.conf.default feeds.conf
+          ./scripts/feeds update -a
+          ./scripts/feeds install -a
+
+      - name: Prepare local packages
+        env:
+          RELEASE_VERSION: ${{ matrix.package_format == 'apk' && needs.metadata.outputs.apk_version || needs.metadata.outputs.ipk_version }}
+          PACKAGE_RELEASE: ${{ needs.metadata.outputs.package_release }}
+          ARGON_UPDATE_PRIMARY_URL: ${{ vars.ARGON_UPDATE_PRIMARY_URL }}
+          ARGON_UPDATE_FALLBACK_URL: ${{ vars.ARGON_UPDATE_FALLBACK_URL }}
+        run: |
+          mkdir -p sdk/package
+
+          rsync -a --delete \
+            --exclude='.git' \
+            --exclude='sdk' \
+            --exclude='artifacts' \
+            --exclude='/compat' \
+            "${GITHUB_WORKSPACE}/" \
+            sdk/package/luci-theme-argon/
+
+          cp -a compat/luci-app-argon-config sdk/package/luci-app-argon-config
+
+          python3 .github/scripts/generate_update_site.py sources \
+            --primary "$ARGON_UPDATE_PRIMARY_URL" \
+            --fallback "${ARGON_UPDATE_FALLBACK_URL:-https://jerrykuku.github.io/luci-theme-argon/updates/stable.json}" \
+            --output sdk/package/luci-theme-argon/root/usr/share/argon/update-sources.json
+
+          for makefile in \
+            sdk/package/luci-theme-argon/Makefile \
+            sdk/package/luci-app-argon-config/Makefile
+          do
+            sed -i -E "s/^(PKG_VERSION):=.*/\1:=${RELEASE_VERSION}/" "${makefile}"
+            sed -i -E "s/^(PKG_RELEASE):=.*/\1:=${PACKAGE_RELEASE}/" "${makefile}"
+          done
+
+      - name: Configure packages
+        working-directory: sdk
+        run: |
+          cat > .config <<'EOF'
+          CONFIG_ALL_NONSHARED=n
+          CONFIG_ALL_KMODS=n
+          CONFIG_ALL=n
+          CONFIG_AUTOREMOVE=n
+          CONFIG_PACKAGE_luci-theme-argon=m
+          CONFIG_PACKAGE_luci-app-argon-config=m
+          EOF
+
+          sed -i 's/^[[:space:]]*//' .config
+
+          python3 - <<'PY'
+          import re
+          from pathlib import Path
+
+          luci_mk = Path('feeds/luci/luci.mk').read_text()
+          supported = set(re.findall(r'^LUCI_LANG\.([A-Za-z0-9_]+)=', luci_mk, re.M))
+          aliases = dict(re.findall(r'^LUCI_LC_ALIAS\.([A-Za-z0-9_]+)=(\S+)', luci_mk, re.M))
+          languages = sorted({po.parent.name for po in Path('package/luci-theme-argon/po').glob('*/*.po')})
+
+          if not languages:
+              raise SystemExit('::error::No Argon configuration translations found.')
+          unsupported = set(languages) - supported
+          if unsupported:
+              raise SystemExit(f'::error::Unsupported translation directories: {", ".join(sorted(unsupported))}')
+
+          with Path('.config').open('a') as config, Path('../argon-config-i18n-packages.txt').open('w') as manifest:
+              for language in languages:
+                  package = f'luci-i18n-argon-config-{aliases.get(language, language)}'
+                  config.write(f'CONFIG_LUCI_LANG_{language}=y\nCONFIG_PACKAGE_{package}=m\n')
+                  manifest.write(f'{package}\n')
+                  print(f'Enable translation: {language} -> {package}')
+          PY
+
+          make defconfig
+
+          while IFS= read -r package; do
+            if ! grep -Fxq "CONFIG_PACKAGE_${package}=m" .config; then
+              echo "::error::Translation package was not enabled by defconfig: ${package}"
+              exit 1
+            fi
+          done < ../argon-config-i18n-packages.txt
+
+      - name: Compile packages
+        working-directory: sdk
+        run: |
+          make package/luci-theme-argon/clean package/luci-app-argon-config/clean
+          make package/luci-theme-argon/compile -j"$(nproc)" V=s
+          make package/luci-app-argon-config/compile -j"$(nproc)" V=s
+
+      - name: Collect packages
+        env:
+          PACKAGE_FORMAT: ${{ matrix.package_format }}
+        run: |
+          mkdir -p "artifacts/${PACKAGE_FORMAT}"
+
+          if [ "${PACKAGE_FORMAT}" = "apk" ]; then
+            find sdk/bin/packages -type f \
+              \( -name "luci-theme-argon-*.apk" \
+              -o -name "luci-app-argon-config-*.apk" \
+              -o -name "luci-i18n-argon-config-*.apk" \) \
+              -exec cp -v {} "artifacts/${PACKAGE_FORMAT}/" \;
+
+            theme_count="$(find "artifacts/${PACKAGE_FORMAT}" -maxdepth 1 -type f -name "luci-theme-argon-*.apk" | wc -l)"
+            config_count="$(find "artifacts/${PACKAGE_FORMAT}" -maxdepth 1 -type f -name "luci-app-argon-config-*.apk" | wc -l)"
+          else
+            find sdk/bin/packages -type f \
+              \( -name "luci-theme-argon_*.ipk" \
+              -o -name "luci-app-argon-config_*.ipk" \
+              -o -name "luci-i18n-argon-config-*.ipk" \) \
+              -exec cp -v {} "artifacts/${PACKAGE_FORMAT}/" \;
+
+            theme_count="$(find "artifacts/${PACKAGE_FORMAT}" -maxdepth 1 -type f -name "luci-theme-argon_*.ipk" | wc -l)"
+            config_count="$(find "artifacts/${PACKAGE_FORMAT}" -maxdepth 1 -type f -name "luci-app-argon-config_*.ipk" | wc -l)"
+          fi
+
+          missing_packages=0
+          if [ "${theme_count}" -lt 1 ] || [ "${config_count}" -lt 1 ]; then
+            echo "::error::Missing expected packages for ${PACKAGE_FORMAT} (theme=${theme_count}, config=${config_count})."
+            missing_packages=1
+          fi
+
+          while IFS= read -r package; do
+            if [ "${PACKAGE_FORMAT}" = "apk" ]; then
+              pattern="${package}-*.apk"
+            else
+              pattern="${package}_*.ipk"
+            fi
+
+            if ! find "artifacts/${PACKAGE_FORMAT}" -maxdepth 1 -type f -name "${pattern}" -print -quit | grep -q .; then
+              echo "::error::Missing translation package for ${PACKAGE_FORMAT}: ${package}"
+              missing_packages=1
+            fi
+          done < argon-config-i18n-packages.txt
+
+          if [ "${missing_packages}" -ne 0 ]; then
+            find sdk/bin/packages -maxdepth 3 -type f | sort
+            find "artifacts/${PACKAGE_FORMAT}" -maxdepth 1 -type f -print
+            exit 1
+          fi
+
+      - name: Verify translation package versions
+        env:
+          PACKAGE_FORMAT: ${{ matrix.package_format }}
+          EXPECTED_VERSION: ${{ matrix.package_format == 'apk' && needs.metadata.outputs.apk_i18n_version || needs.metadata.outputs.ipk_i18n_version }}
+        run: |
+          python3 .github/scripts/check_translation_versions.py \
+            --format "${PACKAGE_FORMAT}" \
+            --directory "artifacts/${PACKAGE_FORMAT}" \
+            --manifest argon-config-i18n-packages.txt \
+            --expected-version "${EXPECTED_VERSION}" \
+            --apk-tool "${GITHUB_WORKSPACE}/sdk/staging_dir/host/bin/apk"
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v7
+        with:
+          name: packages-${{ matrix.package_format }}
+          path: artifacts/${{ matrix.package_format }}/*
+          if-no-files-found: error
+
+  release:
+    name: Publish GitHub Release
+    runs-on: ubuntu-24.04
+    needs: [build, metadata]
+    steps:
+      - name: Checkout release installation notes
+        uses: actions/checkout@v7
+
+      - name: Download build artifacts
+        uses: actions/download-artifact@v8
+        with:
+          path: release-assets
+          pattern: packages-*
+          merge-multiple: true
+
+      - name: Publish release
+        uses: softprops/action-gh-release@v3
+        with:
+          tag_name: ${{ github.ref_name }}
+          name: ${{ github.ref_name }}
+          body_path: ${{ needs.metadata.outputs.prerelease == 'true' && '.github/release-preview.md' || '.github/release-installation.md' }}
+          prerelease: ${{ needs.metadata.outputs.prerelease == 'true' }}
+          make_latest: ${{ needs.metadata.outputs.prerelease == 'true' && 'false' || 'true' }}
+          generate_release_notes: ${{ needs.metadata.outputs.prerelease == 'false' }}
+          fail_on_unmatched_files: true
+          files: release-assets/*
+
+  update-feeds:
+    name: Publish stable update feeds
+    needs: [release, metadata]
+    if: needs.metadata.outputs.prerelease == 'false' && vars.ARGON_UPDATES_ENABLED == 'true'
+    permissions:
+      contents: write
+      pages: write
+      id-token: write
+    uses: ./.github/workflows/publish_updates.yml
+    with:
+      tag: ${{ github.ref_name }}
+    secrets: inherit
+
+  sync-docs:
+    name: Sync release docs
+    runs-on: ubuntu-24.04
+    needs: [release, metadata]
+    if: needs.metadata.outputs.prerelease == 'false'
+    steps:
+      - name: Checkout release documentation branch
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ needs.metadata.outputs.docs_branch }}
+          fetch-depth: 0
+
+      - name: Update README and changelog
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          export RELEASE_DATE="$(TZ='${{ env.TZ }}' date +%Y.%m.%d)"
+          export PKG_RELEASE_DATE="$(TZ='${{ env.TZ }}' date +%Y%m%d)"
+          bash .github/scripts/update_release_docs.sh "${GITHUB_REF_NAME}"
+
+      - name: Commit updated docs
+        env:
+          DOCS_BRANCH: ${{ needs.metadata.outputs.docs_branch }}
+        run: |
+          if git diff --quiet -- Makefile compat/luci-app-argon-config/Makefile README.md README_ZH.md RELEASE.md RELEASE_ZH.md; then
+            echo "No documentation updates to commit."
+            exit 0
+          fi
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add Makefile compat/luci-app-argon-config/Makefile README.md README_ZH.md RELEASE.md RELEASE_ZH.md
+          git commit -m "docs: sync release notes for ${GITHUB_REF_NAME}"
+          git push origin "HEAD:${DOCS_BRANCH}"

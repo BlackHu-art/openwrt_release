@@ -4,6 +4,7 @@ set -euo pipefail
 repo_root=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
 BASE_PATH="$repo_root/wrt_core"
 source "$BASE_PATH/modules/feed_source_fixes.sh"
+source "$BASE_PATH/modules/plugin_compat.sh"
 
 temp_base=$(cd "${TMPDIR:-/tmp}" && pwd -P)
 test_root=$(mktemp -d "$temp_base/homeproxy-compat.XXXXXX")
@@ -275,54 +276,42 @@ make_package "$package_dir"
 expect_rejected_without_changes "$package_dir" 'missing feature-cache patch'
 BASE_PATH=$saved_base_path
 
-# Replace only the network transport; exercise the real clone and update helper.
-local_upstream="$test_root/upstream"
-make_package "$local_upstream"
-git -C "$local_upstream" config user.name 'HomeProxy compatibility test'
-git -C "$local_upstream" config user.email 'homeproxy-test@example.invalid'
-git -C "$local_upstream" add .
-git -C "$local_upstream" commit -qm 'old upstream fixture'
-
-feed_dir="$test_root/feed"
+# The production updater now consumes the source staged by the managed feed.
+# Keep both supported upstream layouts and reject drift without another fetch.
 get_custom_feed_worktree_dir() {
     printf '%s\n' "$feed_dir"
 }
-git_retry() {
-    [[ $# -eq 5 && $1 == clone && $2 == --depth && $3 == 1 &&
-       $4 == https://github.com/immortalwrt/homeproxy.git ]] ||
-        fail 'update_homeproxy changed the expected upstream clone request'
-    git -c core.autocrlf=false clone -q --depth 1 "file://$local_upstream" "$5"
-    git -C "$5" config core.autocrlf false
-}
+git_retry() { fail 'managed HomeProxy attempted an external clone'; }
 
-mkdir -p "$feed_dir/luci-app-homeproxy"
-printf '%s\n' stale >"$feed_dir/luci-app-homeproxy/stale"
-update_homeproxy
+feed_dir="$test_root/feed-old"
 package_dir="$feed_dir/luci-app-homeproxy"
-[[ ! -e "$package_dir/stale" ]] || fail 'update retained files from the old checkout'
+make_package "$package_dir"
+update_homeproxy
 [[ $(git hash-object --no-filters "$package_dir/$generator_path") == "$fixed_generator_blob" ]] ||
-    fail 'update_homeproxy did not fix the newly cloned source'
+    fail 'update_homeproxy did not repair the staged old source'
 assert_math_dependency "$package_dir/Makefile"
 assert_upstream_fixes "$package_dir"
 
-# A rejected fresh clone must propagate out of update_homeproxy, even when the
-# caller uses an if statement (where Bash would otherwise suppress errexit).
-sed -i 's/sniff: true,/sniff: false,/' "$local_upstream/$generator_path"
-git -C "$local_upstream" add "$generator_path"
-git -C "$local_upstream" commit -qm 'upstream incompatible drift'
+# An incompatible staged source must propagate failure even in an if context,
+# without partially applying patches or changing its dependency declaration.
+feed_dir="$test_root/feed-drift"
+package_dir="$feed_dir/luci-app-homeproxy"
+make_package "$package_dir"
+sed -i 's/sniff: true,/sniff: false,/' "$package_dir/$generator_path"
+package_snapshot "$package_dir" > "$test_root/update-before"
 if (update_homeproxy) >"$test_root/update-rejection.log" 2>&1; then
     fail 'update_homeproxy swallowed compatibility failure'
 fi
-cmp "$local_upstream/$generator_path" "$package_dir/$generator_path" ||
-    fail 'failed update partially patched the fresh clone'
-cmp "$fixture_dir/Makefile" "$package_dir/Makefile" ||
-    fail 'failed update partially changed dependencies'
+package_snapshot "$package_dir" > "$test_root/update-after"
+cmp "$test_root/update-before" "$test_root/update-after" ||
+    fail 'failed update modified staged source'
 
-# Exercise the production update entrypoint after upstream advances to fadaa676.
-cp "$fixture_dir/fadaa676/generate_client.uc" "$local_upstream/$generator_path"
-cp "$fixture_dir/fadaa676/client.js" "$local_upstream/htdocs/luci-static/resources/view/homeproxy/client.js"
-git -C "$local_upstream" add .
-git -C "$local_upstream" commit -qm 'current upstream fixture'
+# Exercise the same production entrypoint for the locked fadaa676 layout.
+feed_dir="$test_root/feed-latest"
+package_dir="$feed_dir/luci-app-homeproxy"
+make_package "$package_dir"
+cp "$fixture_dir/fadaa676/generate_client.uc" "$package_dir/$generator_path"
+cp "$fixture_dir/fadaa676/client.js" "$package_dir/htdocs/luci-static/resources/view/homeproxy/client.js"
 update_homeproxy
 assert_upstream_fixes "$package_dir" "$fixture_dir/fadaa676/patched-blobs.txt"
 assert_math_dependency "$package_dir/Makefile"

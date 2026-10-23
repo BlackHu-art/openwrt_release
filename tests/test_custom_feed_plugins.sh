@@ -2,6 +2,7 @@
 set -euo pipefail
 
 repo_root=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
+BASE_PATH="$repo_root/wrt_core"
 source "$repo_root/wrt_core/modules/custom_feed.sh"
 source "$repo_root/wrt_core/modules/feeds.sh"
 temp_base=$(cd "${TMPDIR:-/tmp}" && pwd -P)
@@ -18,8 +19,18 @@ FEEDS_CONF=feeds.conf.default
 mkdir -p "$BUILD_DIR"
 : > "$BUILD_DIR/$FEEDS_CONF"
 
-# Only the external repository transfer is replaced. Feed registration,
+# Source transfer is replaced here; full local payloads and POSIX symlinks are
+# checked by test_managed_build.py on Linux. Feed registration,
 # missing-directory validation and install_custom_feed orchestration run as-is.
+python3() { :; }
+install_managed_custom_feed() {
+    local package
+    for package in xray-core sing-box luci-app-homeproxy oaf open-app-filter luci-app-oaf \
+        luci-app-istorex quickstart luci-app-quickstart luci-app-store taskd luci-lib-taskd luci-lib-xterm; do
+        mkdir -p "$1/$package"
+        printf 'PKG_NAME:=%s\n' "$package" > "$1/$package/Makefile"
+    done
+}
 sync_sparse_packages_to_feed_dir() {
     local url=$1 branch=$2 target=$3 label=$4 package
     shift 4

@@ -35,3 +35,18 @@
 /tests/*xray* text eol=lf
 /tests/test_proxy_compat_pipeline.py text eol=lf
 /tests/fixtures/proxy-cores/** text eol=lf whitespace=-blank-at-eol,-space-before-tab
+/wrt_core/managed_plugins.py text eol=lf
+/wrt_core/quickfile_verify.py text eol=lf
+/wrt_core/oaf_compat.py text eol=lf
+/wrt_core/modules/managed_plugins.sh text eol=lf
+/wrt_core/modules/feed_source_fixes.sh text eol=lf
+/wrt_core/modules/package_source_updates.sh text eol=lf
+/tests/test_managed_*.py text eol=lf
+/tests/test_quickfile_source.py text eol=lf
+/tests/test_oaf_compat.py text eol=lf
+/tests/fixtures/quickfile/** -text -filter -ident -working-tree-encoding
+/tests/fixtures/quickfile/**/source.json text eol=lf
+/tests/test_homeproxy_compat.sh text eol=lf
+/tests/test_homeproxy_routing.sh text eol=lf
+/tests/test_argon_compat.sh text eol=lf
+/tests/verify_upstream_sync.py text eol=lf

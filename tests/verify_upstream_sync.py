@@ -1,4 +1,5 @@
 from pathlib import Path
+import json
 
 import yaml
 
@@ -97,22 +98,16 @@ for model in ["jdcloud_ipq60xx_immwrt", "jdcloud_ipq60xx_libwrt", "jdcloud_ax600
         reject(config, f" {package}")
     reject(f"wrt_core/compilecfg/{model}.ini", "docker_deps")
 
-require(
-    "wrt_core/modules/package_source_updates.sh",
-    "https://github.com/jerrykuku/luci-theme-argon.git",
-)
-require(
-    "wrt_core/modules/package_source_updates.sh",
-    "https://github.com/jerrykuku/luci-app-argon-config.git",
-)
-require(
-    "wrt_core/modules/package_source_updates.sh",
-    "https://github.com/eamonxg/luci-theme-aurora.git",
-)
-require(
-    "wrt_core/modules/package_source_updates.sh",
-    "https://github.com/eamonxg/luci-app-aurora-config.git",
-)
+managed = json.loads(read("wrt_core/managed/sources.lock.json"))
+assert managed["consumed_by_firmware_build"] is True
+for package, upstream in {
+    "luci-theme-argon": "jerrykuku/luci-theme-argon",
+    "luci-theme-aurora": "eamonxg/luci-theme-aurora",
+    "luci-app-aurora-config": "eamonxg/luci-app-aurora-config",
+}.items():
+    assert managed["packages"][package]["repository"] == "https://github.com/" + upstream
+    require("wrt_core/modules/package_source_updates.sh", "install_managed_package " + package)
+assert (ROOT / "wrt_core/managed/packages/luci-theme-argon/compat/luci-app-argon-config/Makefile").is_file()
 require("wrt_core/update.sh", 'LAN_ADDR="10.0.0.1"')
 for call in ["update_argon_config", "update_aurora", "update_aurora_config"]:
     require("wrt_core/update.sh", call)

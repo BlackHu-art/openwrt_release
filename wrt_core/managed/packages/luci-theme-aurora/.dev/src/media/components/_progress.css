@@ -1,0 +1,15 @@
+.cbi-progressbar {
+  @apply bg-surface-sunken relative h-3.5 w-full cursor-help overflow-hidden rounded-full max-md:h-4;
+  &::before {
+    @apply text-text absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 rounded-2xl text-xs whitespace-nowrap content-[attr(title)] max-md:text-xs max-md:leading-normal;
+  }
+  [data-page="admin-system-package-manager"] & {
+    &::before {
+      @apply max-sm:text-[10px];
+    }
+  }
+
+  & > div {
+    @apply from-progress-start to-progress-end h-full bg-linear-to-r transition-[width] duration-[250ms];
+  }
+}

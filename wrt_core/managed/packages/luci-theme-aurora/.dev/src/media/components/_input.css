@@ -1,0 +1,69 @@
+input {
+  @apply disabled:cursor-not-allowed disabled:opacity-(--app-opacity-disabled);
+}
+
+input[type="text"],
+input[type="password"],
+.cbi-input-text,
+.cbi-input {
+  @apply text-text border-hairline bg-control-bg placeholder-text-muted focus:border-brand focus:ring-focus-ring relative w-52.5 max-w-full rounded-2xl border px-3 py-1.5 text-sm font-normal shadow-sm transition-[border-color,box-shadow] duration-150 focus:ring-2 focus:outline-none;
+
+  .table.cbi-section-table & {
+    @apply w-full;
+  }
+}
+
+.cbi-input-text {
+  @apply min-w-20 max-md:min-w-14;
+}
+
+#localtime {
+  @apply min-w-70;
+}
+
+input[type="radio"],
+input[type="checkbox"] {
+  @apply relative mr-3 inline-block h-4 w-4 cursor-pointer appearance-none align-middle disabled:cursor-not-allowed;
+  &::before {
+    @apply border-hairline bg-control-bg absolute top-0 left-0 h-4 w-4 border transition-[background-color,border-color,box-shadow] duration-150 content-[''];
+  }
+  &::after {
+    @apply bg-on-brand absolute top-0.5 left-0.5 h-3 w-3 opacity-0 transition-opacity duration-150 content-[''];
+  }
+  &:checked::before {
+    @apply border-brand bg-brand;
+  }
+  &:checked::after {
+    @apply opacity-100;
+  }
+  @variant hover {
+    &::before {
+      @apply border-hairline;
+    }
+  }
+  &:focus::before {
+    @apply border-brand ring-focus-ring ring-2 outline-none;
+  }
+}
+
+input[type="radio"] {
+  &::before {
+    @apply rounded-full;
+  }
+  &::after {
+    @apply [mask:var(--icon-radio)_center/cover_no-repeat];
+  }
+}
+
+input[type="checkbox"] {
+  &::before {
+    @apply rounded;
+  }
+  &::after {
+    @apply [mask:var(--icon-check)_center/cover_no-repeat];
+  }
+}
+
+.cbi-checkbox {
+  @apply relative inline-flex items-center align-middle;
+}

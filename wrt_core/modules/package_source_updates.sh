@@ -222,54 +222,30 @@ update_dockerman() {
 add_quickfile() {
     local repo_url="https://github.com/sbwml/luci-app-quickfile.git"
     local target_dir="$BUILD_DIR/package/emortal/quickfile"
-    if [ -d "$target_dir" ]; then
-        rm -rf "$target_dir"
-    fi
+    local temporary
+    temporary=$(mktemp -d "$BUILD_DIR/.quickfile-source.XXXXXX") || return 1
     echo "正在添加 luci-app-quickfile..."
-    if ! git_retry clone --depth 1 "$repo_url" "$target_dir"; then
+    if ! git_retry clone --depth 1 "$repo_url" "$temporary/source"; then
         echo "错误：从 $repo_url 克隆 luci-app-quickfile 仓库失败" >&2
-        exit 1
-    fi
-
-    local makefile_path="$target_dir/quickfile/Makefile"
-    if [ -f "$makefile_path" ]; then
-        sed -i '/\t\$(INSTALL_BIN) \$(PKG_BUILD_DIR)\/quickfile-\$(ARCH_PACKAGES)/c\
-\tif [ "\$(ARCH_PACKAGES)" = "x86_64" ]; then \\\
-\t\t\$(INSTALL_BIN) \$(PKG_BUILD_DIR)\/quickfile-x86_64 \$(1)\/usr\/bin\/quickfile; \\\
-\telse \\\
-\t\t\$(INSTALL_BIN) \$(PKG_BUILD_DIR)\/quickfile-aarch64_generic \$(1)\/usr\/bin\/quickfile; \\\
-\tfi' "$makefile_path"
-    fi
-}
-
-
-replace_luci_source() {
-    local source_name=$1
-    local repo_url=$2
-    local destination=$3
-    local tmp_dir
-    tmp_dir=$(mktemp -d)
-
-    echo "正在更新 ${source_name}..."
-
-    if ! git_retry clone --depth 1 "$repo_url" "$tmp_dir"; then
-        echo "错误：从 $repo_url 克隆 ${source_name} 仓库失败" >&2
-        rm -rf "$tmp_dir"
+        rm -rf -- "$temporary"
         return 1
     fi
 
-    rm -rf "$destination"
-    rm -rf "$tmp_dir/.git"
-    mkdir -p "$(dirname "$destination")"
-    mv "$tmp_dir" "$destination"
-
-    echo "${source_name} 更新完成"
+    # Modern QuickFile compiles with the target Rust toolchain. Validate the
+    # source boundary and keep its installation rule byte-for-byte on all CPUs.
+    if ! python3 "$BASE_PATH/quickfile_verify.py" "$temporary/source/quickfile/Makefile"; then
+        rm -rf -- "$temporary"
+        return 1
+    fi
+    mkdir -p "${target_dir%/*}" || { rm -rf -- "$temporary"; return 1; }
+    rm -rf -- "$target_dir" || { rm -rf -- "$temporary"; return 1; }
+    mv "$temporary/source" "$target_dir" || { rm -rf -- "$temporary"; return 1; }
+    rm -rf -- "$temporary"
 }
 
 
 update_argon() {
-    replace_luci_source "argon theme" \
-        "https://github.com/jerrykuku/luci-theme-argon.git" \
+    install_managed_package luci-theme-argon \
         "$BUILD_DIR/feeds/luci/themes/luci-theme-argon"
 }
 
@@ -296,22 +272,19 @@ update_argon_config() {
         return 0
     fi
 
-    replace_luci_source "argon config" \
-        "https://github.com/jerrykuku/luci-app-argon-config.git" \
-        "$config_dir"
+    echo '错误：本仓库维护的 Argon 必须包含集成配置和兼容包，停止构建。' >&2
+    return 1
 }
 
 
 update_aurora() {
-    replace_luci_source "aurora theme" \
-        "https://github.com/eamonxg/luci-theme-aurora.git" \
+    install_managed_package luci-theme-aurora \
         "$BUILD_DIR/feeds/luci/themes/luci-theme-aurora"
 }
 
 
 update_aurora_config() {
-    replace_luci_source "aurora config" \
-        "https://github.com/eamonxg/luci-app-aurora-config.git" \
+    install_managed_package luci-app-aurora-config \
         "$BUILD_DIR/feeds/luci/applications/luci-app-aurora-config"
 }
 

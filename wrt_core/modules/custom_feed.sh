@@ -161,14 +161,13 @@ install_custom_feed() {
     local custom_feed_name
 
     local base_custom_feed_packages=(
-        xray-core xray-plugin dns2tcp dns2socks haproxy hysteria \
-        naiveproxy shadowsocks-rust sing-box v2ray-core v2ray-geodata geoview v2ray-plugin \
+        xray-plugin dns2tcp dns2socks haproxy hysteria \
+        naiveproxy shadowsocks-rust v2ray-core v2ray-geodata geoview v2ray-plugin \
         tuic-client chinadns-ng ipt2socks tcping trojan-plus simple-obfs shadowsocksr-libev \
         v2dat adguardhome luci-app-adguardhome ddns-go \
-        luci-app-ddns-go taskd luci-lib-xterm luci-lib-taskd luci-app-store quickstart \
-        luci-app-quickstart luci-app-istorex luci-app-cloudflarespeedtest netdata luci-app-netdata \
-        lucky luci-app-lucky luci-app-openclash luci-app-homeproxy luci-app-amlogic \
-        oaf open-app-filter luci-app-oaf easytier luci-app-easytier \
+        luci-app-ddns-go luci-app-cloudflarespeedtest netdata luci-app-netdata \
+        lucky luci-app-lucky luci-app-openclash luci-app-amlogic \
+        easytier luci-app-easytier \
         msd_lite luci-app-msd_lite
     )
     local required_feed_dirs=(
@@ -211,11 +210,15 @@ install_custom_feed() {
     custom_feed_dir=$(get_custom_feed_source_dir)
     custom_feed_worktree_dir=$(get_custom_feed_worktree_dir)
 
+    # Verify all repository-owned inputs before discarding any old feed tree.
+    python3 "$BASE_PATH/managed_plugins.py" check || return 1
     if [ -d "$custom_feed_dir" ]; then
         echo "清理旧的自定义 feed 目录..."
         rm -rf "$custom_feed_dir"
     fi
     mkdir -p "$custom_feed_dir"
+
+    install_managed_custom_feed "$custom_feed_dir" || return 1
 
     for source_entry in "${custom_feed_sources[@]}"; do
         IFS='|' read -r repo_label repo_url repo_branch repo_packages <<< "$source_entry"

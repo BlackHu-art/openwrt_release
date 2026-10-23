@@ -91,8 +91,8 @@ fix_homeproxy_compat() {
     # 新版上游已吸收 PR #673 的部分修复，选择能完整应用或完整反向
     # 验证的补丁版本；不按提交号猜测，也不跳过无法匹配的补丁片段。
     for patch_file in "${compatibility_patches[@]}"; do
-        if git -C "$package_dir" apply --check "$patch_file" >/dev/null 2>&1 ||
-           git -C "$package_dir" apply --reverse --check "$patch_file" >/dev/null 2>&1; then
+        if plugin_apply_patch "$package_dir" --check "$patch_file" >/dev/null 2>&1 ||
+           plugin_apply_patch "$package_dir" --reverse --check "$patch_file" >/dev/null 2>&1; then
             compatibility_patch="$patch_file"
             break
         fi
@@ -107,9 +107,9 @@ fix_homeproxy_compat() {
     # 补丁可独立预检；全部通过后才修改源码，避免后续补丁漂移时
     # 留下已应用的前序补丁或依赖变更。上游已包含的修复逐份跳过。
     for patch_file in "${patch_files[@]}"; do
-        if git -C "$package_dir" apply --check "$patch_file" >/dev/null 2>&1; then
+        if plugin_apply_patch "$package_dir" --check "$patch_file" >/dev/null 2>&1; then
             pending_patches+=("$patch_file")
-        elif git -C "$package_dir" apply --reverse --check "$patch_file" >/dev/null 2>&1; then
+        elif plugin_apply_patch "$package_dir" --reverse --check "$patch_file" >/dev/null 2>&1; then
             echo "HomeProxy 补丁已存在，跳过：${patch_file##*/}"
         else
             echo "错误：HomeProxy 源码与补丁 ${patch_file##*/} 不兼容，停止构建以便检查上游变化。" >&2
@@ -118,7 +118,7 @@ fix_homeproxy_compat() {
     done
 
     for patch_file in "${pending_patches[@]}"; do
-        git -C "$package_dir" apply "$patch_file" || return 1
+        plugin_apply_patch "$package_dir" "$patch_file" || return 1
         echo "已应用 HomeProxy 补丁：${patch_file##*/}"
     done
 
@@ -130,18 +130,10 @@ fix_homeproxy_compat() {
 
 
 update_homeproxy() {
-    local repo_url="https://github.com/immortalwrt/homeproxy.git"
     local target_dir="$(get_custom_feed_worktree_dir)/luci-app-homeproxy"
-
-    if [ -d "$target_dir" ]; then
-        echo "正在更新 homeproxy..."
-        rm -rf "$target_dir"
-        if ! git_retry clone --depth 1 "$repo_url" "$target_dir"; then
-            echo "错误：从 $repo_url 克隆 homeproxy 仓库失败" >&2
-            exit 1
-        fi
-        fix_homeproxy_compat "$target_dir" || return 1
-    fi
+    # install_custom_feed already staged the pinned local package. Do not
+    # replace it with a rolling clone before applying the existing repairs.
+    fix_homeproxy_compat "$target_dir" || return 1
 }
 
 
@@ -291,13 +283,9 @@ update_mosdns_deconfig() {
 fix_quickstart() {
     local file_path="$(get_custom_feed_worktree_dir)/luci-app-quickstart/luasrc/controller/istore_backend.lua"
     local makefile_path="$(get_custom_feed_worktree_dir)/quickstart/Makefile"
-    local url="https://gist.githubusercontent.com/puteulanus/1c180fae6bccd25e57eb6d30b7aa28aa/raw/istore_backend.lua"
     if [ -f "$file_path" ]; then
         echo "正在修复 quickstart..."
-        if ! curl_retry -fsSL -o "$file_path" "$url"; then
-            echo "错误：从 $url 下载 istore_backend.lua 失败" >&2
-            exit 1
-        fi
+        install_managed_support compat/istore_backend.lua "$file_path" || return 1
     fi
 
     if [ -f "$makefile_path" ]; then
@@ -314,30 +302,11 @@ fix_quickstart() {
 
 
 update_oaf_deconfig() {
-    local conf_path="$(get_custom_feed_worktree_dir)/open-app-filter/files/appfilter.config"
-    local uci_def="$(get_custom_feed_worktree_dir)/luci-app-oaf/root/etc/uci-defaults/94_feature_3.0"
-    local disable_path="$(get_custom_feed_worktree_dir)/luci-app-oaf/root/etc/uci-defaults/99_disable_oaf"
-
-    if [ -d "${conf_path%/*}" ] && [ -f "$conf_path" ]; then
-        sed -i \
-            -e "s/record_enable '1'/record_enable '0'/g" \
-            -e "s/disable_hnat '1'/disable_hnat '0'/g" \
-            -e "s/auto_load_engine '1'/auto_load_engine '0'/g" \
-            "$conf_path"
-    fi
-
-    if [ -d "${uci_def%/*}" ] && [ -f "$uci_def" ]; then
-        sed -i '/\(disable_hnat\|auto_load_engine\)/d' "$uci_def"
-
-        cat >"$disable_path" <<-EOF
-#!/bin/sh
-[ "\$(uci get appfilter.global.enable 2>/dev/null)" = "0" ] && {
-    /etc/init.d/appfilter disable
-    /etc/init.d/appfilter stop
-}
-EOF
-        chmod +x "$disable_path"
-    fi
+    local feed_dir
+    feed_dir=$(get_custom_feed_worktree_dir)
+    # The managed package has a reviewed fwx schema. Unknown future schemas
+    # must stop here instead of falling back to obsolete no-op substitutions.
+    python3 "$BASE_PATH/oaf_compat.py" "$feed_dir/open-app-filter" "$feed_dir/luci-app-oaf"
 }
 
 

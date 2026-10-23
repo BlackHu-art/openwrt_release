@@ -96,11 +96,12 @@ assert_single_owner
 echo 'stale standalone payload removal and repeated setup: PASS'
 
 new_case legacy
-update_argon_config
-for path in "${payloads[@]}"; do
-    [[ $(cat "$app_dir/$path") == legacy ]] || fail "legacy settings missing: $path"
-done
-echo 'legacy theme retains standalone settings: PASS'
+printf '%s\n' untouched > "$app_dir/keep"
+if update_argon_config; then
+    fail 'unreviewed legacy theme was accepted instead of the managed integrated source'
+fi
+[[ $(cat "$app_dir/keep") == untouched ]] || fail 'unsupported theme changed existing source'
+echo 'unsupported legacy source preserves existing settings: PASS'
 
 new_case missing-compat
 integrate_theme

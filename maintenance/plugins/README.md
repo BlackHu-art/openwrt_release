@@ -1,12 +1,21 @@
 # 插件源码维护区
 
-这里保存第一批五组插件的六份原始源码快照，并追加 SSR Plus+ 的固定版本迁移评估。第一批来源沿用本项目当前构建脚本；SSR 专项另外保存 `v198.2` 原始仓库和当前 `190-r11` 的派生比较副本。固件构建仍由 `wrt_core/modules/` 与 `wrt_core/update.sh` 获取和处理源码，不从此目录取源码，编译配置与 feeds 没有改变。Passwall / Passwall2 的 TLS、启动入口、共享 Xray 及源码准备流程回归会读取这里的部分原始快照，维护快照更新后也需运行对应回归。
+这里保存第一批五组插件的六份原始参考快照，并追加 SSR Plus+ 的固定版本迁移评估。
+本目录是 **reference-only** 维护区，不是固件源码输入；第一批来源记录的是采集时构建脚本的来源。
+SSR 专项另外保存 `v198.2` 原始仓库和 `190-r11` 派生比较副本。
+Passwall / Passwall2 的部分回归会读取这里的快照，更新后仍需运行对应回归。
+
+本次实际接入固件准备流程的 16 个顶层受管源码单元位于
+[`wrt_core/managed/`](../../wrt_core/managed/README.md)，由其自己的
+[`sources.lock.json`](../../wrt_core/managed/sources.lock.json) 和 loader 管理。
+这与本目录的参考快照锁文件是两个独立用途：更新本维护区不会自动切换构建来源，
+也不能把参考快照的版本表当作当前固件版本表。
 
 获取日期：2026-10-22（Asia/Shanghai）。项目基线：`6d76ce124426086bbc5f90a9fcb9fcc0ba3b0a41`。完整来源、提交、Git tree、版本原始字段和内容清单入口见 [sources.lock.json](sources.lock.json)。
 
 ## 第一批来源与版本
 
-| 对象及本地目录 | 构建采用的来源 | 本次解析分支 | 上游提交 | 软件包版本字段 |
+| 对象及本地目录 | 快照来源（采集时的构建来源） | 本次解析分支 | 上游提交 | 软件包版本字段 |
 | --- | --- | --- | --- | --- |
 | [SmartDNS 软件包](smartdns/package) | [ZqinKing/openwrt-smartdns](https://github.com/ZqinKing/openwrt-smartdns) | 默认分支 `master` | `cdf0de1d3e64` | `1.2025.47-1` |
 | [SmartDNS LuCI](smartdns/luci-app-smartdns) | [pymumu/luci-app-smartdns](https://github.com/pymumu/luci-app-smartdns) | 默认分支 `master` | `581e5e816d92` | `1.2026.48.2-2` |
@@ -43,7 +52,7 @@
 | OpenClash | [fix_openclash_compat](../../wrt_core/modules/plugin_compat.sh) 应用五份补丁：原有 WAN 子网、checksum，以及 Ruby AST、dashboard 状态、文件名/目录校验 | [plugin-runtime](../../tests/fixtures/plugin-runtime/README.md) 的下载函数与 [0.48.002 完整文件](../../tests/fixtures/openclash/0.48.002/README.md)；真实 Ruby、JavaScript、Lua 入口回归 |
 | AdGuard Home | [update_adguardhome](../../wrt_core/modules/service_fixes.sh) 获取源码后调用 `fix_adguardhome_compat`，应用稳定更新安全与无需更新时不执行 UPX 两份补丁；[三文件 blob 基线](../../wrt_core/compat/adguardhome/source-files.tsv) 在写入前校验 | [plugin-runtime](../../tests/fixtures/plugin-runtime/README.md) 的固定更新器、下载配置及 Lua 控制器；补丁组合、重复执行与源码漂移回归 |
 
-SSRPlus、HomeProxy 等已有固定测试基线继续保留在 `tests/fixtures/`，本次不重复搬迁。原始维护快照与已应用补丁的构建源码可能存在预期差异。源码获取成功和校验一致只说明快照完整，不代表新上游已通过固件构建或路由器运行验收。
+SSRPlus、HomeProxy 等已有固定测试基线继续保留在 `tests/fixtures/`；HomeProxy 的实际构建输入现已另行固定在 `wrt_core/managed/`。原始维护快照与已应用补丁的构建源码可能存在预期差异。源码获取成功和校验一致只说明快照完整，不代表新上游已通过固件构建或路由器运行验收。
 
 当前补丁行为与验证边界见 [插件兼容性说明](../../docs/plugin-compatibility.md)。Xray 配方版本调整的来源与哈希单独记录在 [共享核心版本记录](../../wrt_core/compat/proxy-cores/xray-26.7.11.json)，不改写本维护区的原始源码和来源锁文件。
 

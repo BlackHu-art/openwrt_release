@@ -43,6 +43,8 @@ class ValidationGates(unittest.TestCase):
             'wrt_core/patches/xray-core-*.patch', 'wrt_core/compat/proxy-cores/**',
             'maintenance/plugins/passwall/**', 'maintenance/plugins/passwall2/**',
             'maintenance/plugins/manifests/**', 'wrt_core/patches/homeproxy-*.patch',
+            'wrt_core/managed/**', 'wrt_core/managed_plugins.py',
+            'wrt_core/quickfile_verify.py', 'wrt_core/oaf_compat.py',
         }
         for event in ('push', 'pull_request'):
             self.assertFalse(required - set(triggers[event]['paths']), (event, required - set(triggers[event]['paths'])))
