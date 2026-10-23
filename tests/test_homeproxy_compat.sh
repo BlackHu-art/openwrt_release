@@ -26,7 +26,7 @@ fail() {
 fixture_dir="$repo_root/tests/fixtures/homeproxy"
 generator_path=root/etc/homeproxy/scripts/generate_client.uc
 old_generator_blob=890d23b0642a6b748805513c953782026f59d25e
-fixed_generator_blob=c216f07507a4c47d090e5a0ca86c7d58551be096
+fixed_generator_blob=050d4e2a8b3b7f2071a0c3bcf723fd717af0437f
 patches=(
     homeproxy-7c6ded7-sing-box-1.14.patch
     homeproxy-1a32fca-acl-domains.patch
@@ -77,7 +77,7 @@ assert_upstream_fixes() {
     local manifest=${2:-$fixture_dir/patched-blobs.txt}
     while read -r blob path; do
         [[ $(git hash-object --no-filters "$package_dir/$path") == "$blob" ]] ||
-            fail "unexpected patched content: $path"
+            fail "unexpected patched content: $path (expected $blob, got $(git hash-object --no-filters "$package_dir/$path"))"
     done <"$manifest"
     bash -n "$package_dir/root/etc/init.d/homeproxy"
     bash -n "$package_dir/root/etc/uci-defaults/luci-homeproxy-features"

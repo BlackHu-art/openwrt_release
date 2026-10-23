@@ -1,16 +1,50 @@
 #!/usr/bin/env bash
 # install_feeds 前的软件包源码替换与补齐。
 
-update_golang() {
-    if [[ -d ./feeds/packages/lang/golang ]]; then
-        echo "正在更新 golang 软件包..."
-        \rm -rf ./feeds/packages/lang/golang
-        if ! git_retry clone --depth 1 -b "$GOLANG_BRANCH" "$GOLANG_REPO" ./feeds/packages/lang/golang; then
-            echo "错误：克隆 golang 仓库 $GOLANG_REPO 失败" >&2
-            exit 1
-        fi
+update_golang() (
+    local target="${BUILD_DIR:?BUILD_DIR is required}/feeds/packages/lang/golang"
+    local parent scratch='' recipe major patch declarations patch_declarations lowest
+    parent="${target%/*}"
+    if [[ -L "$target" || ( -e "$target" && ! -d "$target" ) ]]; then
+        echo "错误：Go 源码目标不是普通目录：$target" >&2
+        return 1
     fi
-}
+    mkdir -p "$parent" || return 1
+    scratch=$(mktemp -d "$parent/.golang-update.XXXXXX") || return 1
+    trap 'if [[ -n "$scratch" ]]; then if [[ -d "$scratch/previous" ]]; then echo "错误：旧 Go 源码保留在 $scratch/previous，需恢复后重试。" >&2; else rm -rf -- "$scratch"; fi; fi' EXIT
+    echo "正在更新 golang 软件包..."
+    # 先验证完整下载；网络失败或上游配方漂移不得破坏可用旧源码。
+    if ! git_retry clone --depth 1 -b "$GOLANG_BRANCH" "$GOLANG_REPO" "$scratch/source"; then
+        echo "错误：克隆 golang 仓库 $GOLANG_REPO 失败，原源码未改动。" >&2
+        return 1
+    fi
+    recipe="$scratch/source/golang/Makefile"
+    if [[ ! -f "$recipe" || -L "$recipe" ]]; then
+        echo "错误：Go 配方不存在或不是普通文件：$recipe" >&2
+        return 1
+    fi
+    declarations=$(grep -Ec '^GO_VERSION_MAJOR_MINOR[[:space:]]*:=' "$recipe" || true)
+    patch_declarations=$(grep -Ec '^GO_VERSION_PATCH[[:space:]]*:=' "$recipe" || true)
+    major=$(sed -nE 's/^GO_VERSION_MAJOR_MINOR[[:space:]]*:=[[:space:]]*([0-9]+\.[0-9]+)[[:space:]]*$/\1/p' "$recipe") || return 1
+    patch=$(sed -nE 's/^GO_VERSION_PATCH[[:space:]]*:=[[:space:]]*([0-9]+)[[:space:]]*$/\1/p' "$recipe") || return 1
+    if [[ "$declarations" != 1 || "$patch_declarations" != 1 || ! "$major" =~ ^[0-9]+\.[0-9]+$ || ! "$patch" =~ ^[0-9]+$ ]]; then
+        echo '错误：Go 版本字段缺失、重复或格式变化，原源码未改动。' >&2
+        return 1
+    fi
+    lowest=$(printf '%s\n' 1.27.3 "$major.$patch" | sort -V | head -n 1) || return 1
+    if [[ "$lowest" != 1.27.3 ]]; then
+        echo "错误：需要 Go >= 1.27.3，下载配方为 $major.$patch，原源码未改动。" >&2
+        return 1
+    fi
+    if [[ -d "$target" ]]; then
+        mv -- "$target" "$scratch/previous" || return 1
+    fi
+    if ! mv -- "$scratch/source" "$target"; then
+        [[ ! -d "$scratch/previous" ]] || mv -- "$scratch/previous" "$target"
+        return 1
+    fi
+    rm -rf -- "$scratch/previous" || return 1
+)
 
 
 check_default_settings() {
@@ -285,6 +319,8 @@ update_aurora() {
 
 update_aurora_config() {
     install_managed_package luci-app-aurora-config \
+        "$BUILD_DIR/feeds/luci/applications/luci-app-aurora-config" || return 1
+    python3 "$BASE_PATH/theme_compat.py" \
         "$BUILD_DIR/feeds/luci/applications/luci-app-aurora-config"
 }
 

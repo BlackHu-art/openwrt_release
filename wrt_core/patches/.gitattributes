@@ -11,6 +11,7 @@ openclash-wan-subnets.patch text eol=lf whitespace=-blank-at-eol,-space-before-t
 openclash-ruby-ast.patch text eol=lf whitespace=-blank-at-eol,-blank-at-eof,-space-before-tab
 openclash-dashboard-switch.patch text eol=lf whitespace=-blank-at-eol,-blank-at-eof,-space-before-tab
 openclash-filename-safety.patch text eol=lf whitespace=-blank-at-eol,-blank-at-eof,-space-before-tab
+openclash-tun-stack.patch text eol=lf whitespace=-blank-at-eol,-blank-at-eof,-space-before-tab
 ssrplus-*.patch text eol=lf whitespace=-blank-at-eol,-blank-at-eof,-space-before-tab
-passwall*-singbox-*.patch text eol=lf whitespace=-blank-at-eol,-blank-at-eof,-space-before-tab
+passwall2-singbox-*.patch text eol=lf whitespace=-blank-at-eol,-blank-at-eof,-space-before-tab
 xray-core-*.patch text eol=lf whitespace=-blank-at-eol,-space-before-tab

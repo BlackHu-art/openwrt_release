@@ -1,0 +1,14 @@
+Subject: SSR Plus: identify current Xray transport compatibility repair
+
+Keep all twenty-five published patches intact for complete legacy source
+normalization and preserve every existing node and user setting.
+
+--- a/Makefile
++++ b/Makefile
+@@ -5,5 +5,5 @@
+ PKG_NAME:=luci-app-ssr-plus
+ PKG_VERSION:=190
+-PKG_RELEASE:=11
++PKG_RELEASE:=12
+ # Local repair set: SSR-20261021; source provenance is embedded in the package.
+ 

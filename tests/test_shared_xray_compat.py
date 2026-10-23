@@ -181,7 +181,7 @@ def _subscribe_ssr_node(uri):
 def generated_configs():
     """Return named actual outputs; no post-generation compatibility rewriting."""
     cases = {}
-    for plugin in ("passwall", "passwall2"):
+    for plugin in ("passwall2",):
         for protocol in ("vless", "trojan", "shadowsocks"):
             for transport in TRANSPORTS:
                 label = "/".join((plugin, protocol, transport, "tls"))
@@ -194,6 +194,24 @@ def generated_configs():
                        reality_shortId="0123456789abcdef", fingerprint="chrome",
                        flow="xtls-rprx-vision")
         cases[plugin + "/vless/raw/reality"] = generate_passwall_config(plugin, reality)
+        # These newer generator paths used to evade the shared-core gate.
+        masque = passwall_node("masque")
+        masque.pop("password")  # Anonymous MASQUE does not send HTTP Basic auth.
+        masque.update(masque_path="/.well-known/masque/{ipproto}/{target}/")
+        cases[plugin + "/masque"] = generate_passwall_config(plugin, masque)
+        for guise in ("none", "srtp", "dns"):
+            mkcp = passwall_node("vless", "mkcp")
+            mkcp.update(mkcp_guise=guise, mkcp_seed="fixture-seed", mkcp_domain="mask.example")
+            cases[plugin + "/vless/mkcp/" + guise] = generate_passwall_config(plugin, mkcp)
+        for obfs in ("salamander", "gecko"):
+            hy2 = passwall_node("hysteria2")
+            hy2.update(hysteria2_auth_password="fixture-auth", hysteria2_obfs_type=obfs,
+                       hysteria2_obfs_password="fixture-obfs", hysteria2_obfs_MinPacketSize="600",
+                       hysteria2_obfs_MaxPacketSize="1100")
+            cases[plugin + "/hysteria2/" + obfs] = generate_passwall_config(plugin, hy2)
+        xhttp = passwall_node("vless", "xhttp")
+        xhttp.update(xhttp_host="cdn.example", xhttp_path="/fixture", xhttp_mode="auto")
+        cases[plugin + "/vless/xhttp/tls"] = generate_passwall_config(plugin, xhttp)
         cases[plugin + "/socks-http-helper"] = generate_passwall_config(
             plugin, entrypoint="gen_proto_config", runtime_args={
                 "local_http_port": "12346", "server_proto": "socks",
@@ -242,19 +260,32 @@ def generated_configs():
 
 @unittest.skipUnless(ssr_subscription.LuaRuntime, "optional lupa.lua51 is required")
 class SharedXrayGeneratorContracts(unittest.TestCase):
+    def test_new_transport_parameters_reach_the_final_config(self):
+        cases = generated_configs()
+        outbound = cases["passwall2/masque"]["outbounds"][0]
+        self.assertEqual(outbound["protocol"], "masque")
+        self.assertEqual(outbound["streamSettings"]["method"], "masque")
+        self.assertEqual(outbound["streamSettings"]["masqueSettings"]["path"],
+                         "/.well-known/masque/{ipproto}/{target}/")
+        mask = cases["passwall2/vless/mkcp/dns"]["outbounds"][0]["streamSettings"]["finalmask"]
+        self.assertIn({"type": "mkcp-legacy", "settings": {"value": "fixture-seed"}}, mask["udp"])
+        gecko = cases["passwall2/hysteria2/gecko"]["outbounds"][0]["streamSettings"]["finalmask"]["udp"][0]
+        self.assertEqual(gecko["type"], "salamander")
+        self.assertEqual(gecko["settings"]["password"], "fixture-obfs")
+
     def test_generated_minimum_versions_fit_shared_core(self):
         target = tuple(map(int, TARGET_VERSION.split(".")))
         for label, config in generated_configs().items():
             with self.subTest(config=label):
                 self.assertTrue(config["inbounds"])
                 self.assertTrue(config["outbounds"])
-                if label.startswith(("passwall/", "passwall2/")):
+                if label.startswith(("passwall2/",)):
                     required = tuple(map(int, config["version"]["min"].split(".")))
                     self.assertLessEqual(required, target)
 
     def test_transparent_dns_and_shunt_cases_exercise_the_named_paths(self):
         cases = generated_configs()
-        for plugin in ("passwall", "passwall2"):
+        for plugin in ("passwall2",):
             with self.subTest(plugin=plugin):
                 config = cases[plugin + "/transparent-tcp-udp-dns"]
                 self.assertTrue(config["dns"]["servers"])
@@ -267,7 +298,7 @@ class SharedXrayGeneratorContracts(unittest.TestCase):
 
     def test_vmess_and_reality_cases_exercise_the_named_protocols(self):
         cases = generated_configs()
-        for plugin in ("passwall", "passwall2", "ssrplus"):
+        for plugin in ("passwall2", "ssrplus"):
             with self.subTest(plugin=plugin):
                 vmess = cases[plugin + "/vmess/ws/tls"]["outbounds"][0]
                 self.assertEqual(vmess["protocol"], "vmess")

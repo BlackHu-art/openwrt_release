@@ -1,6 +1,6 @@
 # 项目文件布局
 
-本项目按构建、插件维护、验证、文档四类职责组织。已有构建入口、设备配置、补丁和测试路径保持不变；新增源码集中在 `maintenance/plugins/`，不接入 feeds，不改变当前固件的软件包选择。
+本项目按构建、源码维护、验证和文档组织。`wrt_core/managed/` 是已接入固件的本地受管输入，`maintenance/plugins/` 保存独立参考快照。公共 `proxy` 片段选择 Passwall2，Passwall1 插件源码与构建入口已移除。
 
 ## 目录总览
 
@@ -11,6 +11,9 @@ openwrt_release/
 ├── wrt_core/                        # 实际参与固件构建的逻辑和配置
 │   ├── compilecfg/                  # 设备源码地址、分支、提交、配置片段
 │   ├── deconfig/                    # 设备配置、公共配置、fragments/
+│   ├── managed/                     # 16 个原始受管源码单元及版本/哈希锁
+│   ├── managed_plugins.py           # 校验并安装受管构建副本
+│   ├── theme_compat.py              # 保留配置的 Aurora 构建副本初始化修复
 │   ├── modules/                     # 源码/feeds/插件处理与构建步骤
 │   ├── patches/                     # 构建时应用的补丁及注入文件
 │   ├── compat/                      # 本地兼容实现、源码基线表和包定义
@@ -22,17 +25,16 @@ openwrt_release/
 ├── maintenance/
 │   └── plugins/                     # 用于审查和持续维护的原始上游快照
 │       ├── README.md                # 来源、版本、目录与更新流程
-│       ├── sources.lock.json        # 六份源码的提交、树和版本记录
+│       ├── sources.lock.json        # 参考源码的提交、树和版本记录
 │       ├── manifests/               # 各源码文件的 Git blob、模式和 SHA-256
 │       ├── licenses/                # 从包目录之外补充保留的上游许可证
 │       ├── smartdns/
 │       │   ├── package/             # ZqinKing/openwrt-smartdns
 │       │   └── luci-app-smartdns/   # pymumu/luci-app-smartdns
-│       ├── passwall/luci-app-passwall/
 │       ├── passwall2/luci-app-passwall2/
 │       ├── openclash/luci-app-openclash/
 │       ├── adguardhome/luci-app-adguardhome/
-│       └── ssrplus/                 # v198.2 原始仓库、190-r11 比较副本及证据
+│       └── ssrplus/                 # v198.2 原始仓库、r11 历史/r12 当前派生副本及证据
 ├── tests/
 │   ├── run_all.sh                   # 现有回归测试入口
 │   ├── windows-tests.ps1            # Windows PowerShell 安装、检查与运行入口
@@ -56,7 +58,7 @@ openwrt_release/
 | `tests/fixtures/` | 重现问题、验证补丁、检查兼容旧基线 | 仅在回归需求改变并完成审查后更新；不能随上游刷新自动覆盖 |
 | `<BUILD_DIR>/feeds/`、`custom_feed/`、`package/` | 本次固件实际编译的源码 | 由现有构建脚本拉取、替换和修正，可能在下一次构建被清理 |
 
-维护区记录的提交仅锁定本地审查快照，**不锁定下一次固件构建的插件版本**。构建依然使用 `wrt_core/modules/` 中原有的来源和分支策略。
+参考维护区的提交仅锁定审查快照。实际构建中，16 个受管单元由 `wrt_core/managed/sources.lock.json` 固定来源与原始文件，其余来源沿用 `wrt_core/modules/` 的外部获取策略；兼容修复在构建副本中应用，并通过源码与版本门槛检查。
 
 ## 构建与维护关系
 
@@ -67,7 +69,7 @@ openwrt_release/
                     │
              wrt_core/update.sh
                     │
-        上游源码与 feeds → 插件修正/补丁
+        本地受管源码 + 外部 feeds → 构建副本修正/补丁
                     │
            make defconfig → 选择检查
                     │

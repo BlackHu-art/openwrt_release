@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Verify selected LuCI packages and explicit Docker exclusions after defconfig."""
+"""Verify selected LuCI packages and explicit package exclusions after defconfig."""
 
 import argparse
 from pathlib import Path
@@ -16,6 +16,8 @@ DOCKER_PACKAGES = {
     "luci-app-dockerman", "luci-i18n-dockerman-zh-cn", "luci-lib-docker",
     "docker", "dockerd", "docker-compose", "containerd", "runc",
 }
+REMOVED_PACKAGES = {"luci-app-passwall", "luci-i18n-passwall-zh-cn"}
+EXCLUDED_PACKAGES = DOCKER_PACKAGES | REMOVED_PACKAGES
 
 
 def selections(path: Path) -> dict[str, str]:
@@ -45,14 +47,14 @@ def main() -> int:
     reenabled = [
         f"{name}: requested=n, resolved={value}"
         for name, value in resolved.items()
-        if name in DOCKER_PACKAGES and requested.get(name) == "n" and value != "n"
+        if name in EXCLUDED_PACKAGES and requested.get(name) == "n" and value != "n"
     ]
     if missing:
         print("ERROR: selected LuCI packages were dropped by make defconfig:", file=sys.stderr)
         print("\n".join(f"  - {item}" for item in missing), file=sys.stderr)
         print("Check feed sources, package dependencies and target support.", file=sys.stderr)
     if reenabled:
-        print("ERROR: explicitly disabled Docker packages were reenabled:", file=sys.stderr)
+        print("ERROR: explicitly disabled packages were reenabled:", file=sys.stderr)
         print("\n".join(f"  - {item}" for item in reenabled), file=sys.stderr)
         print("Check package dependencies and per-device package lists.", file=sys.stderr)
     if missing or reenabled:

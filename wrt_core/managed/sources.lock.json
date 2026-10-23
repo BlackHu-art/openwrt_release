@@ -4452,7 +4452,7 @@
           "bytes": 1463
         }
       ],
-      "selection_reason": "Keep reviewed original recipe; existing guarded xray-core-26.7.11.patch still selects final core version. Do not adopt unverified rolling 26.10.21."
+      "selection_reason": "Keep the reviewed raw 26.3.27 recipe byte-identical; guarded xray-core-26.10.21.patch selects final core 26.10.21 with Go >=1.27.3. See compat/proxy-cores/xray-26.10.21.json."
     },
     "sing-box": {
       "path": "packages/sing-box",

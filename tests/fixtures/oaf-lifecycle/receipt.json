@@ -1,0 +1,100 @@
+{
+  "captured_on": "2026-10-23",
+  "note": "All recorded immutable target commits have identical functions.sh and rc.common bytes. Full upstream files retained; tests verify hashes before executing lifecycle functions.",
+  "targets": [
+    {
+      "target": "viking",
+      "repo": "VIKINGYFY/immortalwrt",
+      "ref": "main",
+      "commit": "f9b0ce7650fdcc7f4793256a3ae43c1132e2bc49",
+      "files": {
+        "functions.sh": {
+          "url": "https://raw.githubusercontent.com/VIKINGYFY/immortalwrt/f9b0ce7650fdcc7f4793256a3ae43c1132e2bc49/package/base-files/files/lib/functions.sh",
+          "sha256": "9517db82e694624559c41f3773f3f18bf5d3cd1b0ffc41bfb514fa2c08d08062"
+        },
+        "rc.common": {
+          "url": "https://raw.githubusercontent.com/VIKINGYFY/immortalwrt/f9b0ce7650fdcc7f4793256a3ae43c1132e2bc49/package/base-files/files/etc/rc.common",
+          "sha256": "dd8ae95c78d10cccf78cb487874f163ace4c1ee14dace05fe28393b19ba639e4"
+        }
+      }
+    },
+    {
+      "target": "libwrt",
+      "repo": "LiBwrt/openwrt-6.x",
+      "ref": "25.12-nss",
+      "commit": "3a3d0b08595530070ad9cd8a20c0ae4ea3e77f70",
+      "files": {
+        "functions.sh": {
+          "url": "https://raw.githubusercontent.com/LiBwrt/openwrt-6.x/3a3d0b08595530070ad9cd8a20c0ae4ea3e77f70/package/base-files/files/lib/functions.sh",
+          "sha256": "9517db82e694624559c41f3773f3f18bf5d3cd1b0ffc41bfb514fa2c08d08062"
+        },
+        "rc.common": {
+          "url": "https://raw.githubusercontent.com/LiBwrt/openwrt-6.x/3a3d0b08595530070ad9cd8a20c0ae4ea3e77f70/package/base-files/files/etc/rc.common",
+          "sha256": "dd8ae95c78d10cccf78cb487874f163ace4c1ee14dace05fe28393b19ba639e4"
+        }
+      }
+    },
+    {
+      "target": "viking-pinned",
+      "repo": "VIKINGYFY/immortalwrt",
+      "ref": "project-pinned AX6600 source",
+      "commit": "3fd1e27a511851b41cf082b067b60099e8e026c4",
+      "files": {
+        "functions.sh": {
+          "url": "https://raw.githubusercontent.com/VIKINGYFY/immortalwrt/3fd1e27a511851b41cf082b067b60099e8e026c4/package/base-files/files/lib/functions.sh",
+          "sha256": "9517db82e694624559c41f3773f3f18bf5d3cd1b0ffc41bfb514fa2c08d08062"
+        },
+        "rc.common": {
+          "url": "https://raw.githubusercontent.com/VIKINGYFY/immortalwrt/3fd1e27a511851b41cf082b067b60099e8e026c4/package/base-files/files/etc/rc.common",
+          "sha256": "dd8ae95c78d10cccf78cb487874f163ace4c1ee14dace05fe28393b19ba639e4"
+        }
+      }
+    }
+  ],
+  "license_provenance": {
+    "reviewed_on": "2026-10-23",
+    "scope": "Repository COPYING and base-files package license declarations for these two source fixtures only; provenance recording, not a legal conclusion.",
+    "copying_local_path": "COPYING",
+    "copying_sha256": "24703ff3a6e832c7d92794e6a00961f75c28afedb803794b44c11763a8722e69",
+    "referenced_license_local_path": "LICENSES/GPL-2.0",
+    "referenced_license_sha256": "4a4d5c03ac503d809243f9d8de5517601e345990a85b6a59666c3f1caca02474",
+    "sources": [
+      {
+        "target": "viking-captured",
+        "repository": "VIKINGYFY/immortalwrt",
+        "commit": "f9b0ce7650fdcc7f4793256a3ae43c1132e2bc49",
+        "copying_url": "https://raw.githubusercontent.com/VIKINGYFY/immortalwrt/f9b0ce7650fdcc7f4793256a3ae43c1132e2bc49/COPYING",
+        "copying_sha256": "24703ff3a6e832c7d92794e6a00961f75c28afedb803794b44c11763a8722e69",
+        "license_url": "https://raw.githubusercontent.com/VIKINGYFY/immortalwrt/f9b0ce7650fdcc7f4793256a3ae43c1132e2bc49/LICENSES/GPL-2.0",
+        "license_sha256": "4a4d5c03ac503d809243f9d8de5517601e345990a85b6a59666c3f1caca02474",
+        "package_makefile_url": "https://raw.githubusercontent.com/VIKINGYFY/immortalwrt/f9b0ce7650fdcc7f4793256a3ae43c1132e2bc49/package/base-files/Makefile",
+        "package_makefile_sha256": "d26c0d961e16256e56e17017d96dd67db51c511d79e5ae0a6be59ccbfb40f4a8",
+        "package_license_declaration": "GPL-2.0"
+      },
+      {
+        "target": "viking-pinned",
+        "repository": "VIKINGYFY/immortalwrt",
+        "commit": "3fd1e27a511851b41cf082b067b60099e8e026c4",
+        "copying_url": "https://raw.githubusercontent.com/VIKINGYFY/immortalwrt/3fd1e27a511851b41cf082b067b60099e8e026c4/COPYING",
+        "copying_sha256": "24703ff3a6e832c7d92794e6a00961f75c28afedb803794b44c11763a8722e69",
+        "license_url": "https://raw.githubusercontent.com/VIKINGYFY/immortalwrt/3fd1e27a511851b41cf082b067b60099e8e026c4/LICENSES/GPL-2.0",
+        "license_sha256": "4a4d5c03ac503d809243f9d8de5517601e345990a85b6a59666c3f1caca02474",
+        "package_makefile_url": "https://raw.githubusercontent.com/VIKINGYFY/immortalwrt/3fd1e27a511851b41cf082b067b60099e8e026c4/package/base-files/Makefile",
+        "package_makefile_sha256": "71ba94750fb93c7c2b3672162893405f092c6bb07abac3bfd362ad0c3408526a",
+        "package_license_declaration": "GPL-2.0"
+      },
+      {
+        "target": "libwrt",
+        "repository": "LiBwrt/openwrt-6.x",
+        "commit": "3a3d0b08595530070ad9cd8a20c0ae4ea3e77f70",
+        "copying_url": "https://raw.githubusercontent.com/LiBwrt/openwrt-6.x/3a3d0b08595530070ad9cd8a20c0ae4ea3e77f70/COPYING",
+        "copying_sha256": "24703ff3a6e832c7d92794e6a00961f75c28afedb803794b44c11763a8722e69",
+        "license_url": "https://raw.githubusercontent.com/LiBwrt/openwrt-6.x/3a3d0b08595530070ad9cd8a20c0ae4ea3e77f70/LICENSES/GPL-2.0",
+        "license_sha256": "4a4d5c03ac503d809243f9d8de5517601e345990a85b6a59666c3f1caca02474",
+        "package_makefile_url": "https://raw.githubusercontent.com/LiBwrt/openwrt-6.x/3a3d0b08595530070ad9cd8a20c0ae4ea3e77f70/package/base-files/Makefile",
+        "package_makefile_sha256": "08103be9602a2a6b4b20d13e2fa5ee646100f03b1356efd3e6d5eaf2a02a9009",
+        "package_license_declaration": "GPL-2.0"
+      }
+    ]
+  }
+}

@@ -8,7 +8,7 @@ import sys
 import tempfile
 import unittest
 
-import test_passwall_tls as shell
+import test_passwall2_tls as shell
 
 ROOT = Path(__file__).resolve().parents[1]
 ORIGINAL = ROOT / "tests/fixtures/quickfile/13f1a61/quickfile/Makefile"

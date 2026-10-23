@@ -15,16 +15,19 @@ on:
       - 'wrt_core/managed/**'
       - 'wrt_core/managed_plugins.py'
       - 'wrt_core/quickfile_verify.py'
+      - 'wrt_core/check_selected_plugins.py'
+      - 'wrt_core/deconfig/**'
       - 'wrt_core/oaf_compat.py'
+      - 'wrt_core/theme_compat.py'
+      - 'wrt_core/patches/990_set_argon_primary'
       - 'wrt_core/modules/**'
       - 'wrt_core/patches/ssrplus-*.patch'
       - 'wrt_core/patches/openclash-*.patch'
       - 'wrt_core/patches/adguardhome-*.patch'
       - 'wrt_core/compat/adguardhome/**'
-      - 'wrt_core/patches/passwall*-singbox-*.patch'
+      - 'wrt_core/patches/passwall2-singbox-*.patch'
       - 'wrt_core/patches/xray-core-*.patch'
       - 'wrt_core/compat/proxy-cores/**'
-      - 'maintenance/plugins/passwall/**'
       - 'maintenance/plugins/passwall2/**'
       - 'maintenance/plugins/manifests/**'
       - 'wrt_core/patches/homeproxy-*.patch'
@@ -44,16 +47,19 @@ on:
       - 'wrt_core/managed/**'
       - 'wrt_core/managed_plugins.py'
       - 'wrt_core/quickfile_verify.py'
+      - 'wrt_core/check_selected_plugins.py'
+      - 'wrt_core/deconfig/**'
       - 'wrt_core/oaf_compat.py'
+      - 'wrt_core/theme_compat.py'
+      - 'wrt_core/patches/990_set_argon_primary'
       - 'wrt_core/modules/**'
       - 'wrt_core/patches/ssrplus-*.patch'
       - 'wrt_core/patches/openclash-*.patch'
       - 'wrt_core/patches/adguardhome-*.patch'
       - 'wrt_core/compat/adguardhome/**'
-      - 'wrt_core/patches/passwall*-singbox-*.patch'
+      - 'wrt_core/patches/passwall2-singbox-*.patch'
       - 'wrt_core/patches/xray-core-*.patch'
       - 'wrt_core/compat/proxy-cores/**'
-      - 'maintenance/plugins/passwall/**'
       - 'maintenance/plugins/passwall2/**'
       - 'maintenance/plugins/manifests/**'
       - 'wrt_core/patches/homeproxy-*.patch'
@@ -73,6 +79,7 @@ jobs:
       REQUIRE_XRAY_TEST_CORE: '1'
       OPENCLASH_REQUIRE_RUBY34: '1'
       OPENCLASH_REQUIRE_NODE: '1'
+      OPENCLASH_REQUIRE_MIHOMO: '1'
     steps:
       - uses: actions/checkout@v7.0.0
       - uses: ruby/setup-ruby@e1bd6146574da5e0795075b5319b300edb30c5b0 # v1
@@ -99,6 +106,12 @@ jobs:
         run: |
           python tests/fetch_xray_test_core.py --output "$RUNNER_TEMP/shared-xray/xray"
           echo "XRAY_TEST_BINARY=$RUNNER_TEMP/shared-xray/xray" >> "$GITHUB_ENV"
+      - name: Fetch and verify old and new Mihomo test cores
+        run: |
+          python tests/fetch_mihomo_test_cores.py --generation old --output "$RUNNER_TEMP/mihomo-old/mihomo"
+          python tests/fetch_mihomo_test_cores.py --generation new --output "$RUNNER_TEMP/mihomo-new/mihomo"
+          echo "MIHOMO_OLD_TEST_BIN=$RUNNER_TEMP/mihomo-old/mihomo" >> "$GITHUB_ENV"
+          echo "MIHOMO_NEW_TEST_BIN=$RUNNER_TEMP/mihomo-new/mihomo" >> "$GITHUB_ENV"
       - name: Run project regression tests
         run: |
           ruby --version

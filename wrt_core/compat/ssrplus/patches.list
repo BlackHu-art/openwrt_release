@@ -23,3 +23,5 @@ ssrplus-ss-password.patch
 ssrplus-release-r10.patch
 ssrplus-node-references.patch
 ssrplus-release-r11.patch
+ssrplus-core-transport.patch
+ssrplus-release-r12.patch

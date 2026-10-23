@@ -30,12 +30,13 @@ semantics require the separate runtime harness.
 
 All eight subsets of the three legacy startup/DNS/persistence patches and the
 complete dependent repair set must converge to the same package, versioned
-`190-r11`. Complete r4/r5 sources retain their original nine-target manifests;
+`190-r12`. Complete r4/r5 sources retain their original nine-target manifests;
 r6/r7/r8 sources retain fourteen/sixteen/nineteen patch hashes and eleven targets,
 including the 0644 template. Complete r9 sources retain all twenty-one original
 patch hashes and their twelve-target manifest, including the unchanged generator.
 Complete r10 sources retain twenty-three original patch hashes and twelve targets.
-All upgrade to the twelve-target r11 manifest and prepare twice without drift.
+Complete r11 sources retain twenty-five original patch hashes and twelve targets.
+All upgrade to the twelve-target r12 manifest and prepare twice without drift.
 The build gate reverses complete patches only in
 an isolated copy, then compares the original Git blobs before writing any feed
 source. Unknown changes outside patch context, incomplete patches, a missing
@@ -45,7 +46,7 @@ The installed `root/usr/share/shadowsocksr/ssrp-runtime.sh` must be byte-identic
 to `wrt_core/compat/ssrplus/runtime.sh`.
 
 The full twelve-file baseline is recorded in
-`wrt_core/compat/ssrplus/source-files.tsv`; the ordered twenty-five-patch repair set is
+`wrt_core/compat/ssrplus/source-files.tsv`; the ordered twenty-seven-patch repair set is
 `wrt_core/compat/ssrplus/patches.list`. Additional unchanged fixtures cover
 `subscribe.lua`, `ssr-monitor`, `ssr-switch`, and `ssrplusupdate.sh`; the reviewed
 `ssr-rules` fixture is in the adjacent `ssrplus-persistence/` directory.
@@ -62,7 +63,7 @@ the eleven previously published baseline rows remain unchanged.
 It checks the final core JSON, with isolated UCI/OS/JSON bindings; it does not
 launch a core, perform a protocol handshake, or alter router configuration.
 Cases cover native SS Base64 credentials and explicit core selection; Trojan
-gRPC, TCP, KCP and QUIC parameters; HTTP camouflage host/path defaults; finalmask
+gRPC, TCP and KCP parameters; HTTP camouflage host/path defaults; finalmask
 JSON; independent TLS/Reality transport Host and SNI fallback; the unchanged
 VMess path; and failed subscription groups retaining old/manual nodes.
 Decoded Base64 credentials carry the exact password bytes: literal percent
@@ -82,6 +83,22 @@ matches reject the entire transaction before any write and keep the original
 configuration and MD5 cache; commit/restart failures retain the existing field
 rollback and concurrent-edit protection. The behavior requires a later actual
 subscription reparse and adds no initialization or upgrade-time migration.
+
+The r12 transport tests apply the additive real generator patch to the same
+byte-checked public fixture. They cover every mKCP header/seed combination using
+`mkcp-legacy`, Salamander-backed Gecko with retained packet sizes, and complete
+selected main/UDP/SOCKS/Netflix configurations through official Xray `run -test`.
+Legacy h2/http/h3/QUIC nodes remain in subscriptions; generation and start/restart
+preflight reject selections with those effective networks before stopping the
+existing service. WireGuard has no stream settings and Hysteria2 fixes its
+network to hysteria, so their retained transport fields remain unchanged and
+do not trigger rejection. Four real-core and sixteen selected-role/dispatcher
+cases cover those positive controls; VLESS/VMess/Trojan legacy transport
+refusals remain covered. An
+exact one-to-one old Gecko payload hash retains the SID after previously ignored
+packet-size query values become supported. Missing query sizes do not overwrite
+stored explicit sizes. A failed subscription group retains its old nodes while
+another valid group updates. These checks start no listener and contact no router.
 
 The new firstboot harness executes the actual patched init and uci-defaults in
 an isolated filesystem. Missing/empty configurations must receive the reviewed

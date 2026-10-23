@@ -7,7 +7,7 @@ import sys
 import tempfile
 import unittest
 
-import test_passwall_tls as shell
+import test_passwall2_tls as shell
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -45,7 +45,7 @@ install_managed_package luci-app-homeproxy "$target"
 update_homeproxy
 ! test -e "$target/.git"
 grep -q ucode-mod-math "$target/Makefile"
-! grep -q 'disable_expire' "$target/root/etc/homeproxy/scripts/generate_client.uc"
+grep -q 'disable_expire: strToBool(dns_disable_cache_expire)' "$target/root/etc/homeproxy/scripts/generate_client.uc"
 git hash-object --no-filters "$target/root/etc/homeproxy/scripts/generate_client.uc" > "$BUILD_DIR/first-hash"
 update_homeproxy
 git hash-object --no-filters "$target/root/etc/homeproxy/scripts/generate_client.uc" > "$BUILD_DIR/second-hash"
@@ -69,6 +69,7 @@ test -f "$BUILD_DIR/feeds/luci/themes/luci-theme-argon/compat/luci-app-argon-con
 test -f "$BUILD_DIR/feeds/luci/themes/luci-theme-argon/root/etc/config/argon"
 test -f "$BUILD_DIR/feeds/luci/themes/luci-theme-aurora/Makefile"
 test -f "$BUILD_DIR/feeds/luci/applications/luci-app-aurora-config/Makefile"
+grep -q 'defaults completed; existing settings preserved' "$BUILD_DIR/feeds/luci/applications/luci-app-aurora-config/root/etc/uci-defaults/80_aurora"
 test "$(cat "$BUILD_DIR/files/etc/config/argon")" = 'user custom theme'
 ''')
         self.assert_ok(result)
@@ -90,15 +91,15 @@ cmp "$BASE_PATH/managed/compat/istore_backend.lua" "$target/luci-app-quickstart/
 target="$BUILD_DIR/feeds/custom_feed"
 install_managed_package xray-core "$target/xray-core"
 install_managed_package sing-box "$target/sing-box"
-for plugin in passwall passwall2; do
+for plugin in passwall2; do
     mkdir -p "$target/luci-app-$plugin/luasrc/$plugin"
     cp "$BASE_PATH/../maintenance/plugins/$plugin/luci-app-$plugin/luasrc/$plugin/util_xray.lua" \
        "$target/luci-app-$plugin/luasrc/$plugin/util_xray.lua"
 done
 mkdir -p "$BUILD_DIR/feeds/packages/lang/golang/golang"
-printf 'GO_VERSION_MAJOR_MINOR:=1.26\n' > "$BUILD_DIR/feeds/packages/lang/golang/golang/Makefile"
+printf 'GO_VERSION_MAJOR_MINOR:=1.27\nGO_VERSION_PATCH:=3\n' > "$BUILD_DIR/feeds/packages/lang/golang/golang/Makefile"
 fix_xray_core_compat "$target/xray-core"
-grep -q '^PKG_VERSION:=26.7.11$' "$target/xray-core/Makefile"
+grep -q '^PKG_VERSION:=26.10.21$' "$target/xray-core/Makefile"
 grep -q '^PKG_VERSION:=1.14.3$' "$target/sing-box/Makefile"
 grep -q '^PKG_VERSION:=26.3.27$' "$BASE_PATH/managed/packages/xray-core/Makefile"
 fix_xray_core_compat "$target/xray-core"

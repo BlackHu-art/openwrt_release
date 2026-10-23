@@ -45,6 +45,14 @@ required_paths = [
 for item in required_paths:
     assert (ROOT / item).exists(), f"missing required path: {item}"
 
+# Current VIKINGYFY core fixes the firmware version in its recipe; only the
+# LiBwrt NSS feed still offers the 11.4 choice. Do not request it for every core.
+reject("wrt_core/deconfig/fragments/nss.config", "CONFIG_NSS_FIRMWARE_VERSION_11_4=y")
+for ini in (ROOT / "wrt_core/compilecfg").glob("*.ini"):
+    metadata = dict(line.split("=", 1) for line in ini.read_text().splitlines() if "=" in line)
+    if "LiBwrt/openwrt-6.x" in metadata.get("REPO_URL", "") and "nss" in metadata.get("CONFIG_FRAGMENTS", "").split(","):
+        require(f"wrt_core/deconfig/{ini.stem}.config", "CONFIG_NSS_FIRMWARE_VERSION_11_4=y")
+
 s20m_config = "wrt_core/deconfig/supergateway_s20m_immwrt.config"
 # The selected source branch defines S20M under mediatek/filogic, not mt7986.
 require(s20m_config, "CONFIG_TARGET_mediatek_filogic=y")

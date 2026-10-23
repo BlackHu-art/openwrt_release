@@ -86,11 +86,12 @@ def subscription_source(exclude_patches=()):
             raise AssertionError(result.stderr)
         for name in ("ssrplus-subscription.patch", "ssrplus-ss-parser.patch",
                      "ssrplus-transport-config.patch", "ssrplus-ss-password.patch",
-                     "ssrplus-node-references.patch"):
+                     "ssrplus-node-references.patch", "ssrplus-core-transport.patch"):
             patch = ROOT / "wrt_core/patches" / name
             if name in exclude_patches or not patch.exists():
                 continue
-            result = subprocess.run(["git", "-C", str(package), "apply", str(patch)],
+            result = subprocess.run(["git", "-C", str(package), "apply",
+                                    "--include=root/usr/share/shadowsocksr/subscribe.lua", str(patch)],
                                     capture_output=True, text=True, timeout=30)
             if result.returncode:
                 raise AssertionError(result.stderr)
@@ -377,7 +378,8 @@ print = function(value) py_log(value) end
             links.append("ss://" + credential + "@" + host + ":443#" + alias)
         self.downloads[URL_A] = base64.b64encode("\n".join(links).encode()).decode()
         current = self.source
-        self.source = subscription_source(("ssrplus-ss-password.patch", "ssrplus-node-references.patch"))
+        self.source = subscription_source(("ssrplus-ss-password.patch", "ssrplus-node-references.patch",
+                                           "ssrplus-core-transport.patch"))
         self.assertEqual(self.run_subscriber(), 0, self.logs)
         self.source = current
         sid = next(sid for sid, node in self.sections.items() if node.get("alias") == "Percent")

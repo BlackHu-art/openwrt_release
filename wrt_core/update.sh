@@ -6,7 +6,7 @@ error_handler() {
 
 FEEDS_CONF="feeds.conf.default"
 GOLANG_REPO="https://github.com/sbwml/packages_lang_golang"
-GOLANG_BRANCH="26.x"
+GOLANG_BRANCH="27.x"
 THEME_SET="argon"
 LAN_ADDR="10.0.0.1"
 
@@ -60,11 +60,10 @@ stage_pre_install_source_fixes() {
     update_homeproxy || return 1
     fix_ssrplus_compat "$(get_custom_feed_worktree_dir)/luci-app-ssr-plus" || return 1
     fix_openclash_compat "$(get_custom_feed_worktree_dir)/luci-app-openclash" || return 1
-    fix_passwall_compat "$(get_custom_feed_worktree_dir)/luci-app-passwall" passwall || return 1
-    fix_passwall_compat "$(get_custom_feed_worktree_dir)/luci-app-passwall2" passwall2 || return 1
+    fix_passwall2_compat "$(get_custom_feed_worktree_dir)/luci-app-passwall2" || return 1
     fix_default_set
     fix_miniupnpd || return 1
-    update_golang
+    update_golang || return 1
     fix_xray_core_compat "$(get_custom_feed_worktree_dir)/xray-core" || return 1
     change_dnsmasq2full
     fix_mk_def_depends
@@ -78,7 +77,6 @@ stage_pre_install_source_fixes() {
     update_tcping
     add_ax6600_led
     set_custom_task
-    apply_passwall_tweaks
     update_nss_pbuf_performance
     set_build_signature
     update_nss_diag

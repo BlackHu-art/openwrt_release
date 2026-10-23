@@ -91,7 +91,7 @@ Python 依赖固定在 [`tests/requirements.txt`](../tests/requirements.txt)，�
 | PyYAML | `6.0.3` | YAML 配置检查 |
 | Lupa | `2.8` | 执行测试中的 Lua 逻辑，包括 `lupa.lua51` |
 | MSYS2 util-linux | `2.40.2-2` | 从官方包中仅提取 `flock.exe`，验证真实文件锁互斥 |
-| Xray | `26.7.11`，官方预发布版 | 对生成配置执行核心解析检查 |
+| Xray | `26.10.21`，官方紧急安全更新 | 对生成配置执行核心解析检查 |
 | [RubyInstaller](https://github.com/oneclick/rubyinstaller2/releases/tag/RubyInstaller-3.4.9-1) | `3.4.9-1`，Ruby `3.4.9` | 私有 `bin` / `lib` 运行目录，执行真实 Ruby 3.4 AST 与 YAML 覆写检查 |
 | [Node.js](https://nodejs.org/download/release/v22.23.4/) | `22.23.4` | 仅提取 `node.exe`，执行 dashboard 与文件名 JavaScript 检查 |
 
@@ -101,8 +101,8 @@ Xray 通过 [`tests/fetch_xray_test_core.py`](../tests/fetch_xray_test_core.py) 
 | --- | --- |
 | MSYS2 util-linux 下载包 | `969edb185d37986e6feddb3c54807598e3cc6774b736fec3a27d5d27731f7fdd` |
 | `flock.exe` | `20ea2583f3c464a19dcb618141866c4f5794842952259edcc578feec79917b8a` |
-| `Xray-windows-64.zip` | `af801b62c4d41d248d3db8016d4c6e2a7ccfb7ed443e3738aeb6f9e062321512` |
-| `xray.exe` | `4b43c5ef596f326b233717b585d31a85dd5cd5f77d8da872e75f7ebc00e99acb` |
+| `Xray-windows-64.zip` | `fc58c39ee2f2717b4c54d28d374362389e5319b20ae44aea76ea45a5243ec827` |
+| `xray.exe` | `c77a00eb84fb93ae044c2d771a1cabcc033b81e487253fbc35b12df6879c1e15` |
 | `rubyinstaller-3.4.9-1-x64.7z` | `4375268618b61dadf53bf8e54beaca74ea30580c90d3c47ea9f2a134bd3e494e` |
 | `ruby.exe` | `77e75784ff76f347ae316150b5b7b2f5eb91bb264ab39c6820600d1b3df6b6bb` |
 | Ruby `bin` / `lib` 运行树（按环境脚本算法） | `0480aa03bcbbd69919f0fccecb0000076081c8186100a6096c302cb304d211ee` |
@@ -134,3 +134,11 @@ Windows 将完整生成 JSON 经 Xray 官方 `stdin:` 输入交给真实核心�
 Windows 仍有依赖 Linux 能力的既有跳过项，包括 `/proc` 与真实 SIGKILL 场景、已安装的 dnsmasq、`luac`、BusyBox，以及 POSIX 安装权限。实际跳过项以本次日志为准，测试新增后入口数和用例总数可能变化。必需的 PyYAML、Lupa、flock、Xray、Ruby 3.4+ 或 Node.js 缺失时，环境检查应失败，不能把新增跳过当作通过。
 
 本地回归覆盖固定测试输入、配置生成和受控运行逻辑；Xray 在这里用于配置解析。Windows 测试通过不能替代 Linux 网络命名空间 CI、固件交叉编译、成品校验或路由器实测。
+
+OpenClash TUN capability regression also accepts explicitly downloaded old/new
+Mihomo cores. Use `tests/fetch_mihomo_test_cores.py --generation old --output <path>` (or `--generation new`) for SHA-256 pinned official 1.19.30/1.19.33 assets, then set
+`MIHOMO_OLD_TEST_BIN`, `MIHOMO_NEW_TEST_BIN` and `OPENCLASH_REQUIRE_MIHOMO=1`
+before running the wrapper. CI always provisions both and requires these checks.
+The wrapper preserves these environment variables. Binary parsing checks do not
+start forwarding services. HomeProxy's optional actual-core check uses
+`SING_BOX_TEST_BIN`; the Node generation checks still run without that binary.

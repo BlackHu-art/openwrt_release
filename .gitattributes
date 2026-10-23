@@ -50,3 +50,13 @@
 /tests/test_homeproxy_routing.sh text eol=lf
 /tests/test_argon_compat.sh text eol=lf
 /tests/verify_upstream_sync.py text eol=lf
+
+/tests/fetch_mihomo_test_cores.py text eol=lf
+/tests/test_oaf_*.py text eol=lf
+/tests/fixtures/oaf-lifecycle/** text eol=lf whitespace=-blank-at-eol,-space-before-tab
+
+/wrt_core/theme_compat.py text eol=lf
+/wrt_core/patches/990_set_argon_primary text eol=lf
+/tests/test_theme_preservation.py text eol=lf
+
+/tests/fixtures/themes/** text eol=lf

@@ -90,54 +90,6 @@
       "snapshot_state": "unmodified-upstream-before-project-patches"
     },
     {
-      "id": "passwall",
-      "name": "Passwall",
-      "repository": "https://github.com/Openwrt-Passwall/openwrt-passwall.git",
-      "requested_ref": "main",
-      "ref_selection": "explicit-branch",
-      "resolved_branch": "main",
-      "commit": "7cdb8379d42866af93d996d5afb7d5b2b18eb061",
-      "commit_date": "2026-10-22T21:41:24+08:00",
-      "commit_subject": "luci: bump 26.10.22-2",
-      "tree": "582cac29cfabc8fee312386ac1ab66dd7c9b5566",
-      "upstream_path": "luci-app-passwall",
-      "snapshot_kind": "package-subtree",
-      "local_path": "passwall/luci-app-passwall",
-      "build_source": {
-        "file": "wrt_core/modules/custom_feed.sh",
-        "function": "install_custom_feed"
-      },
-      "package_makefile_fields": {
-        "PKG_NAME": "luci-app-passwall",
-        "PKG_VERSION": "26.10.22",
-        "PKG_RELEASE": "2",
-        "LUCI_TITLE": "LuCI support for PassWall"
-      },
-      "file_count": 128,
-      "total_blob_bytes": 3153782,
-      "git_mode_counts": {
-        "100644": 111,
-        "120000": 1,
-        "100755": 16
-      },
-      "manifest": "manifests/passwall.json",
-      "manifest_sha256": "712e1e9e25facaac446c7a98ba466a5fa5ed7ce6dc85c6951d539e340d384e22",
-      "supplemental_license_files": [
-        {
-          "upstream_path": "LICENSE",
-          "local_path": "licenses/passwall/LICENSE",
-          "git_blob": "f288702d2fa16d3cdf0035b15a9fcbc552cd88e7",
-          "git_mode": "100644",
-          "bytes": 35149,
-          "sha256": "3972dc9744f6499f0f9b2dbf76696f2ae7ad8af9b23dde66d6af86c9dfb36986",
-          "role": "source-repository-license-not-package-relicensing"
-        }
-      ],
-      "nested_attributes": [],
-      "nested_ignore_files": [],
-      "snapshot_state": "unmodified-upstream-before-project-patches"
-    },
-    {
       "id": "passwall2",
       "name": "Passwall2",
       "repository": "https://github.com/Openwrt-Passwall/openwrt-passwall2.git",

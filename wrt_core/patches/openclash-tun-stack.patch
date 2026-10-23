@@ -1,0 +1,109 @@
+Subject: [PATCH] openclash: use compatible TUN defaults and preflight mips
+
+Default new IPv4/IPv6 TUN selections to mixed. Preserve explicit settings and
+check the final generated or quick-start YAML before registering the core with
+procd. Probe mips with the installed core and refuse unsupported startup without
+rewriting UCI, rather than entering the respawn loop.
+
+diff --git a/luasrc/model/cbi/openclash/settings.lua b/luasrc/model/cbi/openclash/settings.lua
+index 047b497..c28c382 100644
+--- a/luasrc/model/cbi/openclash/settings.lua
++++ b/luasrc/model/cbi/openclash/settings.lua
+@@ -100,7 +100,7 @@ o:value("system", translate("System　"))
+ o:value("gvisor", translate("gVisor"))
+ o:value("mixed", translate("Mixed"))
+ o:value("mips", translate("Mips"))
+-o.default = "mips"
++o.default = "mixed"
+ 
+ o = s:taboption("op_mode", ListValue, "proxy_mode", translate("Proxy Mode"))
+ o.description = translate("Select Proxy Mode")
+@@ -1464,7 +1464,7 @@ o:value("system", translate("System　"))
+ o:value("gvisor", translate("gVisor"))
+ o:value("mixed", translate("Mixed"))
+ o:value("mips", translate("Mips"))
+-o.default = "mips"
++o.default = "mixed"
+ 
+ o = s:taboption("ipv6", Flag, "enable_v6_udp_proxy", translate("Proxy UDP Traffics"))
+ o.description = translate("The Servers Must Support UDP forwarding")
+diff --git a/root/etc/init.d/openclash b/root/etc/init.d/openclash
+index 7bc7e75..0c094e9 100644
+--- a/root/etc/init.d/openclash
++++ b/root/etc/init.d/openclash
+@@ -778,7 +778,7 @@ check_core_status()
+          while ( [ -n "$(pidof clash)" ] && [ -z "$($ip_ route list |grep utun)" ] && [ "$TUN_RESTART" -le 3 ] )
+          do
+             LOG_WARN "TUN Interface Start Failed, Try to Restart Again..."
+-            start_run_core
++            start_run_core || return 1
+             let TUN_RESTART++
+             sleep 300
+          done
+@@ -845,8 +845,35 @@ check_core_status()
+    write_run_quick
+ } >/dev/null 2>&1
+ 
++check_tun_stack()
++{
++   local tun_stack
++   # Inspect the final generated/cached YAML, including custom overwrites.
++   # A rejected capability must never reach procd's respawn loop.
++   tun_stack=$(ruby -ryaml -rYAML -I "/usr/share/openclash" -E UTF-8 -e '
++      value = YAML.load_file(ARGV[0])
++      tun = value.is_a?(Hash) ? value["tun"] : nil
++      print tun["stack"] if tun.is_a?(Hash)
++   ' "$1" 2>/dev/null) || {
++      LOG_ERROR "Unable to inspect the final TUN configuration, core startup stopped."
++      return 1
++   }
++   if [ "$tun_stack" = "mips" ]; then
++      # Fixed minimal configuration: no DNS, providers, downloads or listeners.
++      if ! "$CLASH" -t -d "$CLASH_CONFIG" -config "eyJ0dW4iOnsiZW5hYmxlIjp0cnVlLCJzdGFjayI6Im1pcHMiLCJhdXRvLXJvdXRlIjpmYWxzZX0sInJ1bGVzIjpbIk1BVENILERJUkVDVCJdfQ==" >/dev/null 2>&1; then
++         LOG_ERROR "The installed core does not support TUN stack mips. Select mixed, system or gvisor, or update the core. Saved settings were preserved; startup stopped."
++         return 1
++      fi
++   fi
++   return 0
++}
++
+ start_run_core()
+ {
++   local runtime_config="$CONFIG_FILE"
++   $QUICK_START || runtime_config="$TMP_CONFIG_FILE"
++   check_tun_stack "$runtime_config" || return 1
++
+    # Set TCP Fast Open blackhole timeout to 0 (disable detection) for nodes TFO availability
+    [ -e /proc/sys/net/ipv4/tcp_fastopen_blackhole_timeout_sec ] && echo 0 > /proc/sys/net/ipv4/tcp_fastopen_blackhole_timeout_sec 2>/dev/null
+ 
+@@ -3747,7 +3774,7 @@ get_config()
+    lan_ac_mode=$(uci_get_config "lan_ac_mode")
+    enable_rule_proxy=$(uci_get_config "enable_rule_proxy")
+    stack_type=$(uci_get_config "stack_type")
+-   stack_type_v6=$(uci_get_config "stack_type_v6" || echo "mips")
++   stack_type_v6=$(uci_get_config "stack_type_v6" || echo "mixed")
+    china_ip_route=$(uci_get_config "china_ip_route"); [[ "$china_ip_route" != "0" && "$china_ip_route" != "1" && "$china_ip_route" != "2" ]] && china_ip_route=0
+    china_ip6_route=$(uci_get_config "china_ip6_route"); [[ "$china_ip6_route" != "0" && "$china_ip6_route" != "1" && "$china_ip6_route" != "2" ]] && china_ip6_route=0
+    small_flash_memory=$(uci_get_config "small_flash_memory")
+@@ -3890,7 +3917,7 @@ start_service()
+       fi
+ 
+       LOG_OUT "Step 4: Start Running The Clash Core..."
+-      start_run_core
++      start_run_core || return 1
+ 
+       LOG_OUT "Step 5: Add Cron Rules, Start Daemons..."
+       add_cron
+diff --git a/root/usr/share/openclash/yml_change.sh b/root/usr/share/openclash/yml_change.sh
+index abbce9f..25f2573 100644
+--- a/root/usr/share/openclash/yml_change.sh
++++ b/root/usr/share/openclash/yml_change.sh
+@@ -38,7 +38,7 @@ esac
+ 
+ en_mode_tun=${11:-0}
+ if [ -z "${12}" ]; then
+-   stack_type=${30:-"mips"}
++   stack_type=${30:-"mixed"}
+ else
+    stack_type=${12}
+ fi

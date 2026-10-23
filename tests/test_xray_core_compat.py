@@ -27,14 +27,14 @@ class XrayRecipeCompatibility(unittest.TestCase):
         self.recipe = self.package / "Makefile"
         shutil.copyfile(FIXTURE, self.recipe)
         self.generators = []
-        for plugin in ("passwall", "passwall2"):
+        for plugin in ("passwall2",):
             generator = self.feed / f"luci-app-{plugin}/luasrc/{plugin}/util_xray.lua"
             generator.parent.mkdir(parents=True)
             generator.write_text('local xray_min_version = "26.7.11"\n', encoding="utf-8")
             self.generators.append(generator)
         self.go_recipe = self.build / "feeds/packages/lang/golang/golang/Makefile"
         self.go_recipe.parent.mkdir(parents=True)
-        self.go_recipe.write_text("GO_VERSION_MAJOR_MINOR:=1.26\nGO_VERSION_PATCH:=10\n", encoding="utf-8")
+        self.go_recipe.write_text("GO_VERSION_MAJOR_MINOR:=1.27\nGO_VERSION_PATCH:=3\n", encoding="utf-8")
         self.env = os.environ.copy()
         self.env.update(BASE_PATH=(ROOT / "wrt_core").as_posix(),
                         BUILD_DIR=self.build.as_posix(),
@@ -64,13 +64,18 @@ class XrayRecipeCompatibility(unittest.TestCase):
         result = self.apply()
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
         recipe = self.recipe.read_text(encoding="utf-8")
-        self.assertIn("PKG_VERSION:=26.7.11\n", recipe)
-        self.assertIn("PKG_HASH:=7c191254c0d8cc8be7673904739fc7329b601947da5377ef85900a0cd0a85e23\n", recipe)
+        self.assertIn("PKG_VERSION:=26.10.21\n", recipe)
+        self.assertIn("PKG_HASH:=44ef4874529a03848c90f1fdcfb763350fbc5f1de741ec90e0024d651df25650\n", recipe)
         self.assertIn("PKG_SOURCE_URL:=https://codeload.github.com/XTLS/Xray-core/tar.gz/v$(PKG_VERSION)?\n", recipe)
-        expected = FIXTURE.read_bytes().replace(b"PKG_VERSION:=26.3.27", b"PKG_VERSION:=26.7.11").replace(
+        expected = FIXTURE.read_bytes().replace(b"PKG_VERSION:=26.3.27", b"PKG_VERSION:=26.10.21").replace(
             b"992a4997e6bb846d11469435d687f99ef812fcde1e0a009bb8e95189ea20331d",
-            b"7c191254c0d8cc8be7673904739fc7329b601947da5377ef85900a0cd0a85e23")
+            b"44ef4874529a03848c90f1fdcfb763350fbc5f1de741ec90e0024d651df25650")
         self.assertEqual(self.recipe.read_bytes(), expected)
+
+    def test_passwall2_only_tree_needs_no_passwall1_source(self):
+        self.assertFalse((self.feed / "luci-app-passwall").exists())
+        result = self.apply()
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
 
     def test_repeat_is_idempotent_and_does_not_rewrite_recipe(self):
         first = self.apply()
@@ -87,66 +92,78 @@ class XrayRecipeCompatibility(unittest.TestCase):
         self.assert_rejected_without_changes("Makefile")
 
     def test_partial_upgrade_with_stale_hash_is_rejected(self):
-        self.recipe.write_bytes(self.recipe.read_bytes().replace(b"26.3.27", b"26.7.11"))
+        self.recipe.write_bytes(self.recipe.read_bytes().replace(b"26.3.27", b"26.10.21"))
         self.assert_rejected_without_changes("Makefile")
 
-    def test_both_consumers_are_checked_again_when_recipe_already_patched(self):
+    def test_passwall2_minimum_is_checked_again_when_recipe_already_patched(self):
         result = self.apply()
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
         for generator in self.generators:
             with self.subTest(generator=generator.name, plugin=generator.parent.name):
-                generator.write_text('local xray_min_version = "26.7.12"\n', encoding="utf-8")
-                self.assert_rejected_without_changes("26.7.12")
+                generator.write_text('local xray_min_version = "26.10.22"\n', encoding="utf-8")
+                self.assert_rejected_without_changes("26.10.22")
                 generator.write_text('local xray_min_version = "26.7.11"\n', encoding="utf-8")
 
     def test_newer_generator_requirement_rejects_unpatched_recipe_without_write(self):
-        self.generators[0].write_text('local xray_min_version = "26.10.1"\n', encoding="utf-8")
-        self.assert_rejected_without_changes("26.10.1")
+        self.generators[0].write_text('local xray_min_version = "26.10.22"\n', encoding="utf-8")
+        self.assert_rejected_without_changes("26.10.22")
 
     def test_missing_or_ambiguous_generator_requirement_is_rejected(self):
-        self.generators[1].unlink()
+        self.generators[0].unlink()
         self.assert_rejected_without_changes("Passwall2")
-        self.generators[1].write_text('local xray_min_version = "26.7.11"\n' * 2, encoding="utf-8")
+        self.generators[0].write_text('local xray_min_version = "26.7.11"\n' * 2, encoding="utf-8")
         self.assert_rejected_without_changes("Passwall2")
 
     def test_changed_generator_declaration_cannot_hide_behind_an_old_valid_one(self):
-        self.generators[1].write_text(
+        self.generators[0].write_text(
             'local xray_min_version = "26.7.11"\nlocal xray_min_version = next_version\n',
             encoding="utf-8")
         self.assert_rejected_without_changes("Passwall2")
 
     def test_old_or_missing_go_toolchain_is_rejected_without_write(self):
-        self.go_recipe.write_text("GO_VERSION_MAJOR_MINOR:=1.25\n", encoding="utf-8")
+        self.go_recipe.write_text("GO_VERSION_MAJOR_MINOR:=1.26\n", encoding="utf-8")
         self.assert_rejected_without_changes("Go")
         self.go_recipe.unlink()
         self.assert_rejected_without_changes("Go")
 
     def test_changed_go_declaration_cannot_hide_behind_a_valid_one(self):
-        self.go_recipe.write_text("GO_VERSION_MAJOR_MINOR:=1.26\nGO_VERSION_MAJOR_MINOR:=$(NEXT_GO)\n", encoding="utf-8")
+        self.go_recipe.write_text("GO_VERSION_MAJOR_MINOR:=1.27\nGO_VERSION_MAJOR_MINOR:=$(NEXT_GO)\n", encoding="utf-8")
         self.assert_rejected_without_changes("Go")
+
+    def test_go_1272_is_rejected_for_security_floor(self):
+        self.go_recipe.write_text("GO_VERSION_MAJOR_MINOR:=1.27\nGO_VERSION_PATCH:=2\n", encoding="utf-8")
+        self.assert_rejected_without_changes("Go")
+
+    def test_go_patch_must_be_unique_literal_and_is_rechecked_on_cached_recipe(self):
+        result = self.apply()
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        for patch in ("", "GO_VERSION_PATCH:=3\nGO_VERSION_PATCH:=4\n", "GO_VERSION_PATCH:=$(NEXT_PATCH)\n"):
+            with self.subTest(patch=patch):
+                self.go_recipe.write_text("GO_VERSION_MAJOR_MINOR:=1.27\n" + patch, encoding="utf-8")
+                self.assert_rejected_without_changes("Go")
 
     def test_compatible_lower_consumer_minimum_and_newer_go_are_allowed(self):
         self.generators[0].write_text('local xray_min_version = "26.4.17"\n', encoding="utf-8")
-        self.go_recipe.write_text("GO_VERSION_MAJOR_MINOR:=1.27\n", encoding="utf-8")
+        self.go_recipe.write_text("GO_VERSION_MAJOR_MINOR:=1.28\nGO_VERSION_PATCH:=0\n", encoding="utf-8")
         result = self.apply()
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
-        self.assertIn(b"PKG_VERSION:=26.7.11\n", self.recipe.read_bytes())
+        self.assertIn(b"PKG_VERSION:=26.10.21\n", self.recipe.read_bytes())
 
     def test_package_nested_in_git_repository_updates_the_actual_recipe(self):
         result = subprocess.run(["git", "init", "-q", str(self.build)], capture_output=True)
         self.assertEqual(result.returncode, 0, result.stderr)
         result = self.apply()
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
-        self.assertIn(b"PKG_VERSION:=26.7.11\n", self.recipe.read_bytes())
+        self.assertIn(b"PKG_VERSION:=26.10.21\n", self.recipe.read_bytes())
 
     def test_modified_patch_result_is_rejected_without_publishing_any_change(self):
         base = self.build / "compat"
         (base / "modules").mkdir(parents=True)
         (base / "patches").mkdir()
         shutil.copyfile(MODULE, base / "modules/xray_core_compat.sh")
-        patch = (ROOT / "wrt_core/patches/xray-core-26.7.11.patch").read_bytes()
-        (base / "patches/xray-core-26.7.11.patch").write_bytes(
-            patch.replace(b"+PKG_VERSION:=26.7.11", b"+PKG_VERSION:=26.7.12"))
+        patch = (ROOT / "wrt_core/patches/xray-core-26.10.21.patch").read_bytes()
+        (base / "patches/xray-core-26.10.21.patch").write_bytes(
+            patch.replace(b"+PKG_VERSION:=26.10.21", b"+PKG_VERSION:=26.10.22"))
         self.env["BASE_PATH"] = base.as_posix()
         self.assert_rejected_without_changes("Xray")
 
@@ -164,8 +181,92 @@ class XrayRecipeCompatibility(unittest.TestCase):
         self.env["TMPDIR"] = scratch.as_posix()
         result = self.apply()
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
-        self.assertIn(b"PKG_VERSION:=26.7.11\n", self.recipe.read_bytes())
+        self.assertIn(b"PKG_VERSION:=26.10.21\n", self.recipe.read_bytes())
         self.assertEqual(list(scratch.iterdir()), [])
+
+
+class GoToolchainSourceUpdate(unittest.TestCase):
+    def setUp(self):
+        self.temp = tempfile.TemporaryDirectory(prefix="go-toolchain-update-")
+        self.addCleanup(self.temp.cleanup)
+        self.build = Path(self.temp.name)
+        self.target = self.build / "feeds/packages/lang/golang"
+        self.fixture = self.build / "downloaded-Makefile"
+        self.fixture.write_text("GO_VERSION_MAJOR_MINOR:=1.27\nGO_VERSION_PATCH:=3\n", encoding="utf-8")
+        self.env = dict(os.environ, BASE_PATH=(ROOT / "wrt_core").as_posix(),
+                        BUILD_DIR=self.build.as_posix(), GO_FIXTURE=self.fixture.as_posix(),
+                        CLONE_FAIL="0")
+
+    def apply(self):
+        command = r'''
+cd "$BUILD_DIR" || exit
+. "$BASE_PATH/update.sh" || exit
+git_retry() {
+    [[ "$CLONE_FAIL" == 0 ]] || return 1
+    [[ "$1" == clone && "$2" == --depth && "$3" == 1 && "$4" == -b && "$5" == 27.x && "$6" == https://github.com/sbwml/packages_lang_golang ]] || return 2
+    mkdir -p "$7/golang" || return
+    cp "$GO_FIXTURE" "$7/golang/Makefile"
+}
+mv() {
+    if [[ "${PUBLISH_FAIL:-0}" == 1 && "$2" == */source ]]; then return 1; fi
+    if [[ "${ROLLBACK_FAIL:-0}" == 1 && "$2" == */previous ]]; then return 1; fi
+    command mv "$@"
+}
+update_golang
+'''
+        return subprocess.run([BASH, "--noprofile", "--norc", "-c", command], env=self.env,
+                              capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=30)
+
+    def seed_old_source(self):
+        self.target.mkdir(parents=True)
+        (self.target / "previous").write_bytes(b"old source must survive failed replacement")
+
+    def test_missing_source_is_installed_from_required_branch(self):
+        result = self.apply()
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertTrue((self.target / "golang/Makefile").is_file())
+        self.assertEqual((self.target / "golang/Makefile").read_bytes(), self.fixture.read_bytes())
+
+    def test_existing_source_is_refreshed_only_after_verified_clone(self):
+        self.seed_old_source()
+        result = self.apply()
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertEqual((self.target / "golang/Makefile").read_bytes(), self.fixture.read_bytes())
+        self.assertFalse((self.target / "previous").exists())
+
+    def test_failed_clone_preserves_previous_source(self):
+        self.seed_old_source()
+        self.env["CLONE_FAIL"] = "1"
+        result = self.apply()
+        self.assertNotEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertEqual((self.target / "previous").read_bytes(), b"old source must survive failed replacement")
+
+    def test_publication_failure_restores_previous_source(self):
+        self.seed_old_source()
+        self.env["PUBLISH_FAIL"] = "1"
+        result = self.apply()
+        self.assertNotEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertEqual((self.target / "previous").read_bytes(), b"old source must survive failed replacement")
+
+    def test_failed_rollback_keeps_previous_source_recoverable(self):
+        self.seed_old_source()
+        self.env.update(PUBLISH_FAIL="1", ROLLBACK_FAIL="1")
+        result = self.apply()
+        self.assertNotEqual(result.returncode, 0, result.stdout + result.stderr)
+        backups = list(self.target.parent.glob(".golang-update.*/previous/previous"))
+        self.assertEqual(len(backups), 1)
+        self.assertEqual(backups[0].read_bytes(), b"old source must survive failed replacement")
+
+    def test_old_or_ambiguous_toolchain_cannot_replace_previous_source(self):
+        self.seed_old_source()
+        for recipe in ("GO_VERSION_MAJOR_MINOR:=1.26\nGO_VERSION_PATCH:=10\n",
+                       "GO_VERSION_MAJOR_MINOR:=1.27\nGO_VERSION_PATCH:=2\n",
+                       "GO_VERSION_MAJOR_MINOR:=1.27\nGO_VERSION_PATCH:=3\nGO_VERSION_PATCH:=4\n"):
+            with self.subTest(recipe=recipe):
+                self.fixture.write_text(recipe, encoding="utf-8")
+                result = self.apply()
+                self.assertNotEqual(result.returncode, 0, result.stdout + result.stderr)
+                self.assertEqual((self.target / "previous").read_bytes(), b"old source must survive failed replacement")
 
 
 if __name__ == "__main__":

@@ -60,6 +60,11 @@ done
 for upstream in Openwrt-Passwall/openwrt-passwall2 fw876/helloworld sirpdboy/luci-app-partexp; do
     grep -Fq "https://github.com/$upstream.git|" "$test_root/sources"
 done
+[[ ! -e "$BUILD_DIR/feeds/custom_feed/luci-app-passwall" ]]
+if grep -Fq 'https://github.com/Openwrt-Passwall/openwrt-passwall.git|' "$test_root/sources"; then
+    echo 'FAIL: removed Passwall1 repository was imported' >&2
+    exit 1
+fi
 grep -Fq "src-link custom_feed $BUILD_DIR/custom_feed" "$BUILD_DIR/$FEEDS_CONF"
 echo "custom feed selected plugins: PASS"
 

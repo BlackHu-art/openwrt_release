@@ -2,14 +2,14 @@
 
 SSR 修复由项目构建流程自动应用，不依赖手动修改路由器或临时 build 目录。
 当前审查基线是 `fw876/helloworld` 的
-`2abdc9aa9e19607774dc9789709212b70b8607c6`，本地修复版本为 `190-r11`
-（opkg 包版本为 `190-11`）。
+`2abdc9aa9e19607774dc9789709212b70b8607c6`，本地修复版本为 `190-r12`
+（opkg 包版本为 `190-12`）。
 
 ## 以后编译如何带入修复
 
 1. `custom_feed.sh` 导入 SSR 源码并记录实际上游提交。
 2. `update.sh` 在 `feeds install` 之前调用 `fix_ssrplus_compat`，校验十二个
-   受保护源文件的 Git blob，再按 `patches.list` 应用完整二十五份补丁并安装运行脚本。
+   受保护源文件的 Git blob，再按 `patches.list` 应用完整二十七份补丁并安装运行脚本。
    已完整应用的旧补丁可在隔离副本中还原后重新校验；未知或不完整修改会中止构建。
 3. 包内生成 `/usr/share/shadowsocksr/ssrplus-build.json`，记录上游提交、
    修复版本、补丁 SHA-256 和十二个安装文件的 SHA-256/权限；默认模板为
@@ -163,8 +163,40 @@ r9 的二十一补丁、十二目标原始清单均覆盖升级及重复准备�
 完整 r10 源码保留二十三份原始补丁和十二目标清单，再升级到 r11 并重复准备；
 r4/r5 的九目标和 r6/r7/r8 的十一目标旧清单继续覆盖，r9 原始清单仍为十二目标。
 
-当前包/rootfs 门禁要求 `190-r11` 清单及对应 `190-11`/`190-r11` 包版本，旧 r10 及更早成品
+当前包/rootfs 门禁要求 `190-r12` 清单及对应 `190-12`/`190-r12` 包版本，旧 r11 及更早成品
 即使携带新修复字节也会因版本不一致被拒绝；内嵌旧清单同样不能通过校验。
+
+## r12：当前 Xray 传输配置与拒绝已移除传输
+
+`ssrplus-core-transport.patch` 对完整生成器、订阅器和启动预检作增量修复；
+原始 fixture、十二个保护目标及前二十五份补丁保持原始字节。mKCP 的
+无 seed/有 seed 路径都生成 `mkcp-legacy`，seed 放入 `settings.value`；
+DNS、SRTP、uTP、WeChat、DTLS、WireGuard 伪装也使用该类型的 `header`/`value`。
+这符合 [Xray v26.10.21 的 finalmask API](https://github.com/XTLS/Xray-core/blob/v26.10.21/infra/conf/transport_finalmask.go)。
+
+Hysteria2 Gecko 使用 `type=salamander` 与 `settings.packetSize`，保留密码、认证、
+带宽及跳端口参数。订阅的 `minPacketSize`/`maxPacketSize` 保存到既有 SSR 命名的
+`obfs_MinPacketSize`/`obfs_MaxPacketSize`；未提供时，订阅器不覆盖已经保存的显式值，
+生成器仅在值缺失时使用 `512-1200`。无效显式范围拒绝生成，不静默改写节点。
+重解析旧 Gecko 链接时，仅按同一订阅组中精确旧 payload hash 作一对一匹配，
+保留原 SID 和主节点、UDP、SOCKS、Netflix 引用；歧义在事务写入前失败。
+
+旧 `h2`/`http`/`h3` 与 `quic` transport 已被
+[当前核心移除](https://github.com/XTLS/Xray-core/blob/v26.10.21/infra/conf/transport_internet.go)。
+订阅仍保存这些节点及参数；实际有效 network 使用这些旧传输时，启动/重启预检在
+替换已有服务前明确失败，直接调用生成器也会拒绝输出。WireGuard 不输出
+`streamSettings`，Hysteria2 固定使用 `hysteria`；这两类节点中的残留 `transport`
+字段不参与该拒绝判断，保存值保持原样。关闭的 SOCKS/Netflix 选择不妨碍有效节点。
+更换远端传输需要双方同步；不会把旧节点自动改成 XHTTP。
+
+`tests/test_ssrplus_core_transports.py` 从真实订阅器提交的节点出发，覆盖全部 mKCP
+伪装与 seed、Gecko 参数、旧 SID 重解析、各启用角色的拒绝边界，以及一组失败时
+保留原节点并更新另一有效组。四个不同的主/UDP/SOCKS/Netflix 节点在重解析后，
+按真实 init 参数生成完整 JSON，并经官方 Xray 26.10.21 `run -test` 校验。
+另有 WireGuard/Hysteria2 各带残留 h2/QUIC 的四份真实核心许可回归，以及它们在
+四种选中角色中的 init 许可控制；VLESS/VMess/Trojan 的有效旧传输继续被拒绝。
+这证明配置可被核心解析，不证明远端握手、目标固件编译或路由器运行。
+完整 r4 至 r11 状态均升级到 r12 并重复准备；包/rootfs 清单要求 r12。
 
 ## 本地验证
 

@@ -102,17 +102,13 @@ fix_adguardhome_compat() (
 fix_openclash_compat() {
     apply_plugin_compat_patches "$1" "OpenClash" \
         openclash-wan-subnets.patch openclash-checksum-filename.patch \
-        openclash-ruby-ast.patch openclash-dashboard-switch.patch openclash-filename-safety.patch
+        openclash-ruby-ast.patch openclash-dashboard-switch.patch openclash-filename-safety.patch \
+        openclash-tun-stack.patch
 }
 
-fix_passwall_compat() {
-    local package_dir=$1 plugin=$2
-    case "$plugin" in
-        passwall|passwall2) ;;
-        *) echo "错误：未知的 Passwall 插件：$plugin" >&2; return 1 ;;
-    esac
-    apply_plugin_compat_patches "$package_dir" "$plugin" \
-        "$plugin-singbox-tls-pin.patch" "$plugin-singbox-launch.patch"
+fix_passwall2_compat() {
+    apply_plugin_compat_patches "$1" "Passwall2" \
+        passwall2-singbox-tls-pin.patch passwall2-singbox-launch.patch
 }
 
 fix_ssrplus_compat() (
@@ -178,7 +174,7 @@ fix_ssrplus_compat() (
     MSYS2_ARG_CONV_EXCL="${MSYS2_ARG_CONV_EXCL:+$MSYS2_ARG_CONV_EXCL;}/etc/;/usr/" \
     python "$BASE_PATH/ssrplus_verify.py" manifest --root "$scratch/root" \
         --output "$scratch/root/usr/share/shadowsocksr/ssrplus-build.json" \
-        --source-commit "$source_commit" --repair-version 190-r11 --file-mode 0755 \
+        --source-commit "$source_commit" --repair-version 190-r12 --file-mode 0755 \
         --file-mode-override /usr/share/shadowsocksr/shadowsocksr.config=0644 \
         "${manifest_args[@]}" --file /usr/share/shadowsocksr/ssrp-runtime.sh || return 1
     # Validation and artifact construction succeeded; publish the reviewed

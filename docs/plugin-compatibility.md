@@ -1,17 +1,17 @@
 # 插件兼容修复与编译入口
 
-兼容修复沿用当前选择的插件来源，不切换 SSR dev 分支。为满足当前 Passwall / Passwall2
-生成器的最低版本要求，共享 Xray 配方从 `26.3.27` 调整为 `26.7.11`；sing-box 保持 `1.14.3`。
+兼容修复沿用当前选择的插件来源，不切换 SSR dev 分支。Passwall1 已移除，保留 Passwall2。共享 Xray 配方从 `26.3.27` 调整为 `26.10.21`，
+同时要求 Go >=1.27.3；sing-box 保持 `1.14.3`。
 后续通过项目标准 `build.sh` / GitHub Actions 编译、并选中对应插件的固件，
 会在编译源码准备阶段自动应用这些补丁。
 
 当前 AX6600 的 `jdcloud_ipq60xx_immwrt.config` 已启用 SSR Plus、OpenClash 和 AdGuard Home。
 `jdcloud_ipq60xx_libwrt.config` 启用 OpenClash/ADG，SSR 需由最终配置选中；
-本次不改变各机型的插件选择。
+所有使用 `proxy` 片段的机型改为选择 Passwall2，显式排除 Passwall1；defconfig 后会复核排除项。
 
 固件源码由 `wrt_core/update.sh` 编排本地受管输入和外部来源，再由 `wrt_core/modules/`
 应用兼容处理。实际参与构建的本地输入位于 [`wrt_core/managed/`](../wrt_core/managed/README.md)；
-`maintenance/plugins/` 继续保存 reference-only 审查快照。部分 Passwall / Passwall2
+`maintenance/plugins/` 继续保存 reference-only 审查快照。部分 Passwall2
 回归会读取维护快照，修改快照后也需运行相应回归。
 
 ## 受管源码与构建接入
@@ -34,50 +34,51 @@ HomeProxy、OAF 和主题兼容处理只作用于构建副本，不改写受管�
 `maintenance/plugins/` 的参考快照不会使本地受管输入发生变化。完整步骤见
 [受管源码说明](../wrt_core/managed/README.md)。
 
-## Passwall、Passwall2 与共享 Xray
+## Passwall2 与共享 Xray
 
-两套插件继续从 `Openwrt-Passwall` 各自仓库的 `main` 获取。维护区保存的原始源码不改写；
-`stage_pre_install_source_fixes` 在 feeds install 前通过 `fix_passwall_compat` 应用补丁。
+Passwall1 的插件源码、维护清单、独立许可证、下载入口、兼容补丁和编译选择已移除。
+保留上游主题中无运行代码的兼容样式；它们不会安装 Passwall1。Passwall2 继续从
+`Openwrt-Passwall/openwrt-passwall2` 的 `main` 获取，在 feeds install 前执行 `fix_passwall2_compat`。
 
-- sing-box `< 1.15.0` 遇到非空 `tls_pinSHA256` 时明确报错，不再将证书指纹丢弃并自动设置
-  `tls.insecure=true`。即使原配置同时指定允许不安全连接，也不会忽略已指定的指纹。
-- 三个生成器调用入口检查 Lua 的退出状态，将诊断写入插件日志，删除失败时留下的 JSON，
-  并停止该次核心检查和启动。已有空指纹配置及显式 `tls_allowInsecure` 语义保持不变；
-  支持指纹字段的 sing-box 分支继续使用原有格式转换。
-- 旧核心上使用证书指纹的节点现在会被拒绝，需要使用支持该字段的核心，或由用户明确重新配置
-  证书验证方式。补丁不自动删除指纹、改成公有 CA 校验或将证书指纹冒充公钥指纹。
+- sing-box `<1.15.0` 遇到非空 `tls_pinSHA256` 明确拒绝，保留已指定的证书验证要求。
+- 生成器失败后删除不完整 JSON、记录诊断并停止核心启动；空指纹、显式允许不安全连接的原有语义不变。
+- sing-box 1.14.3 的当前标签不包含 Naive 出站，gRPC 为 lite 实现；这些限制没有通过强行升级核心绕过。
 
-两套插件生成的 Xray JSON 声明 `version.min=26.7.11`。受管输入保留 small-package
-已审查提交 `3d5609257639` 的原始 `26.3.27` recipe，该版本
-会拒绝这类配置，因此通过 [Xray 配方补丁](../wrt_core/patches/xray-core-26.7.11.patch)
-仅调整版本与源码 SHA-256，继续使用原有 XTLS 下载来源、依赖、构建参数和安装规则。
-`26.7.11` 的[官方发布](https://github.com/XTLS/Xray-core/releases/tag/v26.7.11)标记为预发布；
-本次选择的是满足最低要求的版本，不将其称为稳定版。来源、提交、源码哈希及审查时的 Go
-配方记录在 [版本记录](../wrt_core/compat/proxy-cores/xray-26.7.11.json)。
-本次没有采用 small-package 后续滚动的 `26.10.21` recipe；sing-box 固定为 `1.14.3`。
+Passwall2 虽然仍声明 `version.min=26.7.11`，其 MASQUE 输出需要更新的核心。
+受管原始 Xray recipe 保持 `26.3.27` 原字节，通过
+[Xray 配方补丁](../wrt_core/patches/xray-core-26.10.21.patch) 在构建副本选定 `26.10.21` 和源码 SHA-256；
+来源、精确提交及 Linux/Windows 核心哈希见
+[版本记录](../wrt_core/compat/proxy-cores/xray-26.10.21.json)。
+[官方发布](https://github.com/XTLS/Xray-core/releases/tag/v26.10.21) 为紧急安全更新，API 未标为 prerelease，
+但发布说明仍将 stable 推迟到月底，不据此承诺所有功能的长期稳定性。
 
-[fix_xray_core_compat](../wrt_core/modules/xray_core_compat.sh) 在现有 `update_golang` 之后执行，
-检查本轮实际获取的 Go 配方至少为 `1.26`，并读取两套插件实际生成器的最低 Xray 版本。
-未审查的 Xray Makefile、插件最低版本提高、版本声明异常或 Go 不满足要求都会停止构建，
-不继续使用不兼容配方；重复执行也会重新检查版本条件。
+`update_golang` 先将 `27.x` 下载到临时目录，校验版本 >=1.27.3 后替换，失败保留旧源并停止准备。
+`fix_xray_core_compat` 每次重查原始/补丁后 recipe、Passwall2 最低版本声明和 Go 的 major/minor/patch，
+缓存已打补丁也不能绕过；未知声明、上游漂移或旧 Go 均拒绝。Go >=1.27.3 同时满足此次发布的证书处理要求。
 
-Passwall、Passwall2 和 SSR Plus 共用 `/usr/bin/xray`，因此此次配方调整也影响选用 Xray 的
-SSR Plus 节点。共享核心回归执行三者真实生成器，覆盖 53 份最终配置，包括 VLESS / Trojan / SS
-的 raw、WebSocket、HTTPUpgrade、gRPC 与 TLS，以及 VMess WebSocket/TLS、VLESS Reality、
-透明代理、DNS、分流和辅助代理入口。
-SSR Plus 用例先执行实际订阅器再生成配置。`xray-plugin` 是独立软件包及二进制，不随此配方改版。
+共享核心回归运行 Passwall2 的完整生成器与 SSR 的真实订阅到配置链，覆盖 raw、WebSocket、HTTPUpgrade、gRPC、
+TLS、VMess、Reality、MASQUE、mKCP、Hysteria2、XHTTP、透明代理、DNS、分流和辅助代理。
+SSR `190-r12` 修正 mKCP seed/掩码及 Gecko 参数，保护旧节点 ID 和四类选择；
+已移除的 h2/http、QUIC 传输会明确报错，保留节点及选择，不能自动转成另一种远端协议。
+详情见 [SSR 说明](ssrplus-compatibility.md)。`xray-plugin` 为独立软件包，不随此 recipe 改版。
 
 ## HomeProxy、主题与 iStoreX
 
 HomeProxy 固定官方 `fadaa676104f59ff6ace480a780a258d846d0aec` 的完整包源码，
 继续经过 `fix_homeproxy_compat` 的补丁预检、重复执行和未知变化拒绝逻辑，并补齐
 `ucode-mod-math` 依赖。现有 sing-box 1.14 兼容、ACL 域名应用和特性缓存补丁仍保留，
-未随本地接管移除。翻译和规则数据也随该源码提交固定。
+未随本地接管移除。恢复 `disable_cache_expire` 到 sing-box DNS `disable_expire` 的有效映射，
+缺省、显式 0/1 和保留配置均有回归。翻译和规则数据随该源码提交固定。
 
 Argon 3.1.0 的设置、RPC 和翻译由主题唯一提供。主题内部的空
 `compat/luci-app-argon-config` 保留包名与升级兼容；构建移除旧独立配置目录，
 缺少集成标记或兼容 recipe 时停止。Aurora 主题 1.4.0 与配置 1.2.5 继续分别安装，
 主题沿用 `feeds/luci/themes/`，配置包沿用 `feeds/luci/applications/`，各自源码保持独立。
+`theme_compat.py` 在安装 Aurora 构建副本后校验完整初始化脚本，再应用保留配置的迁移：
+旧版/缺失 schema 只补缺省值，已有字体、logo、工具栏、颜色及未知字段保留；未来/未知 schema 不降级。
+旧颜色和宽度别名只在新键缺失时复制，原键保留。Argon 的 `990_set_argon_primary` 也只补缺失字段，
+显式空串、0 和自定义值均保留，且回归覆盖主题自身初始化后再运行仓库初始化的实际顺序。
+
 
 iStoreX 本地接管七个组件：luci-app-istorex、quickstart、luci-app-quickstart、
 luci-app-store、taskd、luci-lib-taskd、luci-lib-xterm。库 `luci-lib-taskd 1.0.26`
@@ -98,7 +99,11 @@ Apache-2.0 文件也不能作为该独立 gist 的许可证明。quickstart 二�
 `oaf_compat.py` 校验已审查原始字节后，在构建副本中为新安装准备
 `fwx.appfilter.enable`、`fwx.macfilter.enable`、`fwx.record.enable` 三项 0，
 并保留 `disable_hnat=0`；上游既有文件检查继续保留已有显式 `fwx` 值。
-`99_disable_oaf` 仅在三项均为 0 时禁用并停止服务，不重写运行中的 UCI 配置。
+`99_disable_oaf` 仅在三项均为 0 时执行默认停用策略，不重写运行中的 UCI 配置。
+在线安装/升级通过一次性 installer PID 与进程出生时间标记抑制紧随其后的自动启动，
+标记位于 root 控制的 `/var/run`；保留管理员在升级前已启用的启动项，后续手动 enable/start 不受永久限制。
+普通首启（包括保留配置刷机后的首次启动）没有安装上下文，不创建该标记，
+仍按原策略在三项均为 0 时停用服务；不能据此承诺保留这种情况下的手动开机启用状态。真实 OPKG/APK postinst 与 rc.common 离线生命周期回归覆盖这些顺序。
 
 后端与 LuCI 重复的同名 ACL 合并到后端包，由一个文件所有者提供全部已审查权限。
 使用者仍需按主 README 的流程手动 enable/start appfilter，之后界面才可使用控制面。
@@ -148,17 +153,17 @@ Rust 构建和安装结构；不符合该结构的旧预编译 recipe 会被拒�
   原位更新正确密码和指纹，主代理、UDP、SOCKS5 与 Netflix 引用保持不变。
   手工节点、跨组节点和普通凭据变更不做模糊匹配；歧义在写入前拒绝整个订阅事务，
   保留配置和 MD5 缓存。初始化和默认模板不改动，也不在升级时自动迁移配置。
-- 包版本为 `190-11`，内嵌修复标识为 `190-r11`。构建清单包含全部补丁和
+- 包版本为 `190-12`，内嵌修复标识为 `190-r12`。构建清单包含全部补丁和
   十二个安装目标哈希，包括实际核心生成器；现有包与 rootfs 门禁继续校验实际成品。
   r4/r5 原始清单保持九个目标，r6/r7/r8 保持十一个，r9/r10 分别保持二十一/二十三份补丁和十二个目标。
 
 细节见 [SSR 兼容性说明](ssrplus-compatibility.md)。
-维护区的 `v198.2` 仅用于迁移评估，当前构建仍使用上述 master 来源及 `190-r11` 修复集。
+维护区的 `v198.2` 仅用于迁移评估，当前构建仍使用上述 master 来源及 `190-r12` 修复集。
 
 ## OpenClash
 
 从当前 `kenzok8/small-package` 获取包，在 feeds install 前调用
-`fix_openclash_compat`，在已审查的 `0.48.002` 源码上应用以下五份补丁：
+`fix_openclash_compat`，在已审查的 `0.48.002` 源码上应用以下六份补丁：
 
 - `openclash-wan-subnets.patch`：保留原有 WAN 子网修复。
 - `openclash-checksum-filename.patch`：对照
@@ -177,8 +182,14 @@ Rust 构建和安装结构；不符合该结构的旧预编译 recipe 会被拒�
   点号开头、空白名称及超长名称；新建和重命名只允许插件指定目录。
   覆写模块与重启标记改用名称摘要，避免不同名称经字符替换后串用标记。
 
-标准构建每次刷新 custom feed 后应用补丁。当前五份补丁的任意完整子集（共 32 种组合）
-均可补齐，包括原始源码、原有两份完整补丁和五份完整补丁状态。
+- `openclash-tun-stack.patch`：缺省 IPv4/IPv6 TUN 栈改为 `mixed`，显式设置保持不变。
+  核心注册到 procd 前检查最终运行 YAML（包括覆写与 quick-start 缓存）；若所选 `mips` 未被当前核心支持，
+  清晰报错并停止该次启动，不改写 UCI、不开启 respawn 循环。已支持 `mips` 的新核心继续正常启动。
+  依据 [官方模式/流量指南 §8.2](https://github.com/vernesong/OpenClash/blob/dev/.github/skills/openclash-user-guide/08-settings-mode-traffic.md)
+  并通过旧/新官方 Mihomo 的实际配置解析复核。
+
+标准构建每次刷新 custom feed 后应用补丁。既有五份补丁的任意完整子集（32 种历史组合）
+均可补齐，包括原始源码、原有两份完整补丁和完整补丁状态。
 更早不同版本的 checksum 补丁、不完整 hunk 状态或无法通过补丁上下文校验的源码变化会停止构建，需重新审查。
 OpenClash 此处校验补丁上下文，并非 SSR、ADG 所采用的完整受保护文件 blob 校验。
 
@@ -220,7 +231,7 @@ feeds install 后，`wrt_core/modules/service_fixes.sh` 的 `update_adguardhome`
 结构拒绝已加入专项回归入口。测试入口描述覆盖范围，不表示本轮全套回归已经执行并通过；
 完整交叉编译、最终 IPK/APK/rootfs 内容和路由器功能仍需单独验收。
 
-`tests/run_all.sh` 包含插件专项回归及现有完整回归。Passwall TLS 与启动入口回归覆盖旧核心
+`tests/run_all.sh` 包含插件专项回归及现有完整回归。Passwall2 TLS 与启动入口回归覆盖旧核心
 拒绝指纹、受支持核心保留指纹、无指纹配置、隐式 TLS 协议、生成失败后停止启动，以及补丁重复应用。
 Xray 配方回归覆盖源码与补丁哈希、版本及 Go 门槛、重复执行和失败时不写入原配方；
 源码准备阶段回归另外验证实际接入顺序。
@@ -229,7 +240,7 @@ ADG 回归覆盖无需更新时不触碰核心、实际下载及 force 控制、
 `.github/workflows/test_ssrplus.yml` 在 Linux 上执行该入口，并在隔离网络
 命名空间内用真实 nft/dnsmasq 验证生成配置与生命周期。
 标准固件构建及发布工作流继续依赖测试门禁。
-CI 配置 Ruby `3.4`、Node.js `22`，并强制要求 Ruby 3.4 AST、Node.js 和真实 Xray 核心检查；
+CI 配置 Ruby `3.4`、Node.js `22`，并强制要求 Ruby 3.4 AST、Node.js、真实 Xray 与旧/新 Mihomo 核心检查；
 相关插件补丁、兼容基线和测试所读维护快照的变更纳入测试工作流触发范围。
 
 共享 Xray 回归通过 `XRAY_TEST_BINARY` 调用官方核心的 `run -test` 检查最终配置。
@@ -248,3 +259,9 @@ Windows 使用官方 `stdin:` 加载完整生成 JSON，Linux 继续验证文件
 指定可用工具目录。完整 Windows 依赖安装与检查见 [本地测试说明](windows-testing.md)。
 Windows 本地验证不能替代 Linux 可执行权限及 nft/dnsmasq 检查；这些仍需在 Linux CI 验证。
 以上不代表已完成完整固件交叉编译或路由器实机验收。
+
+## NSS 固件选择
+
+共享 `nss` 片段不再硬编码已被 VIKINGYFY 新 recipe 移除的 11.4 选择项。
+当前 LiBwrt NSS feed 仍提供该选项，因此其设备配置保留原有 11.4 请求；其他来源遵循各自 recipe。
+这不替换 NSS 驱动或预编译模块，也不构成 Linux 6.12/6.18 的交叉编译验收。

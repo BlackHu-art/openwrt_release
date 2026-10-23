@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Execute real subscription Lua through the real final core JSON generator.
 
-Only OS, UCI, JSON and nixio bindings are substituted. Both complete upstream
+Only OS, UCI, JSON and nixio bindings are substituted. Both complete repaired
 programs and the packaged lua-neturl execute in Lua 5.1. No network, installed
 core, native UCI configuration or router is accessed.
 """
@@ -9,7 +9,10 @@ import base64
 import copy
 import hashlib
 import json
+from functools import lru_cache
 from pathlib import Path
+import subprocess
+import tempfile
 import unittest
 from urllib.parse import quote
 
@@ -23,6 +26,34 @@ GENERATOR_GIT_BLOB = "e226697bced19dab2481fd920f3cad219fa0c666"
 USERS = {"ss": "YWVzLTEyOC1nY206c2VjcmV0",
          "vless": "12345678-1234-1234-1234-123456789abc", "trojan": "secret"}
 CORE_BINARIES = {"xray", "sslocal", "ss-redir", "trojan"}
+
+
+@lru_cache(maxsize=1)
+def generator_source():
+    """Protect the public input, then apply the real generator repair artifact."""
+    source_bytes = GENERATOR.read_bytes()
+    if hashlib.sha256(source_bytes).hexdigest() != GENERATOR_SHA256:
+        raise AssertionError("unmodified public gen_config.lua SHA-256 changed")
+    blob = b"blob " + str(len(source_bytes)).encode() + b"\0" + source_bytes
+    if hashlib.sha1(blob).hexdigest() != GENERATOR_GIT_BLOB:
+        raise AssertionError("unmodified public gen_config.lua Git blob changed")
+    patch = ROOT / "wrt_core/patches/ssrplus-core-transport.patch"
+    if not patch.exists():
+        return source_bytes
+    with tempfile.TemporaryDirectory(prefix="ssr-core-source-") as temporary:
+        target = Path(temporary) / "root/usr/share/shadowsocksr/gen_config.lua"
+        target.parent.mkdir(parents=True)
+        target.write_bytes(source_bytes)
+        result = subprocess.run(["git", "-C", temporary, "init", "-q"],
+                                capture_output=True, text=True, timeout=30)
+        if result.returncode:
+            raise AssertionError(result.stderr)
+        result = subprocess.run(["git", "-C", temporary, "apply",
+            "--include=root/usr/share/shadowsocksr/gen_config.lua", str(patch)],
+            capture_output=True, text=True, timeout=30)
+        if result.returncode:
+            raise AssertionError(result.stderr)
+        return target.read_bytes()
 
 
 def link(protocol, query):
@@ -40,13 +71,8 @@ def lua_to_python(value):
 
 def generate_core_config(node, installed_cores=CORE_BINARIES, *, runtime_args=None,
                          section_name="candidate", uci_sections=None, xray_version="26.9.1"):
-    """Run unmodified gen_config.lua with a committed subscriber node."""
-    source_bytes = GENERATOR.read_bytes()
-    if hashlib.sha256(source_bytes).hexdigest() != GENERATOR_SHA256:
-        raise AssertionError("unmodified public gen_config.lua SHA-256 changed")
-    blob = b"blob " + str(len(source_bytes)).encode() + b"\0" + source_bytes
-    if hashlib.sha1(blob).hexdigest() != GENERATOR_GIT_BLOB:
-        raise AssertionError("unmodified public gen_config.lua Git blob changed")
+    """Run the complete repaired generator with a committed subscriber node."""
+    source_bytes = generator_source()
     lua = subscription_tests.LuaRuntime(unpack_returned_tuples=True)
     globals_ = lua.globals()
     output = []
@@ -159,7 +185,8 @@ class SubscriptionCoreConfigRegressions(unittest.TestCase):
         subscriber = self.subscriber
         current_source = subscriber.source
         subscriber.source = subscription_tests.subscription_source(
-            exclude_patches=("ssrplus-ss-password.patch", "ssrplus-node-references.patch"))
+            exclude_patches=("ssrplus-ss-password.patch", "ssrplus-node-references.patch",
+                             "ssrplus-core-transport.patch"))
         unrelated = {sid: copy.deepcopy(subscriber.sections[sid]) for sid in ("old_b", "manual")}
         subscriber.sections = {sid: value for sid, value in subscriber.sections.items()
                                if sid in ("global", "subscribe")}
@@ -409,15 +436,11 @@ class SubscriptionCoreConfigRegressions(unittest.TestCase):
                 self.assertEqual(request.get("path"), ["/proxy"])
                 self.assertNotIn("Host", request.get("headers", {}))
 
-    def test_trojan_kcp_and_quic_case_insensitive_keys_preserve_values(self):
+    def test_trojan_kcp_case_insensitive_keys_preserve_values(self):
         kcp = self.stream(link("trojan", "TYPE=kcp&HEADERTYPE=dns&HOST=Dns.Example&SEED=MiXeD%2B%252F"))
         self.assertEqual(kcp["finalmask"]["udp"], [
-            {"type": "header-dns", "settings": {"domain": "Dns.Example"}},
-            {"type": "mkcp-aes128gcm", "settings": {"password": "MiXeD+%2F"}}])
-        quic = self.stream(link("trojan", "TYPE=quic&HEADERTYPE=srtp&QUICSECURITY=aes-128-gcm&KEY=MiXeD%2B%252F"))
-        self.assertEqual(quic["quicSettings"]["header"]["type"], "srtp")
-        self.assertEqual(quic["quicSettings"].get("security"), "aes-128-gcm")
-        self.assertEqual(quic["quicSettings"].get("key"), "MiXeD+%2F")
+            {"type": "mkcp-legacy", "settings": {"header": "dns", "value": "Dns.Example"}},
+            {"type": "mkcp-legacy", "settings": {"value": "MiXeD+%2F"}}])
 
     def test_finalmask_json_reaches_core_for_all_three_protocols(self):
         encoded = quote('{"tcp":[{"type":"fragment","settings":{"packets":"tlshello","length":"100-200","interval":"10-20"}}]}', safe="")

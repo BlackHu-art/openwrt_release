@@ -178,7 +178,7 @@ HomeProxy 从本地锁定的官方源码复制到构建目录后、最终 feeds 
 补丁保存在 `wrt_core/patches/homeproxy-*.patch`。构建时从两个兼容补丁版本中选择一个，再预检 ACL 和特性缓存补丁，全部通过后才修改源码；已应用的补丁逐份跳过。遇到无法匹配的上游源码变化会停止构建，需检查并更新补丁，避免静默编出有兼容问题的 HomeProxy。
 
 共享 Xray 保留已审查的 `26.3.27` 原始 recipe，由现有 guard 和补丁在构建副本中产出
-`26.7.11`；sing-box 固定为 `1.14.3`，没有跟随 small-package 滚动到 `26.10.21` 的 Xray 配方。
+`26.10.21`，Go 工具链最低 `1.27.3`；sing-box 固定为 `1.14.3`。Passwall1 的源码和构建入口已移除，`proxy` 片段统一选中 Passwall2。
 iStoreX 的七个组件及 `istore_backend.lua` 兼容文件也改从本地受管输入复制。
 
 QuickFile 仍从外部上游获取，不属于这 16 个受管单元。已核对的 `2.0.8` 使用 Rust 源码包，

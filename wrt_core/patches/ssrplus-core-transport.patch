@@ -1,0 +1,178 @@
+Subject: SSR Plus: preserve transports against current Xray configuration APIs
+
+--- a/root/usr/share/shadowsocksr/gen_config.lua
++++ b/root/usr/share/shadowsocksr/gen_config.lua
+@@ -38,6 +38,16 @@
+ local socks_server = ucursor:get_all("shadowsocksr", "@socks5_proxy[0]") or {}
+ local xray_fragment = ucursor:get_all("shadowsocksr", "@global_xray_fragment[0]") or {}
+ local xray_noise = ucursor:get_all("shadowsocksr", "@xray_noise_packets[0]") or {}
++-- Match the effective network: WireGuard has no stream; HY2 always uses hysteria.
++-- Removed remote transports cannot be replaced locally without server changes.
++local effective_network = (server.v2ray_protocol == "wireguard") and ""
++    or (server.v2ray_protocol == "hysteria2") and "hysteria" or (server.transport or "raw")
++local legacy_transport = string.lower(effective_network)
++if server.type == "v2ray" and (legacy_transport == "h2" or legacy_transport == "h3"
++        or legacy_transport == "http" or legacy_transport == "quic") then
++    error("SSR Plus: unsupported Xray transport '" .. legacy_transport .. "' in node '" ..
++        server_section .. "'; node and selection retained; change the remote transport explicitly", 0)
++end
+ local outbound_settings = nil
+ local xray_version = nil
+ local xray_version_val = 0
+@@ -533,30 +543,38 @@
+ 				local PT = server.v2ray_protocol
+ 				local TP = server.transport
+ 				if server.transport == "kcp" then
+-					local map = {none = "none", srtp = "header-srtp", utp = "header-utp", ["wechat-video"] = "header-wechat",
+-						dtls = "header-dtls", wireguard = "header-wireguard", dns = "header-dns"}
++					local map = {srtp = "srtp", utp = "utp", ["wechat-video"] = "wechat",
++						dtls = "dtls", wireguard = "wireguard", dns = "dns"}
+ 					local udp = {}
+ 					if server.kcp_guise and server.kcp_guise ~= "none" then
+-						local g = { type = map[server.kcp_guise] }
++						local g = { type = "mkcp-legacy", settings = { header = map[server.kcp_guise] } }
+ 						if server.kcp_guise == "dns" and server.kcp_domain and server.kcp_domain ~= "" then
+-							g.settings = { domain = server.kcp_domain }
++							g.settings.value = server.kcp_domain
+ 						end
+ 						udp[#udp+1] = g
+ 					end
+-					local c = { type = (server.seed and server.seed ~= "") and "mkcp-aes128gcm" or "mkcp-original" }
++					local c = { type = "mkcp-legacy" }
+ 					if server.seed and server.seed ~= "" then
+-						c.settings = { password = server.seed }
++						c.settings = { value = server.seed }
+ 					end
+ 					udp[#udp+1] = c
+ 					finalmask.udp = udp
+ 				elseif PT == "hysteria2" then
+ 					if (server.flag_obfs == "1" and (server.obfs_type and server.obfs_type ~= "")) then
+-						finalmask.udp = {{
+-							type = server.obfs_type,
+-							settings = server.salamander and {
+-								password = server.salamander
+-							} or nil
+-						}}
++						local obfs = {
++							type = server.obfs_type == "gecko" and "salamander" or server.obfs_type,
++							settings = { password = server.salamander }
++						}
++						if server.obfs_type == "gecko" then
++							local min = tonumber(server.obfs_MinPacketSize or "512")
++							local max = tonumber(server.obfs_MaxPacketSize or "1200")
++							if not min or not max or min % 1 ~= 0 or max % 1 ~= 0
++								or min <= 0 or min > max or max > 2048 then
++								error("SSR Plus: invalid Gecko packet size; node parameters retained", 0)
++							end
++							obfs.settings.packetSize = min .. "-" .. max
++						end
++						finalmask.udp = {obfs}
+ 					end
+ 					local up = tonumber(server.uplink_capacity) or 0
+ 					local down = tonumber(server.downlink_capacity) or 0
+--- a/root/usr/share/shadowsocksr/subscribe.lua
++++ b/root/usr/share/shadowsocksr/subscribe.lua
+@@ -432,6 +432,10 @@
+ 			result.flag_obfs = "1"
+ 			result.obfs_type = params.obfs
+ 			result.salamander = params["obfs-password"] or params["obfs_password"]
++			if params.obfs == "gecko" then
++				result.obfs_MinPacketSize = params.minPacketSize
++				result.obfs_MaxPacketSize = params.maxPacketSize
++			end
+ 		end
+ 		if params.allowInsecure or params.insecure then
+ 			local insecure = params.allowInsecure or params.insecure
+@@ -1516,6 +1520,17 @@
+ 			legacy_native_identity[result] = {hash = legacy_hash, password = legacy_native_password}
+ 		end
+ 	end
++	-- Match the exact r11 payload before these Gecko fields were understood.
++	-- Missing query fields stay absent so tset retains explicit stored sizes.
++	if result.obfs_type == "gecko" and (result.obfs_MinPacketSize or result.obfs_MaxPacketSize) then
++		local min, max = result.obfs_MinPacketSize, result.obfs_MaxPacketSize
++		result.obfs_MinPacketSize, result.obfs_MaxPacketSize = nil, nil
++		local legacy_hash = md5(jsonStringify(result) .. "_" .. (alias or ""))
++		result.obfs_MinPacketSize, result.obfs_MaxPacketSize = min, max
++		if legacy_hash ~= current_hash then
++			legacy_native_identity[result] = {hash = legacy_hash, gecko = true}
++		end
++	end
+ 	result.hashkey = current_hash
+ 	result.alias = alias
+ 	result.switch_enable = switch_enable
+@@ -1918,10 +1933,18 @@
+ 				checked(#legacy == 1 and not exact, "ambiguous legacy native SS identity")
+ 				node = legacy[1]
+ 				local identity = legacy_native_identity[node]
+-				checked((old.type == "ss-rust" or old.type == "ss-libev") and
+-					old.password == identity.password, "legacy native SS credential identity changed")
+-				for _, field in ipairs({"type", "server", "server_port", "encrypt_method_ss", "alias"}) do
+-					checked(old[field] == node[field], "legacy native SS identity changed: " .. field)
++				if identity.gecko then
++					checked(old.type == node.type and old.obfs_type == "gecko", "legacy Gecko identity changed")
++					checked(tostring(old.server_port) == tostring(node.server_port), "legacy Gecko port changed")
++					for _, field in ipairs({"server", "hy2_auth", "salamander", "alias"}) do
++						checked(old[field] == node[field], "legacy Gecko identity changed: " .. field)
++					end
++				else
++					checked((old.type == "ss-rust" or old.type == "ss-libev") and
++						old.password == identity.password, "legacy native SS credential identity changed")
++					for _, field in ipairs({"type", "server", "server_port", "encrypt_method_ss", "alias"}) do
++						checked(old[field] == node[field], "legacy native SS identity changed: " .. field)
++					end
+ 				end
+ 				migrations[old[".name"]] = node
+ 			end
+--- a/root/etc/init.d/shadowsocksr
++++ b/root/etc/init.d/shadowsocksr
+@@ -512,6 +512,7 @@
+ }
+ 
+ gen_config_file() { #server1 type2 code3 local_port4 socks_port5 chain6 threads5
++	ssrp_check_xray_transport "$1" || _exit 1
+ 	case "$3" in
+ 	1)
+ 		config_file=$tcp_config_file
+@@ -1807,9 +1808,41 @@
+ 	cp /usr/share/shadowsocksr/shadowsocksr.config /etc/config/shadowsocksr
+ }
+ 
++# Check selected nodes before preflight generation or any service replacement.
++# Preserve unsupported subscriptions and explicit choices for the user to repair.
++ssrp_check_xray_transport() {
++	local node="$1" transport
++	case "$node" in ''|nil|same) return 0 ;; esac
++	[ "$(uci_get_by_name "$node" type)" = v2ray ] || return 0
++	# These protocols ignore a retained transport field in the actual generator.
++	case "$(uci_get_by_name "$node" v2ray_protocol)" in wireguard|hysteria2) return 0 ;; esac
++	transport=$(uci_get_by_name "$node" transport | tr 'A-Z' 'a-z')
++	case "$transport" in h2|h3|http|quic)
++		echolog "SSR Plus: unsupported Xray transport '$transport' in node '$node'; node and selection retained; change the remote transport explicitly"
++		return 1 ;;
++	esac
++}
++
++ssrp_check_selected_xray_transports() {
++	local main socks
++	main=${switch_server:-$(uci_get_by_type global global_server nil)}
++	ssrp_check_xray_transport "$main" || return 1
++	if [ "$(uci_get_by_type socks5_proxy enabled 0)" = 1 ]; then
++		socks=$(uci_get_by_type socks5_proxy server nil)
++		[ "$socks" != same ] || socks=$main
++		ssrp_check_xray_transport "$socks" || return 1
++	fi
++	case "$main" in ''|nil) return 0 ;; esac
++	ssrp_check_xray_transport "$(uci_get_by_type global udp_relay_server nil)" || return 1
++	if [ "$(uci_get_by_type global netflix_enable 0)" = 1 ]; then
++		ssrp_check_xray_transport "$(uci_get_by_type global netflix_server nil)" || return 1
++	fi
++}
++
+ # Private preflight does not spawn cores, mutate firewall state, or publish DNS.
+ # JSON syntax and dnsmasq validation catch generation errors before stopping.
+ ssrp_preflight() (
++    ssrp_check_selected_xray_transports || exit 1
+     SSRP_PREPARE_ONLY=1
+     ssrp_dns_begin || exit 1
+     trap 'ssrp_dns_abort' EXIT

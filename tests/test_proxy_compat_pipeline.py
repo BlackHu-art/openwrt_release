@@ -9,7 +9,7 @@ import tempfile
 import unittest
 
 from lupa.lua51 import LuaError
-import test_passwall_tls as tls_tests
+import test_passwall2_tls as tls_tests
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -46,12 +46,12 @@ class ProxyCompatibilityPipeline(unittest.TestCase):
         # Only unrelated preparation/download boundaries are replaced. The
         # stage, new repair helpers, patch application and source checks run.
         commands = re.findall(r"^    ([a-z_][a-z_0-9]*)\b", stage, re.M)
-        preserved = {"fix_xray_core_compat", "fix_passwall_compat", "update_golang"}
+        preserved = {"fix_xray_core_compat", "fix_passwall2_compat", "update_golang"}
         stubs = "\n".join(name + "() { :; }" for name in commands if name not in preserved)
         script = '''source "$BASE_PATH/update.sh"
 ''' + stubs + '''
 update_golang() {
-    printf 'GO_VERSION_MAJOR_MINOR:=1.26\n' > "$BUILD_DIR/feeds/packages/lang/golang/golang/Makefile"
+    printf 'GO_VERSION_MAJOR_MINOR:=1.27\nGO_VERSION_PATCH:=3\n' > "$BUILD_DIR/feeds/packages/lang/golang/golang/Makefile"
 }
 stage_pre_install_source_fixes
 '''
@@ -64,7 +64,7 @@ stage_pre_install_source_fixes
         result = self.prepare()
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
         recipe = (self.feed / "xray-core/Makefile").read_text(encoding="utf-8")
-        self.assertIn("PKG_VERSION:=26.7.11\n", recipe)
+        self.assertIn("PKG_VERSION:=26.10.21\n", recipe)
         for plugin, (package, original) in self.packages.items():
             with self.subTest(plugin=plugin):
                 source = (package / f"luasrc/{plugin}/util_sing-box.lua").read_bytes()
@@ -79,8 +79,8 @@ stage_pre_install_source_fixes
         self.assertFalse((self.build / ".config").exists())
 
     def test_unknown_plugin_source_stops_the_stage(self):
-        package = self.packages["passwall"][0]
-        source = package / "luasrc/passwall/util_sing-box.lua"
+        package = self.packages["passwall2"][0]
+        source = package / "luasrc/passwall2/util_sing-box.lua"
         source.write_text("unrecognized generator\n", encoding="utf-8")
         result = self.prepare()
         self.assertNotEqual(result.returncode, 0, result.stdout + result.stderr)

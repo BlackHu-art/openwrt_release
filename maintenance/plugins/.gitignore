@@ -1,5 +1,4 @@
 # These upstream scripts must survive the parent repository's test.sh rule.
-!/passwall/luci-app-passwall/root/usr/share/passwall/test.sh
 !/passwall2/luci-app-passwall2/root/usr/share/passwall2/test.sh
 # Keep tracked upstream test directories despite the parent's generic test/ rule.
 !/ssrplus/**

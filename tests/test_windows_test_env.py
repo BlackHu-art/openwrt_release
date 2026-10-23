@@ -97,6 +97,15 @@ class WindowsTestEnvironmentTests(unittest.TestCase):
             tooling.extract_flock(archive, TAR, target)
         self.assertEqual(target.read_bytes(), b"working installation")
 
+    def test_new_core_version_uses_its_own_cache_and_keeps_previous_core(self):
+        dependencies = self.base / "dependencies"
+        old = dependencies / "xray-26.7.11/xray.exe"
+        old.parent.mkdir(parents=True)
+        old.write_bytes(b"previous reviewed core")
+        layout = tooling.Layout(self.base / "repository", dependencies, self.base / "Git")
+        self.assertEqual(layout.xray, dependencies / "xray-26.10.21/xray.exe")
+        self.assertEqual(old.read_bytes(), b"previous reviewed core")
+
     def test_cached_executable_must_match_pinned_bytes(self):
         target = self.base / "xray.exe"
         data = b"pinned executable"
@@ -220,7 +229,7 @@ class WindowsTestEnvironmentTests(unittest.TestCase):
             if executable == layout.bash:
                 return str(layout.python) if command[4].startswith("python ") else "flock from util-linux 2.40.2"
             if executable == layout.xray:
-                return "Xray 26.7.11 fixture"
+                return "Xray 26.10.21 fixture"
             if executable == layout.ruby:
                 return ruby
             if executable == layout.node:

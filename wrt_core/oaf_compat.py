@@ -27,11 +27,40 @@ FIRSTBOOT = b'''#!/bin/sh
 if [ "$(uci -q get fwx.appfilter.enable)" = "0" ] &&
    [ "$(uci -q get fwx.macfilter.enable)" = "0" ] &&
    [ "$(uci -q get fwx.record.enable)" = "0" ]; then
+    # An enabled service on package upgrade is an existing administrator choice.
+    if [ "${PKG_UPGRADE:-}" = "1" ] && /etc/init.d/appfilter enabled; then
+        exit 0
+    fi
+    # default_postinst sources this file before its automatic enable/start.
+    # Scope the one-shot suppression to that installer's process, never a later
+    # manual start. Ordinary boot's uci_apply_defaults has no package context.
+    if [ "${pkgname:-}" = "appfilter" ] && [ -z "${IPKG_INSTROOT:-}" ]; then
+        # The birth timestamp prevents a stale token affecting a reused PID.
+        awk '{print $22}' "/proc/$$/stat" > "/var/run/.oaf-postinst-$$"
+    fi
     /etc/init.d/appfilter disable
     /etc/init.d/appfilter stop
 fi
 exit 0
 '''
+
+POSTINST_START_GUARD = b'''    # Consume only the current package installer's one-shot suppression.
+    local postinst_marker="/var/run/.oaf-postinst-${PPID}"
+    local postinst_birth current_birth
+    if [ -f "$postinst_marker" ]; then
+        read -r postinst_birth < "$postinst_marker"
+        rm -f "$postinst_marker"
+        current_birth="$(awk '{print $22}' "/proc/$PPID/stat" 2>/dev/null)"
+        if [ -n "$postinst_birth" ] && [ "$postinst_birth" = "$current_birth" ] &&
+           [ "$(uci -q get fwx.appfilter.enable)" = "0" ] &&
+           [ "$(uci -q get fwx.macfilter.enable)" = "0" ] &&
+           [ "$(uci -q get fwx.record.enable)" = "0" ]; then
+            /etc/init.d/appfilter disable
+            return 0
+        fi
+    fi
+'''
+
 
 
 def _read(path):
@@ -60,6 +89,10 @@ def _prepared_payloads(inputs):
     if count != 3 or config.count(b"\toption disable_hnat '0'\n") != 1:
         raise ValueError("OAF reviewed default schema changed")
     initializer = initializer[:match.start(2)] + config + initializer[match.end(2):]
+    start_anchor = b"start_service(){\n"
+    if initializer.count(start_anchor) != 1:
+        raise ValueError("OAF reviewed service start entrypoint changed")
+    initializer = initializer.replace(start_anchor, start_anchor + POSTINST_START_GUARD)
 
     recipe = inputs["open-app-filter/Makefile"]
     anchor = b"\t$(INSTALL_DIR) $(1)/etc/config\n"

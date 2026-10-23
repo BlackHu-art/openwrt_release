@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """Explicitly fetch the pinned official Xray executable for config-only tests.
 
-No download happens on import. The minimum version required by the imported
-Passwall generators is an official prerelease, not an upstream stable release.
+No download happens on import. The release API marks this version non-prerelease;
+the release notes call it an emergency update and defer stable release to month end.
 """
 import argparse
 import hashlib
@@ -16,12 +16,12 @@ import urllib.request
 import zipfile
 
 
-VERSION = "26.7.11"
+VERSION = "26.10.21"
 ASSETS = {
     "linux-amd64": ("Xray-linux-64.zip", "xray",
-                    "aa11c3685c71da0ffc71e511db50404609e7e963bb914b048f59a6a00af8930e"),
+                    "0eec3ed4163c273d8c8bf821f7d219e257921cf584aa3fb970715e458e631978"),
     "windows-amd64": ("Xray-windows-64.zip", "xray.exe",
-                      "af801b62c4d41d248d3db8016d4c6e2a7ccfb7ed443e3738aeb6f9e062321512"),
+                      "fc58c39ee2f2717b4c54d28d374362389e5319b20ae44aea76ea45a5243ec827"),
 }
 MAX_BYTES = 64 * 1024 * 1024
 
@@ -78,7 +78,7 @@ def main():
     parser.add_argument("--platform", choices=ASSETS, help="default: current amd64 host")
     args = parser.parse_args()
     output, digest = fetch_core(args.output, args.platform or host_platform())
-    print("Xray " + VERSION + " (official prerelease); archive SHA-256=" + digest)
+    print("Xray " + VERSION + " (release API non-prerelease); archive SHA-256=" + digest)
     print(output)
 
 

@@ -40,7 +40,7 @@ class BuildGate(unittest.TestCase):
         (self.base / ".config").write_text("\n".join(lines) + "\n", encoding="utf-8")
 
     def prepare_artifacts(self):
-        target = self.base / "bin/packages/test/luci/luci-app-ssr-plus_190-11_all.ipk"
+        target = self.base / "bin/packages/test/luci/luci-app-ssr-plus_190-12_all.ipk"
         target.parent.mkdir(parents=True)
         self.case.make_package().replace(target)
         expected = self.base / "feeds/custom_feed/luci-app-ssr-plus/root" / artifacts.MANIFEST_TARGET
@@ -78,18 +78,19 @@ class BuildGate(unittest.TestCase):
         return self.shell('. "$BASE_PATH/modules/plugin_compat.sh" && '
                           'fix_ssrplus_compat "$SSR_SOURCE_PACKAGE"')
 
-    def test_source_preparation_embeds_r11_identity_with_matching_recipe_release(self):
+    def test_source_preparation_embeds_r12_identity_with_matching_recipe_release(self):
         package = self.source_fixture()
         result = self.prepare_source()
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
         manifest = json.loads((package / "root" / artifacts.MANIFEST_TARGET).read_text(encoding="utf-8"))
-        self.assertEqual(manifest["repair_version"], "190-r11")
-        self.assertEqual(len(manifest["patches"]), 25)
+        self.assertEqual(manifest["repair_version"], "190-r12")
+        self.assertEqual(len(manifest["patches"]), 27)
         self.assertIn("ssrplus-transport-config.patch", manifest["patches"])
         self.assertIn("ssrplus-ss-password.patch", manifest["patches"])
         self.assertIn("ssrplus-node-references.patch", manifest["patches"])
+        self.assertIn("ssrplus-core-transport.patch", manifest["patches"])
         self.assertEqual(len(manifest["files"]), 12)
-        self.assertIn("PKG_RELEASE:=11\n", (package / "Makefile").read_text(encoding="utf-8"))
+        self.assertIn("PKG_RELEASE:=12\n", (package / "Makefile").read_text(encoding="utf-8"))
 
     def test_source_preparation_rejects_changed_generator_before_publishing(self):
         package = self.source_fixture()
@@ -149,7 +150,7 @@ class BuildGate(unittest.TestCase):
 
     def test_compiled_module_package_verified_without_requiring_rootfs_install(self):
         self.config()
-        target = self.base / "bin/packages/test/luci/luci-app-ssr-plus_190-11_all.ipk"
+        target = self.base / "bin/packages/test/luci/luci-app-ssr-plus_190-12_all.ipk"
         target.parent.mkdir(parents=True)
         self.case.make_package().replace(target)
         expected = self.base / "feeds/custom_feed/luci-app-ssr-plus/root" / artifacts.MANIFEST_TARGET
@@ -158,11 +159,11 @@ class BuildGate(unittest.TestCase):
         result = self.shell("verify_ssrplus_built_artifacts")
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
 
-    def test_old_package_cannot_pass_with_r11_payload_and_manifest(self):
+    def test_old_package_cannot_pass_with_r12_payload_and_manifest(self):
         self.config()
         self.prepare_artifacts()
-        target = self.base / "bin/packages/test/luci/luci-app-ssr-plus_190-11_all.ipk"
-        for version in ("190-7", "190-r7", "190-8", "190-r8", "190-9", "190-r9", "190-10", "190-r10"):
+        target = self.base / "bin/packages/test/luci/luci-app-ssr-plus_190-12_all.ipk"
+        for version in ("190-7", "190-r7", "190-8", "190-r8", "190-9", "190-r9", "190-10", "190-r10", "190-11", "190-r11"):
             with self.subTest(version=version):
                 self.case.make_package(version=version).replace(target)
                 result = self.shell("verify_ssrplus_built_artifacts")
@@ -171,7 +172,7 @@ class BuildGate(unittest.TestCase):
 
     def test_selected_rootfs_package_cannot_pass_without_final_rootfs(self):
         self.config(selected="y")
-        target = self.base / "bin/packages/test/luci/luci-app-ssr-plus_190-11_all.ipk"
+        target = self.base / "bin/packages/test/luci/luci-app-ssr-plus_190-12_all.ipk"
         target.parent.mkdir(parents=True)
         self.case.make_package().replace(target)
         expected = self.base / "feeds/custom_feed/luci-app-ssr-plus/root" / artifacts.MANIFEST_TARGET
@@ -268,7 +269,7 @@ class BuildGate(unittest.TestCase):
         root = self.base / "build_dir/target-fixture/linux-qualcommax_ipq60xx/target-dir-deadbeef"
         status = root / "usr/lib/opkg/status"
         status.parent.mkdir(parents=True)
-        status.write_text("Package: luci-app-ssr-plus\nVersion: 190-11\n", encoding="utf-8")
+        status.write_text("Package: luci-app-ssr-plus\nVersion: 190-12\n", encoding="utf-8")
         result = self.shell("verify_ssrplus_built_artifacts")
         self.assertNotEqual(result.returncode, 0, result.stdout + result.stderr)
 

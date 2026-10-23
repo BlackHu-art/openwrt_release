@@ -1,4 +1,4 @@
-c216f07507a4c47d090e5a0ca86c7d58551be096 root/etc/homeproxy/scripts/generate_client.uc
+050d4e2a8b3b7f2071a0c3bcf723fd717af0437f root/etc/homeproxy/scripts/generate_client.uc
 865290ce3ce9ef5ccf8fc2b1da819a53217bf87f htdocs/luci-static/resources/view/homeproxy/client.js
 469bae34f94c287081ae5838ea98c1aee6b341ff root/etc/init.d/homeproxy
 bb14998a87bf070feeba277110a559e76de4753a root/usr/share/rpcd/ucode/luci.homeproxy

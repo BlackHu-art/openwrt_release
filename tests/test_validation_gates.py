@@ -31,20 +31,25 @@ class ValidationGates(unittest.TestCase):
         self.assertIn('python tests/fetch_xray_test_core.py --output', scripts)
         self.assertIn('XRAY_TEST_BINARY=', scripts)
         self.assertIn('GITHUB_ENV', scripts)
+        self.assertIn('python tests/fetch_mihomo_test_cores.py --generation old --output', scripts)
+        self.assertIn('python tests/fetch_mihomo_test_cores.py --generation new --output', scripts)
+        self.assertIn('MIHOMO_OLD_TEST_BIN=', scripts)
+        self.assertIn('MIHOMO_NEW_TEST_BIN=', scripts)
         environment = dict(self.job.get('env', {}), **steps[regression].get('env', {}))
-        for required in ('REQUIRE_XRAY_TEST_CORE', 'OPENCLASH_REQUIRE_RUBY34', 'OPENCLASH_REQUIRE_NODE'):
+        for required in ('REQUIRE_XRAY_TEST_CORE', 'OPENCLASH_REQUIRE_RUBY34', 'OPENCLASH_REQUIRE_NODE', 'OPENCLASH_REQUIRE_MIHOMO'):
             self.assertEqual(str(environment.get(required)), '1', required + ' must be enforced')
 
     def test_plugin_repair_inputs_trigger_validation(self):
         triggers = self.workflow.get('on', self.workflow.get(True, {}))
         required = {
             'wrt_core/patches/openclash-*.patch', 'wrt_core/patches/adguardhome-*.patch',
-            'wrt_core/compat/adguardhome/**', 'wrt_core/patches/passwall*-singbox-*.patch',
+            'wrt_core/compat/adguardhome/**', 'wrt_core/patches/passwall2-singbox-*.patch',
             'wrt_core/patches/xray-core-*.patch', 'wrt_core/compat/proxy-cores/**',
-            'maintenance/plugins/passwall/**', 'maintenance/plugins/passwall2/**',
+            'maintenance/plugins/passwall2/**',
             'maintenance/plugins/manifests/**', 'wrt_core/patches/homeproxy-*.patch',
             'wrt_core/managed/**', 'wrt_core/managed_plugins.py',
-            'wrt_core/quickfile_verify.py', 'wrt_core/oaf_compat.py',
+            'wrt_core/quickfile_verify.py', 'wrt_core/check_selected_plugins.py', 'wrt_core/deconfig/**', 'wrt_core/oaf_compat.py', 'wrt_core/theme_compat.py',
+            'wrt_core/patches/990_set_argon_primary',
         }
         for event in ('push', 'pull_request'):
             self.assertFalse(required - set(triggers[event]['paths']), (event, required - set(triggers[event]['paths'])))
@@ -52,6 +57,7 @@ class ValidationGates(unittest.TestCase):
     def test_required_tools_cannot_be_silently_skipped(self):
         probes = (
             ('test_shared_xray_compat', 'REQUIRE_XRAY_TEST_CORE', 'XRAY_TEST_BINARY', 'Xray'),
+            ('test_openclash_tun_stack', 'OPENCLASH_REQUIRE_MIHOMO', 'MIHOMO_OLD_TEST_BIN', 'Mihomo'),
             ('test_openclash_backports', 'OPENCLASH_REQUIRE_NODE', 'NODE', 'Node'),
             ('test_openclash_filename', 'OPENCLASH_REQUIRE_NODE', 'NODE', 'Node'),
         )

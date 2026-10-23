@@ -1,0 +1,81 @@
+{
+  "schema_version": 1,
+  "reviewed_on": "2026-10-23",
+  "package": "xray-core",
+  "reason": "The retained current Passwall2 generator emits MASQUE, which Xray 26.7.11 cannot parse; upgrade the guarded build recipe and official config-validation core together.",
+  "recipe_source": {
+    "repository": "https://github.com/kenzok8/small-package.git",
+    "commit": "3d5609257639ed76aaacdeffe242343d51265fea",
+    "path": "xray-core/Makefile",
+    "before_git_blob": "481e0342987bde364588e00ec716c1f23a250512",
+    "after_git_blob": "cc538ed322a3a1bdc77463d7ff8208abbd30a065",
+    "before_version": "26.3.27",
+    "before_source_sha256": "992a4997e6bb846d11469435d687f99ef812fcde1e0a009bb8e95189ea20331d",
+    "patch": "xray-core-26.10.21.patch",
+    "source_url_template_unchanged": "https://codeload.github.com/XTLS/Xray-core/tar.gz/v$(PKG_VERSION)?"
+  },
+  "core_source": {
+    "repository": "https://github.com/XTLS/Xray-core.git",
+    "version": "26.10.21",
+    "tag": "v26.10.21",
+    "commit": "1b1647cd9ddf0abc34b981d4611fc03bcac1ca74",
+    "release_api": "https://api.github.com/repos/XTLS/Xray-core/releases/tags/v26.10.21",
+    "release_url": "https://github.com/XTLS/Xray-core/releases/tag/v26.10.21",
+    "published_at": "2026-10-21T12:07:11Z",
+    "official_prerelease": false,
+    "selection_note": "The official release API marks this emergency security update non-prerelease. Its release notes defer a stable release to month end; the API flag is not a broader stability guarantee.",
+    "archive_url": "https://codeload.github.com/XTLS/Xray-core/tar.gz/v26.10.21?",
+    "archive_sha256": "44ef4874529a03848c90f1fdcfb763350fbc5f1de741ec90e0024d651df25650",
+    "go_mod_requirement": "1.27",
+    "go_mod_sha256": "7034fa6ca85b9919e634c06c69bde4e181818d8423f7c8d0e44f68ea5c6f5e60",
+    "archive_bytes": 1266749,
+    "build_toolchain_minimum": "1.27.3",
+    "build_toolchain_minimum_reason": "The emergency release notes require Go 1.27.3 certificate filtering in addition to the source go.mod minimum of 1.27."
+  },
+  "reviewed_generators": [
+    {
+      "repository": "https://github.com/Openwrt-Passwall/openwrt-passwall2.git",
+      "commit": "0f923be3f00f9fb8db9591c9ecab41e7de5ec75e",
+      "path": "luci-app-passwall2/luasrc/passwall2/util_xray.lua",
+      "minimum_xray_version": "26.7.11",
+      "sha256": "a30dad3cc3f7b7f63314efb2aa29ad39bef4a62d2baaa5791ca13323f6356078"
+    }
+  ],
+  "reviewed_go_recipe": {
+    "repository": "https://github.com/sbwml/packages_lang_golang.git",
+    "branch": "27.x",
+    "commit": "cd8953c31e0f64ea2853f87bb0f32256646a160d",
+    "path": "golang/Makefile",
+    "version": "1.27.3",
+    "sha256": "304acf8db6ccf443d875451074e24f198a6db77c98f96ce4e5b931a676de49ec"
+  },
+  "validation_scope": [
+    "Official tag, release API metadata, source archive SHA256, go.mod and exact Go recipe commit inspected.",
+    "Managed raw recipe remains 26.3.27 with blob 481e0342987bde364588e00ec716c1f23a250512; only guarded build copies are patched.",
+    "Source URL, dependencies, build flags and install rules are preserved.",
+    "Build gate rechecks the retained Passwall2 minimum and both numeric Go version fields on every call, including an already patched recipe.",
+    "Official Windows 26.10.21 accepts six complete outputs from the reviewed current Passwall2 generator: VLESS/raw, Trojan/ws, MASQUE, Hysteria2, XHTTP and mKCP; an invalid protocol is rejected.",
+    "Linux archive and executable hashes are verified from official assets; Linux execution is left to CI.",
+    "No firmware cross-compilation, router operation or real network forwarding is established by this receipt."
+  ],
+  "official_test_cores": [
+    {
+      "platform": "linux-amd64",
+      "asset": "Xray-linux-64.zip",
+      "url": "https://github.com/XTLS/Xray-core/releases/download/v26.10.21/Xray-linux-64.zip",
+      "api_digest": "sha256:0eec3ed4163c273d8c8bf821f7d219e257921cf584aa3fb970715e458e631978",
+      "sha256": "0eec3ed4163c273d8c8bf821f7d219e257921cf584aa3fb970715e458e631978",
+      "executable_sha256": "a27e3f95ab6ce270956d0cecd32eda4686a811afc71c64a6a734a3dede14883e",
+      "bytes": 15100223
+    },
+    {
+      "platform": "windows-amd64",
+      "asset": "Xray-windows-64.zip",
+      "url": "https://github.com/XTLS/Xray-core/releases/download/v26.10.21/Xray-windows-64.zip",
+      "api_digest": "sha256:fc58c39ee2f2717b4c54d28d374362389e5319b20ae44aea76ea45a5243ec827",
+      "sha256": "fc58c39ee2f2717b4c54d28d374362389e5319b20ae44aea76ea45a5243ec827",
+      "executable_sha256": "c77a00eb84fb93ae044c2d771a1cabcc033b81e487253fbc35b12df6879c1e15",
+      "bytes": 15029603
+    }
+  ]
+}

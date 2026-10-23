@@ -7,13 +7,13 @@
 It retains the original MPL-2.0 package license declaration. No Xray source or
 binary is vendored here.
 
-The Python tests create two minimal generator declarations and a Go recipe in a
-temporary directory. They exercise the actual build helper without fetching or
-executing an upstream package. The generator declarations reflect
-`local xray_min_version = "26.7.11"` in both currently reviewed Passwall
-generators; their complete provenance is recorded in
-`wrt_core/compat/proxy-cores/xray-26.7.11.json`.
+The Python tests create a minimal Passwall2 generator declaration and a Go recipe
+in a temporary directory. They exercise the actual build helper without fetching
+or executing an upstream package. Passwall2 still declares 26.7.11 as its minimum,
+but MASQUE configurations require the reviewed target 26.10.21. Complete source,
+release and official validation-core provenance is recorded in
+`wrt_core/compat/proxy-cores/xray-26.10.21.json`.
 
-Version 26.7.11 is the minimum required by those generators. Its official GitHub
-release is marked **prerelease**, not stable. The target source archive, tag
-commit, Go requirement, and reviewed recipe hashes are recorded in that receipt.
+The actual build gate also requires Go >=1.27.3. The official release API marks
+26.10.21 non-prerelease, while its emergency release notes defer a stable release
+to month end. The API flag does not establish broader runtime stability.

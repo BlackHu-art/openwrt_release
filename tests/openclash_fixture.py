@@ -7,6 +7,8 @@ import sys
 ROOT = Path(__file__).resolve().parents[1]
 FIXTURES = ROOT / "tests/fixtures/openclash/0.48.002"
 SOURCES = {
+    "yml_change.sh": "root/usr/share/openclash/yml_change.sh",
+    "settings.lua": "luasrc/model/cbi/openclash/settings.lua",
     "openclash.init": "root/etc/init.d/openclash",
     "YAML.rb": "root/usr/share/openclash/YAML.rb",
     "switch_dashboard.htm": "luasrc/view/openclash/switch_dashboard.htm",
