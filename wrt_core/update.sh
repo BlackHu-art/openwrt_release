@@ -65,6 +65,7 @@ stage_pre_install_source_fixes() {
     fix_miniupnpd || return 1
     update_golang || return 1
     fix_xray_core_compat "$(get_custom_feed_worktree_dir)/xray-core" || return 1
+    python3 "$BASE_PATH/simple_obfs_compat.py" "$(get_custom_feed_worktree_dir)/simple-obfs" || return 1
     change_dnsmasq2full
     fix_mk_def_depends
 

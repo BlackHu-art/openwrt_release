@@ -70,10 +70,10 @@ class WindowsTestEnvironmentTests(unittest.TestCase):
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
         self.assertEqual(tooling.sha256(target), tooling.sha256(source))
 
-    def make_archive(self, executable):
+    def make_archive(self, executable, member="usr/bin/flock.exe"):
         archive = self.base / "package.tar"
         with tarfile.open(archive, "w") as output:
-            for name, data in [("usr/bin/flock.exe", executable), ("../unexpected.txt", b"unwanted")]:
+            for name, data in [(member, executable), ("../unexpected.txt", b"unwanted")]:
                 entry = tarfile.TarInfo(name)
                 entry.size = len(data)
                 output.addfile(entry, io.BytesIO(data))
@@ -96,6 +96,28 @@ class WindowsTestEnvironmentTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "SHA-256"):
             tooling.extract_flock(archive, TAR, target)
         self.assertEqual(target.read_bytes(), b"working installation")
+
+    def test_make_extraction_reads_exact_member_without_extracting_companions(self):
+        data = b"make executable"
+        archive = self.make_archive(data, "usr/bin/make.exe")
+        target = self.base / "make runtime/make.exe"
+        extract = getattr(tooling, "extract_make", None)
+        self.assertTrue(callable(extract), "the installer must extract and verify managed make")
+        with patch.object(tooling, "MAKE_EXE_SHA256", hashlib.sha256(data).hexdigest(), create=True):
+            extract(archive, TAR, target)
+        self.assertEqual(target.read_bytes(), data)
+        self.assertEqual({p.name for p in self.base.iterdir()}, {"make runtime", "package.tar"})
+        self.assertFalse((self.base.parent / "unexpected.txt").exists())
+
+    def test_make_extraction_rejects_unknown_hash_without_replacing_executable(self):
+        archive = self.make_archive(b"unknown make", "usr/bin/make.exe")
+        target = self.base / "make.exe"
+        target.write_bytes(b"previous managed make")
+        extract = getattr(tooling, "extract_make", None)
+        self.assertTrue(callable(extract), "the installer must reject unverified make bytes")
+        with self.assertRaisesRegex(ValueError, "SHA-256"):
+            extract(archive, TAR, target)
+        self.assertEqual(target.read_bytes(), b"previous managed make")
 
     def test_new_core_version_uses_its_own_cache_and_keeps_previous_core(self):
         dependencies = self.base / "dependencies"
@@ -201,7 +223,8 @@ class WindowsTestEnvironmentTests(unittest.TestCase):
         layout = tooling.Layout(self.base / "repository", self.base / "dependencies", self.base / "Git")
         files = {"python": layout.python, "bash": layout.bash,
                  "msys": layout.git / "usr/bin/msys-2.0.dll", "flock": layout.flock,
-                 "xray": layout.xray, "ruby": layout.ruby, "node": layout.node}
+                 "xray": layout.xray, "ruby": layout.ruby, "node": layout.node,
+                 "make": layout.dependencies / "make-4.4.1-3/usr/bin/make.exe"}
         for name, path in files.items():
             if name not in missing:
                 path.parent.mkdir(parents=True, exist_ok=True)
@@ -213,18 +236,20 @@ class WindowsTestEnvironmentTests(unittest.TestCase):
         requirements = layout.repository / "tests/requirements.txt"
         requirements.parent.mkdir(parents=True)
         requirements.write_text("PyYAML==6.0.3\nlupa==2.8\n", encoding="utf-8")
-        for name in ("flock", "xray", "ruby", "node"):
+        for name in ("flock", "xray", "ruby", "node", "make"):
             self.enterContext(patch.object(tooling, name.upper() + "_EXE_SHA256",
                                           hashlib.sha256((name + " executable").encode()).hexdigest(), create=True))
         self.enterContext(patch.object(tooling, "RUBY_RUNTIME_SHA256", RUBY_FIXTURE_SHA256, create=True))
         return layout
 
-    def probe_output(self, layout, ruby="3.4.9", node="22.23.4"):
+    def probe_output(self, layout, ruby="3.4.9", node="22.23.4", make="GNU Make 4.4.1", recursive="make-recursive-ok"):
         def probe(command, environment, cwd):
             self.assertEqual(environment["RUBY"], str(layout.ruby))
             self.assertEqual(environment["NODE"], str(layout.node))
             executable = Path(command[0])
             if executable == layout.python:
+                if command[2].startswith("import shutil;"):
+                    return str(layout.dependencies / "make-4.4.1-3/usr/bin/make.exe")
                 return '{"PyYAML":"6.0.3","lupa":"2.8"}'
             if executable == layout.bash:
                 return str(layout.python) if command[4].startswith("python ") else "flock from util-linux 2.40.2"
@@ -234,11 +259,13 @@ class WindowsTestEnvironmentTests(unittest.TestCase):
                 return ruby
             if executable == layout.node:
                 return node
+            if executable == layout.dependencies / "make-4.4.1-3/usr/bin/make.exe":
+                return make if command[1:] == ["--version"] else recursive
             self.fail("unexpected dependency selected: " + str(executable))
         return probe
 
-    def test_check_rejects_missing_managed_ruby_or_node_without_downloading(self):
-        for missing in ("ruby", "node"):
+    def test_check_rejects_missing_managed_tools_without_downloading(self):
+        for missing in ("ruby", "node", "make"):
             with self.subTest(dependency=missing):
                 # Each fixture has otherwise valid pinned dependencies. Inherited
                 # global tools must never satisfy a missing managed installation.
@@ -264,6 +291,32 @@ class WindowsTestEnvironmentTests(unittest.TestCase):
         self.assertEqual(report.get("ruby_executable_sha256"), hashlib.sha256(b"ruby executable").hexdigest())
         self.assertEqual(report.get("node_executable_sha256"), hashlib.sha256(b"node executable").hexdigest())
 
+    def test_check_reports_verified_make_version_and_pins(self):
+        layout = self.make_check_layout()
+        with patch.object(tooling, "checked_output", side_effect=self.probe_output(layout)):
+            report = tooling.check(layout)
+        self.assertEqual(report.get("make_version"), "GNU Make 4.4.1")
+        self.assertEqual(report.get("make"), str(layout.dependencies / "make-4.4.1-3/usr/bin/make.exe"))
+        self.assertEqual(report.get("make_executable_sha256"), hashlib.sha256(b"make executable").hexdigest())
+
+    def test_check_rejects_tampered_make_without_running_it(self):
+        layout = self.make_check_layout()
+        (layout.dependencies / "make-4.4.1-3/usr/bin/make.exe").write_bytes(b"injected make")
+        with patch.object(tooling, "checked_output", side_effect=AssertionError("unverified executable ran")):
+            with self.assertRaisesRegex(ValueError, "SHA-256 mismatch.*make"):
+                tooling.check(layout)
+
+    def test_check_rejects_wrong_make_version_or_failed_recursive_probe(self):
+        layout = self.make_check_layout()
+        for version, recursive, message in [
+                ("GNU Make 4.3", "make-recursive-ok", "unexpected GNU make version"),
+                ("GNU Make 4.4.1", "", "recursive make probe failed")]:
+            with self.subTest(version=version, recursive=recursive):
+                with patch.object(tooling, "checked_output", side_effect=self.probe_output(
+                        layout, make=version, recursive=recursive)):
+                    with self.assertRaisesRegex(ValueError, message):
+                        tooling.check(layout)
+
     def test_check_rejects_wrong_runtime_versions(self):
         layout = self.make_check_layout()
         for ruby, node, expected in [("3.3.9", "22.23.4", "Ruby"), ("3.4.9", "22.0.0", "Node")]:
@@ -280,15 +333,17 @@ class WindowsTestEnvironmentTests(unittest.TestCase):
                 tooling.check(layout)
 
     def test_install_fetches_verified_runtimes_and_repairs_from_cache_offline(self):
-        layout = self.make_check_layout(missing=("ruby", "node"))
+        layout = self.make_check_layout(missing=("ruby", "node", "make"))
         original_flock_inode = layout.flock.stat().st_ino
         ruby_data = self.make_ruby_archive().read_bytes()
         node_archive = self.base / "node.zip"
         with zipfile.ZipFile(node_archive, "w") as output:
             output.writestr("node-v22.23.4-win-x64/node.exe", b"node executable")
         node_data = node_archive.read_bytes()
+        make_data = self.make_archive(b"make executable", "usr/bin/make.exe").read_bytes()
         self.enterContext(patch.object(tooling, "RUBY_ARCHIVE_SHA256", hashlib.sha256(ruby_data).hexdigest(), create=True))
         self.enterContext(patch.object(tooling, "NODE_ARCHIVE_SHA256", hashlib.sha256(node_data).hexdigest(), create=True))
+        self.enterContext(patch.object(tooling, "MAKE_ARCHIVE_SHA256", hashlib.sha256(make_data).hexdigest(), create=True))
         # install() itself is Windows-only, while this offline contract also
         # runs in Linux CI. Map its native tar boundary to the host's real tar.
         system_root = self.base / "Windows"
@@ -309,6 +364,7 @@ class WindowsTestEnvironmentTests(unittest.TestCase):
             urls = {
                 "https://github.com/oneclick/rubyinstaller2/releases/download/RubyInstaller-3.4.9-1/rubyinstaller-3.4.9-1-x64.7z": ruby_data,
                 "https://nodejs.org/download/release/v22.23.4/node-v22.23.4-win-x64.zip": node_data,
+                "https://mirror.msys2.org/msys/x86_64/make-4.4.1-3-x86_64.pkg.tar.zst": make_data,
             }
             return io.BytesIO(urls[request.full_url])
 
@@ -318,17 +374,35 @@ class WindowsTestEnvironmentTests(unittest.TestCase):
                     report = tooling.install(layout)
                 self.assertEqual(report.get("ruby_version"), "3.4.9")
                 self.assertEqual(report.get("node_version"), "22.23.4")
+                self.assertEqual(report.get("make_version"), "GNU Make 4.4.1")
                 self.assertEqual(layout.ruby.read_bytes(), b"ruby executable")
                 self.assertEqual(layout.node.read_bytes(), b"node executable")
+                make_executable = layout.dependencies / "make-4.4.1-3/usr/bin/make.exe"
+                self.assertEqual(make_executable.read_bytes(), b"make executable")
                 self.assertNotEqual(layout.flock.stat().st_ino, original_flock_inode)
                 self.assertEqual(layout.flock.read_bytes(), b"flock executable")
                 self.assertTrue((layout.dependencies / "environment.json").is_file())
                 (layout.ruby.parent.parent / "lib/yaml.rb").write_bytes(b"damaged library")
                 layout.node.write_bytes(b"damaged executable")
+                make_executable.write_bytes(b"damaged make")
                 with patch.object(tooling.urllib.request, "urlopen", side_effect=AssertionError("cache repair downloaded")):
                     repaired = tooling.install(layout)
                 self.assertEqual(repaired["ruby_runtime_sha256"], RUBY_FIXTURE_SHA256)
                 self.assertEqual(layout.node.read_bytes(), b"node executable")
+                self.assertEqual(make_executable.read_bytes(), b"make executable")
+
+    def test_child_environment_selects_managed_make_ahead_of_global_tool(self):
+        layout = tooling.Layout(self.base / "repository", self.base / "dependencies", self.base / "Git")
+        selected = layout.dependencies / "make-4.4.1-3/usr/bin/make.exe"
+        global_make = self.base / "global tools/make.exe"
+        for executable in (selected, global_make):
+            executable.parent.mkdir(parents=True)
+            executable.write_bytes(b"fixture executable")
+            executable.chmod(0o755)
+        environment = tooling.child_environment(layout, {"PATH": str(global_make.parent), "MAKE": str(global_make)})
+        command = "make" if os.name == "nt" else "make.exe"
+        self.assertEqual(Path(shutil.which(command, path=environment["PATH"])).resolve(), selected.resolve())
+        self.assertEqual(environment.get("MAKE"), selected.resolve().as_posix())
 
     def test_child_environment_is_isolated_and_uses_selected_dependencies(self):
         layout = tooling.Layout(self.base / "repository", self.base / "dependencies", self.base / "Git")
@@ -341,8 +415,9 @@ class WindowsTestEnvironmentTests(unittest.TestCase):
         self.assertNotIn("PYTHONPATH", environment)
         self.assertNotIn("PYTHONHOME", environment)
         self.assertEqual(environment["KEEP"], "yes")
-        self.assertEqual(environment["PATH"].split(os.pathsep)[:4], [
+        self.assertEqual(environment["PATH"].split(os.pathsep)[:5], [
             str(layout.python.parent), str(layout.flock.parent),
+            str(layout.dependencies / "make-4.4.1-3/usr/bin"),
             str(layout.git / "bin"), str(layout.git / "usr/bin")])
         self.assertEqual(environment["SSRP_TEST_FLOCK_DIR"], str(layout.flock.parent))
         self.assertEqual(environment["XRAY_TEST_BINARY"], str(layout.xray))

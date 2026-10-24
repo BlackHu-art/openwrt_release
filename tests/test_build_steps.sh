@@ -21,6 +21,9 @@ make() {
     printf "make[4]: Entering directory '%s/build_dir/target/example'\n" "$(pwd -P)"
     echo "ccache gcc -DVERBOSE_SENTINEL -c source.c (target $1)"
     if [[ "$1" == "${fail_target:-}" ]]; then
+        for ((line=0; line<hash_check_commands; line++)); do
+            echo 'SHELL=flock ... echo "Hash mismatch for file unrelated.tar.xz: expected good, got bad" HASH_CHECK_COMMAND_SENTINEL'
+        done
         # Failed mirrors may recover before a later, unrelated build failure.
         for ((line=0; line<recovered_download_errors; line++)); do
             echo 'curl: (22) The requested URL returned error: 403' >&2
@@ -36,12 +39,14 @@ make() {
 }
 reset_case() {
     : > calls
-    mkdir -p logs
+    mkdir -p logs include
+    cp "$repo_root/tests/fixtures/download-toplevel/3fd1e27a/download.mk" include/toplevel.mk
     : > logs/build-times.tsv
     printf '%s\n' "$1" > .config
     fail_target=''
     error_message='Hunk #1 FAILED at 42.'
     recovered_download_errors=0
+    hash_check_commands=0
 }
 
 reset_case 'CONFIG_PACKAGE_miniupnpd-nftables=y'
@@ -99,6 +104,20 @@ status=0
 build_firmware > console.log 2>&1 || status=$?
 [[ "$status" == 23 && $(wc -l < calls) == 1 ]]
 grep -q 'curl: (22)' console.log
+
+# A final archive mismatch must survive recovered mirror noise and later jobs.
+reset_case '# CONFIG_PACKAGE_miniupnpd-nftables is not set'
+fail_target=download
+recovered_download_errors=20
+hash_check_commands=10
+error_message='Hash mismatch for file fixture.tar.xz: expected good, got bad'
+status=0
+build_firmware > console.log 2>&1 || status=$?
+[[ "$status" == 23 && $(wc -l < calls) == 1 ]]
+if ! grep -qF "$error_message" console.log; then
+    echo 'FAIL: final download hash mismatch was hidden by recovered mirrors or parallel output' >&2
+    exit 1
+fi
 
 # Unclassified errors still get the raw tail; reporting must not hide failures.
 status=0

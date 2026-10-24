@@ -103,6 +103,8 @@ SSR 与 Passwall2 主程序的内置在线自升级均禁用，防止直接安�
 
 ## Xray 与工具链门槛
 
+simple-obfs 的固定上游配方另有[归档哈希兼容处理和实际下载回归](source-download-compat.md)。原始受管配方、来源提交和插件选择保留，仅在构建副本固定本包 XZ 归档格式及经独立重建确认的校验值；下载失败会在进入完整编译前终止。
+
 [Xray 构建检查](../wrt_core/modules/xray_core_compat.sh) 校验完整原始配方、
 EIP93 说明和全部十份补丁，拒绝文件缺失、额外补丁和内容漂移。
 每次执行还读取本轮官方 Passwall2 的最低 Xray 声明，并检查 Go 的唯一数字版本字段，

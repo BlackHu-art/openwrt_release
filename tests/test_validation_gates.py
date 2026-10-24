@@ -38,7 +38,7 @@ class ValidationGates(unittest.TestCase):
         self.assertIn('MIHOMO_OLD_TEST_BIN=', scripts)
         self.assertIn('MIHOMO_NEW_TEST_BIN=', scripts)
         environment = dict(self.job.get('env', {}), **steps[regression].get('env', {}))
-        for required in ('REQUIRE_XRAY_TEST_CORE', 'REQUIRE_FW876_XRAY_TEST_CORE', 'OPENCLASH_REQUIRE_RUBY34', 'OPENCLASH_REQUIRE_NODE', 'OPENCLASH_REQUIRE_MIHOMO'):
+        for required in ('REQUIRE_XRAY_TEST_CORE', 'REQUIRE_FW876_XRAY_TEST_CORE', 'REQUIRE_SIMPLE_OBFS_DOWNLOAD', 'OPENCLASH_REQUIRE_RUBY34', 'OPENCLASH_REQUIRE_NODE', 'OPENCLASH_REQUIRE_MIHOMO'):
             self.assertEqual(str(environment.get(required)), '1', required + ' must be enforced')
 
     def test_plugin_repair_inputs_trigger_validation(self):
@@ -51,6 +51,7 @@ class ValidationGates(unittest.TestCase):
             'maintenance/plugins/passwall2/**',
             'maintenance/plugins/manifests/**', 'wrt_core/patches/homeproxy-*.patch',
             'wrt_core/managed/**', 'wrt_core/managed_plugins.py',
+            'wrt_core/simple_obfs_compat.py', 'wrt_core/download_compat.py',
             'wrt_core/quickfile_verify.py', 'wrt_core/check_selected_plugins.py', 'wrt_core/deconfig/**', 'wrt_core/oaf_compat.py', 'wrt_core/theme_compat.py',
             'wrt_core/patches/990_set_argon_primary',
         }
@@ -61,6 +62,7 @@ class ValidationGates(unittest.TestCase):
         probes = (
             ('test_shared_xray_compat', 'REQUIRE_XRAY_TEST_CORE', 'XRAY_TEST_BINARY', 'Xray'),
             ('test_fw876_xray_compat', 'REQUIRE_FW876_XRAY_TEST_CORE', 'FW876_XRAY_TEST_BINARY', 'fw876 Xray'),
+            ('test_simple_obfs_download', 'REQUIRE_SIMPLE_OBFS_DOWNLOAD', 'SIMPLE_OBFS_DOWNLOAD_UNUSED', 'simple-obfs'),
             ('test_openclash_tun_stack', 'OPENCLASH_REQUIRE_MIHOMO', 'MIHOMO_OLD_TEST_BIN', 'Mihomo'),
             ('test_openclash_backports', 'OPENCLASH_REQUIRE_NODE', 'NODE', 'Node'),
             ('test_openclash_filename', 'OPENCLASH_REQUIRE_NODE', 'NODE', 'Node'),

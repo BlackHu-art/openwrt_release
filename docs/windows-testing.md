@@ -26,8 +26,8 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\tests\windows-tests.ps1 -A
 
 | 操作 | 行为 |
 | --- | --- |
-| `install` | 创建专用 Python 虚拟环境，安装固定版本的 Python 包，下载并校验 flock、Xray、Ruby 和 Node.js 测试工具 |
-| `check` | 检查现有依赖、二进制哈希、Bash、flock 实际互斥能力、Xray 与 Ruby / Node.js 版本和运行能力，不下载依赖 |
+| `install` | 创建专用 Python 虚拟环境，安装固定版本的 Python 包，下载并校验 flock、GNU Make、Xray、Ruby 和 Node.js 测试工具 |
+| `check` | 检查现有依赖、二进制哈希、Bash、flock 实际互斥能力、GNU Make 递归执行、Xray 与 Ruby / Node.js 版本和运行能力，不下载依赖 |
 | `run` | 先检查环境，再运行完整回归入口并保存日志和结果，不下载依赖 |
 
 需要指定依赖位置或 Python 解释器时，对每次操作使用相同参数：
@@ -58,7 +58,7 @@ python tests/windows_test_env.py run --deps-dir 'D:\openwrt-test-deps'
 
 ## 日常复跑与结果
 
-依赖安装完成后，日常运行只需执行 `-Action run`。需要单独排查环境时执行 `-Action check`；二者都不会自动下载缺失依赖。依赖缺失或校验失败时，应根据错误修复环境，再显式运行 `install`。从旧版环境升级时，也需显式运行一次 `install`，补齐固定 Ruby 与 Node.js，再运行 `check` / `run`。
+依赖安装完成后，日常运行只需执行 `-Action run`。需要单独排查环境时执行 `-Action check`；二者都不会自动下载缺失依赖。依赖缺失或校验失败时，应根据错误修复环境，再显式运行 `install`。从旧版环境升级时，也需显式运行一次 `install`，补齐固定 Ruby、Node.js 与 GNU Make，再运行 `check` / `run`。
 
 回归入口实际执行：
 
@@ -91,6 +91,7 @@ Python 依赖固定在 [`tests/requirements.txt`](../tests/requirements.txt)，�
 | PyYAML | `6.0.3` | YAML 配置检查 |
 | Lupa | `2.8` | 执行测试中的 Lua 逻辑，包括 `lupa.lua51` |
 | MSYS2 util-linux | `2.40.2-2` | 从官方包中仅提取 `flock.exe`，验证真实文件锁互斥 |
+| MSYS2 GNU Make | `4.4.1-3` | 从官方包中仅提取 `make.exe`，执行真实上游下载 recipe 的退出码与中止回归 |
 | Xray | 官方 `26.10.21` | 对 SSR / Passwall2 通用协议的生成配置执行核心解析检查；固件使用 fw876 定制构建 |
 | [RubyInstaller](https://github.com/oneclick/rubyinstaller2/releases/tag/RubyInstaller-3.4.9-1) | `3.4.9-1`，Ruby `3.4.9` | 私有 `bin` / `lib` 运行目录，执行真实 Ruby 3.4 AST 与 YAML 覆写检查 |
 | [Node.js](https://nodejs.org/download/release/v22.23.4/) | `22.23.4` | 仅提取 `node.exe`，执行 dashboard 与文件名 JavaScript 检查 |
@@ -101,6 +102,8 @@ Xray 通过 [`tests/fetch_xray_test_core.py`](../tests/fetch_xray_test_core.py) 
 | --- | --- |
 | MSYS2 util-linux 下载包 | `969edb185d37986e6feddb3c54807598e3cc6774b736fec3a27d5d27731f7fdd` |
 | `flock.exe` | `20ea2583f3c464a19dcb618141866c4f5794842952259edcc578feec79917b8a` |
+| `make-4.4.1-3-x86_64.pkg.tar.zst` | `af0bdba17f06fe037f0194069adaa31a8fe45f1a11381501896aea1fae37bd5d` |
+| `make.exe` | `91b7e155590d59db22e5eb0a3ffeec6350149f70f9ed2c242d133e584eb72fee` |
 | `Xray-windows-64.zip` | `fc58c39ee2f2717b4c54d28d374362389e5319b20ae44aea76ea45a5243ec827` |
 | `xray.exe` | `c77a00eb84fb93ae044c2d771a1cabcc033b81e487253fbc35b12df6879c1e15` |
 | `rubyinstaller-3.4.9-1-x64.7z` | `4375268618b61dadf53bf8e54beaca74ea30580c90d3c47ea9f2a134bd3e494e` |
@@ -111,6 +114,10 @@ Xray 通过 [`tests/fetch_xray_test_core.py`](../tests/fetch_xray_test_core.py) 
 
 `check` / `run` 校验 Ruby 完整运行树，并执行实际 YAML 模块运行检查；真实 AST 与覆写入口由回归执行。Node.js 检查版本并执行内置 VM 模块烟测。仅确认命令存在或版本字符串正确不足以通过环境检查。
 Ruby 与 Node.js 归档缓存位于 `<依赖目录>/downloads/`；`install` 可以使用已通过固定哈希校验的缓存修复对应运行文件。环境元数据保存在依赖目录的 `environment.json` 中。
+
+GNU Make 同样使用[官方固定包](https://mirror.msys2.org/msys/x86_64/make-4.4.1-3-x86_64.pkg.tar.zst)，只在测试子进程的 `PATH` 中加入其私有目录，并设置 `MAKE`。`check` 使用真实 Makefile 验证递归执行，`run` 中的下载回归验证失败退出码及失败后的目标未执行。缺少 make 时 `run` 明确失败，不能静默跳过下载错误传播回归。
+
+simple-obfs 的原始源码校验、构建副本适配和 GNU Make 错误传播在 Windows 执行；真实 OpenWrt 下载器、Linux 文件模式与 tar/xz 组合由 Linux CI 强制执行。详见[归档与下载兼容验证](source-download-compat.md)，Windows 跳过该 Linux 网络用例不代表已完成真实下载验证。
 
 版本维护应作为仓库变更处理：先确认官方来源及下载包、可执行文件的校验值，再同步更新脚本、依赖文件和本说明，重新执行安装、环境检查与回归。不要因下载失败而改用未校验的二进制，也不要把哈希校验或必需依赖检查改成跳过。
 

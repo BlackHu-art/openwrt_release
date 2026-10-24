@@ -14,6 +14,8 @@ on:
       - 'wrt_core/update.sh'
       - 'wrt_core/managed/**'
       - 'wrt_core/managed_plugins.py'
+      - 'wrt_core/simple_obfs_compat.py'
+      - 'wrt_core/download_compat.py'
       - 'wrt_core/quickfile_verify.py'
       - 'wrt_core/check_selected_plugins.py'
       - 'wrt_core/deconfig/**'
@@ -47,6 +49,8 @@ on:
       - 'wrt_core/update.sh'
       - 'wrt_core/managed/**'
       - 'wrt_core/managed_plugins.py'
+      - 'wrt_core/simple_obfs_compat.py'
+      - 'wrt_core/download_compat.py'
       - 'wrt_core/quickfile_verify.py'
       - 'wrt_core/check_selected_plugins.py'
       - 'wrt_core/deconfig/**'
@@ -80,6 +84,7 @@ jobs:
     env:
       REQUIRE_XRAY_TEST_CORE: '1'
       REQUIRE_FW876_XRAY_TEST_CORE: '1'
+      REQUIRE_SIMPLE_OBFS_DOWNLOAD: '1'
       OPENCLASH_REQUIRE_RUBY34: '1'
       OPENCLASH_REQUIRE_NODE: '1'
       OPENCLASH_REQUIRE_MIHOMO: '1'
@@ -95,7 +100,7 @@ jobs:
       - name: Install Linux validation dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y dnsmasq-base nftables python3-venv util-linux lua5.1 busybox iproute2 jq
+          sudo apt-get install -y dnsmasq-base nftables python3-venv util-linux lua5.1 busybox iproute2 jq make git curl perl xz-utils
       - name: Install pinned Python validation dependencies
         run: |
           python3 -m venv "$RUNNER_TEMP/ssrplus-venv"

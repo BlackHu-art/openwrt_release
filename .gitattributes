@@ -62,5 +62,12 @@
 
 /tests/fixtures/themes/** text eol=lf
 
+/wrt_core/simple_obfs_compat.py text eol=lf
+/wrt_core/download_compat.py text eol=lf
+/tests/test_simple_obfs_*.py text eol=lf
+/tests/test_download_compat.py text eol=lf
+/tests/test_build_steps.sh text eol=lf
+/tests/fixtures/download-toplevel/** text eol=lf
+
 # Archived SSR repairs remain reproducible test inputs on Windows.
 /tests/fixtures/ssrplus-legacy/** text eol=lf whitespace=-blank-at-eol,-space-before-tab

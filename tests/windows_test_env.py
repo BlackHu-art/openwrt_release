@@ -30,6 +30,12 @@ FLOCK_PACKAGE = "util-linux-" + FLOCK_VERSION + "-x86_64.pkg.tar.zst"
 FLOCK_URL = "https://repo.msys2.org/msys/x86_64/" + FLOCK_PACKAGE
 FLOCK_ARCHIVE_SHA256 = "969edb185d37986e6feddb3c54807598e3cc6774b736fec3a27d5d27731f7fdd"
 FLOCK_EXE_SHA256 = "20ea2583f3c464a19dcb618141866c4f5794842952259edcc578feec79917b8a"
+MAKE_VERSION = "4.4.1"
+MAKE_RELEASE = "4.4.1-3"
+MAKE_PACKAGE = "make-" + MAKE_RELEASE + "-x86_64.pkg.tar.zst"
+MAKE_URL = "https://mirror.msys2.org/msys/x86_64/" + MAKE_PACKAGE
+MAKE_ARCHIVE_SHA256 = "af0bdba17f06fe037f0194069adaa31a8fe45f1a11381501896aea1fae37bd5d"
+MAKE_EXE_SHA256 = "91b7e155590d59db22e5eb0a3ffeec6350149f70f9ed2c242d133e584eb72fee"
 XRAY_EXE_SHA256 = "c77a00eb84fb93ae044c2d771a1cabcc033b81e487253fbc35b12df6879c1e15"
 RUBY_VERSION = "3.4.9"
 RUBY_RELEASE = "3.4.9-1"
@@ -64,6 +70,10 @@ class Layout:
     @property
     def flock(self):
         return self.dependencies / ("flock-" + FLOCK_VERSION) / "usr/bin/flock.exe"
+
+    @property
+    def make(self):
+        return self.dependencies / ("make-" + MAKE_RELEASE) / "usr/bin/make.exe"
 
     @property
     def xray(self):
@@ -131,6 +141,16 @@ def extract_flock(archive, tar, output):
                             capture_output=True, check=True, timeout=60)
     if hashlib.sha256(result.stdout).hexdigest() != FLOCK_EXE_SHA256:
         raise ValueError("flock executable SHA-256 mismatch")
+    atomic_write(output, result.stdout)
+
+
+def extract_make(archive, tar, output):
+    # The MSYS binary uses the existing Git runtime; no other package members
+    # are installed, and an unknown executable never replaces a verified one.
+    result = subprocess.run([str(tar), "-xOf", str(archive), "usr/bin/make.exe"],
+                            capture_output=True, check=True, timeout=60)
+    if hashlib.sha256(result.stdout).hexdigest() != MAKE_EXE_SHA256:
+        raise ValueError("make executable SHA-256 mismatch")
     atomic_write(output, result.stdout)
 
 
@@ -207,13 +227,17 @@ def child_environment(layout, inherited=None):
     for name in ("PYTHONPATH", "PYTHONHOME", "RUBYOPT", "RUBYLIB", "GEM_HOME", "GEM_PATH",
                  "NODE_OPTIONS", "NODE_PATH"):
         environment.pop(name, None)
-    paths = [layout.python.parent, layout.flock.parent, layout.git / "bin", layout.git / "usr/bin"]
+    paths = [layout.python.parent, layout.flock.parent, layout.make.parent,
+             layout.git / "bin", layout.git / "usr/bin"]
     environment["PATH"] = os.pathsep.join([str(path) for path in paths] + [environment.get("PATH", "")])
     environment["SSRP_TEST_FLOCK_DIR"] = str(layout.flock.parent)
     environment["XRAY_TEST_BINARY"] = str(layout.xray)
     environment["REQUIRE_XRAY_TEST_CORE"] = "1"
     environment["RUBY"] = str(layout.ruby)
     environment["NODE"] = str(layout.node)
+    # Forward slashes keep the same absolute executable usable by native
+    # Python, Git Bash, and GNU make's quoted recursive $(MAKE) recipes.
+    environment["MAKE"] = layout.make.resolve().as_posix()
     environment["OPENCLASH_REQUIRE_RUBY34"] = "1"
     environment["OPENCLASH_REQUIRE_NODE"] = "1"
     environment["PYTHONDONTWRITEBYTECODE"] = "1"
@@ -238,9 +262,10 @@ def checked_output(command, environment, cwd):
 
 def check(layout):
     require_files([layout.python, layout.bash, layout.git / "usr/bin/msys-2.0.dll", layout.flock, layout.xray,
-                   layout.ruby, layout.node])
+                   layout.ruby, layout.node, layout.make])
     for path, digest in [(layout.flock, FLOCK_EXE_SHA256), (layout.xray, XRAY_EXE_SHA256),
-                         (layout.ruby, RUBY_EXE_SHA256), (layout.node, NODE_EXE_SHA256)]:
+                         (layout.ruby, RUBY_EXE_SHA256), (layout.node, NODE_EXE_SHA256),
+                         (layout.make, MAKE_EXE_SHA256)]:
         if not matches_hash(path, digest):
             raise ValueError("SHA-256 mismatch: " + str(path) + "; rerun install to restore the pinned version")
     ruby_digest = tree_sha256(layout.ruby.parent.parent)
@@ -262,6 +287,23 @@ def check(layout):
                                   "python -c 'import sys; print(sys.executable)'"], environment, layout.repository)
     if Path(interpreter).resolve() != layout.python.resolve():
         raise ValueError("Git Bash did not select the test venv: " + interpreter)
+    selected_make = checked_output([layout.python, "-c", "import shutil; print(shutil.which('make') or '')"],
+                                   environment, layout.repository)
+    if not selected_make or Path(selected_make).resolve() != layout.make.resolve():
+        raise ValueError("PATH did not select the managed GNU make: " + selected_make)
+    make_version = checked_output([layout.make, "--version"], environment, layout.repository).splitlines()
+    if not make_version or make_version[0] != "GNU Make " + MAKE_VERSION:
+        raise ValueError("unexpected GNU make version: " + "\n".join(make_version))
+    make_version = make_version[0]
+    with tempfile.TemporaryDirectory(prefix="make probe ", dir=layout.dependencies) as directory:
+        # Exercise a real recipe and $(MAKE) recursion, including paths with
+        # spaces, so --version alone cannot conceal missing MSYS runtime support.
+        (Path(directory) / "Makefile").write_text(
+            '.PHONY: all child\nall:\n\t@"$(MAKE)" --no-print-directory -f Makefile child\n'
+            "child:\n\t@printf 'make-recursive-ok\\n'\n", encoding="utf-8")
+        output = checked_output([layout.make, "--no-print-directory", "-f", "Makefile"], environment, directory)
+        if output != "make-recursive-ok":
+            raise ValueError("recursive make probe failed: " + output)
     with tempfile.TemporaryDirectory(prefix="flock-probe-", dir=layout.dependencies) as directory:
         # Two independent opens must contend; closing the owner must release the lock.
         script = r'''set -eu
@@ -295,6 +337,8 @@ flock --version
             "flock": str(layout.flock), "flock_version": flock_version,
             "flock_url": FLOCK_URL, "flock_archive_sha256": FLOCK_ARCHIVE_SHA256,
             "flock_executable_sha256": sha256(layout.flock),
+            "make": str(layout.make), "make_version": make_version, "make_url": MAKE_URL,
+            "make_archive_sha256": MAKE_ARCHIVE_SHA256, "make_executable_sha256": sha256(layout.make),
             "xray": str(layout.xray), "xray_version": core_version,
             "xray_archive_sha256": ASSETS["windows-amd64"][2], "xray_executable_sha256": sha256(layout.xray),
             "ruby": str(layout.ruby), "ruby_version": ruby_version, "ruby_url": RUBY_URL,
@@ -323,6 +367,11 @@ def install(layout):
         # Repair old installations with correct bytes but non-executable MSYS
         # fork metadata left by the former suffixless temporary-file staging.
         atomic_write(layout.flock, layout.flock.read_bytes())
+    if not matches_hash(layout.make, MAKE_EXE_SHA256):
+        archive = layout.dependencies / ("make-" + MAKE_RELEASE) / MAKE_PACKAGE
+        if not matches_hash(archive, MAKE_ARCHIVE_SHA256):
+            download_verified(MAKE_URL, archive, MAKE_ARCHIVE_SHA256)
+        extract_make(archive, tar, layout.make)
     if not matches_hash(layout.xray, XRAY_EXE_SHA256):
         with tempfile.TemporaryDirectory(prefix="xray-install-", dir=layout.dependencies) as directory:
             executable, _ = fetch_core(Path(directory) / "xray.exe", "windows-amd64")
@@ -431,8 +480,9 @@ def main(argv=None):
         print("Dependencies:", dependencies, flush=True)
         report = install(layout) if args.action == "install" else check(layout)
         print("Environment verified:", report["flock_version"], "; Xray", XRAY_VERSION,
-              "; Ruby", report["ruby_version"], "; Node", report["node_version"], flush=True)
-        for name in ("ruby", "node"):
+              "; Ruby", report["ruby_version"], "; Node", report["node_version"],
+              ";", report["make_version"], flush=True)
+        for name in ("ruby", "node", "make"):
             print(name.capitalize() + " source:", report[name + "_url"],
                   "\nArchive SHA-256:", report[name + "_archive_sha256"],
                   "\nExecutable SHA-256:", report[name + "_executable_sha256"], flush=True)

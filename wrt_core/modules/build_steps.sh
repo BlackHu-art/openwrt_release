@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # Keep full logs on disk, show progress live, and expand details only on failure.
 source "$(dirname "${BASH_SOURCE[0]}")/ssrplus_build.sh"
+BUILD_STEPS_CORE_PATH=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
 
 summarize_build_output() {
     awk -v root="${1%/}/" '
@@ -27,7 +28,7 @@ summarize_build_output() {
 report_build_failure() {
     local name=$1 log_file=$2
     # Include early errors even when other parallel jobs filled the end of the log.
-    local error_pattern='Hunk #[0-9]+ FAILED|:[0-9]+:[0-9]+: (fatal )?error:|^error(\[[^]]+\])?:|^CMake Error|^FAILED:|^[[:space:]]*\* (check_data_file_clashes|opkg_install_cmd|pkg_hash_check_unresolved|satisfy_dependencies):|No space left on device|Killed signal|^[[:space:]]*ERROR:.*failed to build'
+    local error_pattern='(^|[[:space:]])Hash mismatch for file |Hunk #[0-9]+ FAILED|:[0-9]+:[0-9]+: (fatal )?error:|^error(\[[^]]+\])?:|^CMake Error|^FAILED:|^[[:space:]]*\* (check_data_file_clashes|opkg_install_cmd|pkg_hash_check_unresolved|satisfy_dependencies):|No space left on device|Killed signal|^[[:space:]]*ERROR:.*failed to build'
     if [[ ${GITHUB_ACTIONS:-} == true ]]; then
         echo "::group::Failure details: $name"
     else
@@ -74,6 +75,7 @@ run_build_step() {
 
 build_firmware() {
     local jobs=$(($(nproc) + 1))
+    python "$BUILD_STEPS_CORE_PATH/download_compat.py" . || return $?
     run_build_step download make download "-j$(($(nproc) * 2))" V=s BUILD_LOG=1 || return $?
     # Reject patch drift before starting all the expensive firmware packages.
     if grep -qE '^CONFIG_PACKAGE_miniupnpd(-(nftables|iptables))?=[ym]$' .config; then
