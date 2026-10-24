@@ -108,9 +108,10 @@ fix_mk_def_depends() {
 fix_kconfig_recursive_dependency() {
     local file="$BUILD_DIR/scripts/package-metadata.pl"
     if [ -f "$file" ]; then
-        sed -i 's/<PACKAGE_\$pkgname/!=y/g' "$file"
+        sed -i 's/<PACKAGE_\$pkgname/!=y/g' "$file" || return 1
         echo "已修复 package-metadata.pl 的 Kconfig 递归依赖生成逻辑。"
     fi
+    python3 "$BASE_PATH/kconfig_compat.py" "$BUILD_DIR" || return 1
 }
 
 

@@ -91,7 +91,7 @@ stage_pre_install_source_fixes() {
     add_quickfile || return 1
     update_lucky
     fix_rust_compile_error
-    update_smartdns
+    update_smartdns || return 1
     update_mwan3_fw4
     update_diskman
     update_dockerman
@@ -106,7 +106,7 @@ stage_pre_install_source_fixes() {
     install_opkg_distfeeds
     fix_easytier_mk
     remove_attendedsysupgrade
-    fix_kconfig_recursive_dependency
+    fix_kconfig_recursive_dependency || return 1
 }
 
 stage_feeds_install() {

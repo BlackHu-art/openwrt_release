@@ -1,0 +1,326 @@
+[
+  {
+    "repository": "https://github.com/openwrt/video",
+    "commit": "bea0fb29f9573ab4c9bd77a9a495127958992d53",
+    "path": "frameworks/qt5/qt5base/Makefile",
+    "fixture": "video/frameworks/qt5/qt5base/Makefile",
+    "git_blob": "9b1295c56b83c4e798d949b74ffce173c0008986",
+    "sha256": "a79b2c2c0b303531ca5dc83683fbb7a49a89519be828fe1b79ecc93a0be7de36",
+    "license": "GPL-2.0 (recipe header; Config.in is accompanying package configuration)"
+  },
+  {
+    "repository": "https://github.com/openwrt/video",
+    "commit": "bea0fb29f9573ab4c9bd77a9a495127958992d53",
+    "path": "frameworks/qt5/qt5base/Config.in",
+    "fixture": "video/frameworks/qt5/qt5base/Config.in",
+    "git_blob": "aa89719b4322faf9e0f1ce00c72f31fe63baa6a7",
+    "sha256": "1ad8695b21aa118824d514a0854f390b9e4859057e8b340942fe812d13be4f55",
+    "license": "GPL-2.0 (recipe header; Config.in is accompanying package configuration)"
+  },
+  {
+    "repository": "https://github.com/immortalwrt/packages",
+    "commit": "72c7391fb2d04080afd0bfe919605749f81eb747",
+    "path": "sound/squeezelite/Makefile",
+    "fixture": "packages/sound/squeezelite/Makefile",
+    "git_blob": "9c8fac2bac5c592d694d6b524493cd56bfd6db0b",
+    "sha256": "2502c1809fc6b32be93ee50e2eb8ec4d81cd9c2905387646352604d85719a22e",
+    "license": "GPL-2.0 (recipe header; Config.in is accompanying package configuration)"
+  },
+  {
+    "repository": "https://github.com/immortalwrt/packages",
+    "commit": "72c7391fb2d04080afd0bfe919605749f81eb747",
+    "path": "multimedia/ffmpeg/Makefile",
+    "fixture": "packages/multimedia/ffmpeg/Makefile",
+    "git_blob": "9eb2aa80f887948cbbdc976e3cc7d58dab5b66b7",
+    "sha256": "605f394e3adadd771a999b4e51661d9d96f45cacbbf85ea37ccac7c8db669f90",
+    "license": "GPL-2.0 (recipe header; Config.in is accompanying package configuration)"
+  },
+  {
+    "repository": "https://github.com/VIKINGYFY/immortalwrt",
+    "commit": "3fd1e27a511851b41cf082b067b60099e8e026c4",
+    "path": "scripts/metadata.pm",
+    "fixture": "immortalwrt/scripts/metadata.pm",
+    "git_blob": "6cb63608d23683773d2b9972c6063cdcb1421421",
+    "sha256": "41596b6581c98ade640bdab0e54af9c7ee8eac72fee79057c6c5263202be5fd9",
+    "license": "GPL-2.0-only (upstream COPYING / SPDX headers)"
+  },
+  {
+    "repository": "https://github.com/VIKINGYFY/immortalwrt",
+    "commit": "3fd1e27a511851b41cf082b067b60099e8e026c4",
+    "path": "scripts/config/Makefile",
+    "fixture": "immortalwrt/scripts/config/Makefile",
+    "git_blob": "5e7dd9578ecfee04ea9558a451baaa8d85a2599f",
+    "sha256": "d091eba7101a60c1f57c77182b7daec931211c13125901faf8eb212d6daa67d7",
+    "license": "GPL-2.0-only (upstream COPYING / SPDX headers)"
+  },
+  {
+    "repository": "https://github.com/VIKINGYFY/immortalwrt",
+    "commit": "3fd1e27a511851b41cf082b067b60099e8e026c4",
+    "path": "scripts/package-metadata.pl",
+    "fixture": "immortalwrt/scripts/package-metadata.pl",
+    "git_blob": "518dae2dfdfaac5fa47ec9d122b06937f822309d",
+    "sha256": "39bee5749e82b0d2966a47f3fe92a1e5759c4d46c2c2cb3489f2ce3ce750aebb",
+    "license": "GPL-2.0-only (upstream COPYING / SPDX headers)"
+  },
+  {
+    "repository": "https://github.com/VIKINGYFY/immortalwrt",
+    "commit": "3fd1e27a511851b41cf082b067b60099e8e026c4",
+    "path": "include/package-dumpinfo.mk",
+    "fixture": "immortalwrt/include/package-dumpinfo.mk",
+    "git_blob": "e180c770e3df2731f26d3c90888b28ef53892f4c",
+    "sha256": "95b29a2cad271de754c6f4192477a90a97813ceb890fd4acd7cc5417fd34bda0",
+    "license": "GPL-2.0-only (upstream COPYING / SPDX headers)"
+  },
+  {
+    "repository": "https://github.com/VIKINGYFY/immortalwrt",
+    "commit": "3fd1e27a511851b41cf082b067b60099e8e026c4",
+    "path": "include/package.mk",
+    "fixture": "immortalwrt/include/package.mk",
+    "git_blob": "d114e459e7d4aa9590f145c9511700ada9bc4f5a",
+    "sha256": "5aba09bdbee0369faef9684f60016e343861bfc1d569492fd921ed6d23cbaffc",
+    "license": "GPL-2.0-only (upstream COPYING / SPDX headers)"
+  },
+  {
+    "repository": "https://github.com/VIKINGYFY/immortalwrt",
+    "commit": "3fd1e27a511851b41cf082b067b60099e8e026c4",
+    "path": "include/package-defaults.mk",
+    "fixture": "immortalwrt/include/package-defaults.mk",
+    "git_blob": "43521044d92f564d139184437d7de6403c0427ef",
+    "sha256": "cdb9a02ff1f3fe6e867fb9dcdc109ee93632b72be92e02e7b70f542e400ff710",
+    "license": "GPL-2.0-only (upstream COPYING / SPDX headers)"
+  },
+  {
+    "repository": "https://github.com/immortalwrt/packages",
+    "commit": "72c7391fb2d04080afd0bfe919605749f81eb747",
+    "path": "LICENSE",
+    "fixture": "packages/LICENSE",
+    "git_blob": "d60c31a97a544b53039088d14fe9114583c0efc3",
+    "sha256": "32b1062f7da84967e7019d01ab805935caa7ab7321a7ced0e30ebe75e5df1670",
+    "license": "GPL-2.0 license text"
+  },
+  {
+    "repository": "https://github.com/VIKINGYFY/immortalwrt",
+    "commit": "3fd1e27a511851b41cf082b067b60099e8e026c4",
+    "path": "COPYING",
+    "fixture": "immortalwrt/COPYING",
+    "git_blob": "7145632ad672d06f134abc5e8a71f9bd05cceaa1",
+    "sha256": "24703ff3a6e832c7d92794e6a00961f75c28afedb803794b44c11763a8722e69",
+    "license": "GPL-2.0-only (upstream COPYING / SPDX headers)"
+  },
+  {
+    "repository": "https://github.com/VIKINGYFY/immortalwrt",
+    "commit": "3fd1e27a511851b41cf082b067b60099e8e026c4",
+    "path": "scripts/config/Kbuild.include",
+    "fixture": "immortalwrt/scripts/config/Kbuild.include",
+    "git_blob": "7778cc97a4e042cd763fb2f743e542a0c91d71ee",
+    "sha256": "1c1781e3b4715263db145b420c701a1b563a5a61f394b753f64a756d6d568298",
+    "license": "GPL-2.0-only (upstream COPYING / SPDX headers)"
+  },
+  {
+    "repository": "https://github.com/VIKINGYFY/immortalwrt",
+    "commit": "3fd1e27a511851b41cf082b067b60099e8e026c4",
+    "path": "scripts/config/conf.c",
+    "fixture": "immortalwrt/scripts/config/conf.c",
+    "git_blob": "1bd6f4fa8ba6129a76ccb8923f7d18bcb94cc714",
+    "sha256": "881bb8b93c7bf9937436d1f35202dfd5eb203d1c440af3514d218dcfc5ecbeeb",
+    "license": "GPL-2.0-only (upstream COPYING / SPDX headers)"
+  },
+  {
+    "repository": "https://github.com/VIKINGYFY/immortalwrt",
+    "commit": "3fd1e27a511851b41cf082b067b60099e8e026c4",
+    "path": "scripts/config/confdata.c",
+    "fixture": "immortalwrt/scripts/config/confdata.c",
+    "git_blob": "e3f6fdfeb324e828fe2ded7924b1ca4fae1105ad",
+    "sha256": "700af54e9724fdd77d410eb2f5dab752cf2fada88010d57cca863ce7816a6c42",
+    "license": "GPL-2.0-only (upstream COPYING / SPDX headers)"
+  },
+  {
+    "repository": "https://github.com/VIKINGYFY/immortalwrt",
+    "commit": "3fd1e27a511851b41cf082b067b60099e8e026c4",
+    "path": "scripts/config/expr.c",
+    "fixture": "immortalwrt/scripts/config/expr.c",
+    "git_blob": "552c2146559a4004a5cac72702846568629febfc",
+    "sha256": "535ca6d87a0ee701e266f99dd97e150828a6bda1488865a39c7e27ebadc07fef",
+    "license": "GPL-2.0-only (upstream COPYING / SPDX headers)"
+  },
+  {
+    "repository": "https://github.com/VIKINGYFY/immortalwrt",
+    "commit": "3fd1e27a511851b41cf082b067b60099e8e026c4",
+    "path": "scripts/config/expr.h",
+    "fixture": "immortalwrt/scripts/config/expr.h",
+    "git_blob": "005e27f130e16c0a3837dae4778919bf5b74fb8b",
+    "sha256": "ef828470dff8837d1575a6a64da60bef31cbf0a37d7da5cc0c2a045a5675d88b",
+    "license": "GPL-2.0-only (upstream COPYING / SPDX headers)"
+  },
+  {
+    "repository": "https://github.com/VIKINGYFY/immortalwrt",
+    "commit": "3fd1e27a511851b41cf082b067b60099e8e026c4",
+    "path": "scripts/config/internal.h",
+    "fixture": "immortalwrt/scripts/config/internal.h",
+    "git_blob": "2f7298c21b64d3cdc48197bc35057994c9a0ff35",
+    "sha256": "c7b634dadf90a27fd3872e861ed920bfb2984939d14b9478c7aa9b696b2a613f",
+    "license": "GPL-2.0-only (upstream COPYING / SPDX headers)"
+  },
+  {
+    "repository": "https://github.com/VIKINGYFY/immortalwrt",
+    "commit": "3fd1e27a511851b41cf082b067b60099e8e026c4",
+    "path": "scripts/config/lexer.l",
+    "fixture": "immortalwrt/scripts/config/lexer.l",
+    "git_blob": "e73b262539eb1a0b899496f6769ac3a74a8c96c7",
+    "sha256": "703648b6970ea8b6027330e36d70c51b4a6bc54a7476e19e8891520456ab0b13",
+    "license": "GPL-2.0-only (upstream COPYING / SPDX headers)"
+  },
+  {
+    "repository": "https://github.com/VIKINGYFY/immortalwrt",
+    "commit": "3fd1e27a511851b41cf082b067b60099e8e026c4",
+    "path": "scripts/config/lexer.lex.c",
+    "fixture": "immortalwrt/scripts/config/lexer.lex.c",
+    "git_blob": "4b197ce50cac35181802abe4ad93594cc6c99129",
+    "sha256": "f2b127a8146dfd6f0af889e48d93260015e74752e7d29acb98c5ce9b56e4bab4",
+    "license": "GPL-2.0-only (upstream COPYING / SPDX headers)"
+  },
+  {
+    "repository": "https://github.com/VIKINGYFY/immortalwrt",
+    "commit": "3fd1e27a511851b41cf082b067b60099e8e026c4",
+    "path": "scripts/config/list.h",
+    "fixture": "immortalwrt/scripts/config/list.h",
+    "git_blob": "979cd516d6c0ba0d12b86532a1678bc14bc4553b",
+    "sha256": "44ccb9609f48809486da6d5f8b82166ac9e729207d71efe165e1f32b4b4f679a",
+    "license": "GPL-2.0-only (upstream COPYING / SPDX headers)"
+  },
+  {
+    "repository": "https://github.com/VIKINGYFY/immortalwrt",
+    "commit": "3fd1e27a511851b41cf082b067b60099e8e026c4",
+    "path": "scripts/config/lkc.h",
+    "fixture": "immortalwrt/scripts/config/lkc.h",
+    "git_blob": "1c8717de78e2c5cbb85520f4d0710d3aeba695b5",
+    "sha256": "6ee81bc98f6b4fcf1470a229cd5bbb8354def683a2503671febc929bc8a324d3",
+    "license": "GPL-2.0-only (upstream COPYING / SPDX headers)"
+  },
+  {
+    "repository": "https://github.com/VIKINGYFY/immortalwrt",
+    "commit": "3fd1e27a511851b41cf082b067b60099e8e026c4",
+    "path": "scripts/config/lkc_proto.h",
+    "fixture": "immortalwrt/scripts/config/lkc_proto.h",
+    "git_blob": "4babf6435a1980f35a2ce38179ad34d340dad73c",
+    "sha256": "4141dbe2e958d0158fa491f9ec077e89673c891a032ed6b710c339252d0f2e93",
+    "license": "GPL-2.0-only (upstream COPYING / SPDX headers)"
+  },
+  {
+    "repository": "https://github.com/VIKINGYFY/immortalwrt",
+    "commit": "3fd1e27a511851b41cf082b067b60099e8e026c4",
+    "path": "scripts/config/menu.c",
+    "fixture": "immortalwrt/scripts/config/menu.c",
+    "git_blob": "d41a61a73a490d29ee96c864e70c40be7d48712b",
+    "sha256": "63ba43f10ecbdfeb1add93eae6fbf5769c4ff445e7b8fc8b7147befe22497c1a",
+    "license": "GPL-2.0-only (upstream COPYING / SPDX headers)"
+  },
+  {
+    "repository": "https://github.com/VIKINGYFY/immortalwrt",
+    "commit": "3fd1e27a511851b41cf082b067b60099e8e026c4",
+    "path": "scripts/config/parser.tab.c",
+    "fixture": "immortalwrt/scripts/config/parser.tab.c",
+    "git_blob": "93fdc257a603bb358c8de052f9795755610b923d",
+    "sha256": "855df31e8efba445931a26f51b5e704fbdccdb19d0f82688f65aad644128ea4b",
+    "license": "GPL-2.0-only (upstream COPYING / SPDX headers)"
+  },
+  {
+    "repository": "https://github.com/VIKINGYFY/immortalwrt",
+    "commit": "3fd1e27a511851b41cf082b067b60099e8e026c4",
+    "path": "scripts/config/parser.tab.h",
+    "fixture": "immortalwrt/scripts/config/parser.tab.h",
+    "git_blob": "fa3eb3491bd16ec4e40446b303f1a4144c348c35",
+    "sha256": "3b7affd010d3d9b3c79cb73eb74c7b556449933cd2443403613bc78fc19a3c69",
+    "license": "GPL-2.0-only (upstream COPYING / SPDX headers)"
+  },
+  {
+    "repository": "https://github.com/VIKINGYFY/immortalwrt",
+    "commit": "3fd1e27a511851b41cf082b067b60099e8e026c4",
+    "path": "scripts/config/parser.y",
+    "fixture": "immortalwrt/scripts/config/parser.y",
+    "git_blob": "523c9a95a8384bbfdd12beeb5211b2c27d2a1f58",
+    "sha256": "1a0324cf9a2b83d72d3a13b45f21906dbc4146da275d980bdc4a3da8f1c847d9",
+    "license": "GPL-2.0-only (upstream COPYING / SPDX headers)"
+  },
+  {
+    "repository": "https://github.com/VIKINGYFY/immortalwrt",
+    "commit": "3fd1e27a511851b41cf082b067b60099e8e026c4",
+    "path": "scripts/config/preprocess.c",
+    "fixture": "immortalwrt/scripts/config/preprocess.c",
+    "git_blob": "3c544b775ae0aad04799c6f135d2e92f6f6ad3b4",
+    "sha256": "6945facefaa26b1d15877951734d8a85e3e5e34be05aec1ad70eebe4e5d359c5",
+    "license": "GPL-2.0-only (upstream COPYING / SPDX headers)"
+  },
+  {
+    "repository": "https://github.com/VIKINGYFY/immortalwrt",
+    "commit": "3fd1e27a511851b41cf082b067b60099e8e026c4",
+    "path": "scripts/config/symbol.c",
+    "fixture": "immortalwrt/scripts/config/symbol.c",
+    "git_blob": "6ef44adc057e417063036b50a17eac094d134748",
+    "sha256": "1de0becbd783e4b0f02b2051ae8041bae27b94796cfd398cbf0d17d07b0d8e87",
+    "license": "GPL-2.0-only (upstream COPYING / SPDX headers)"
+  },
+  {
+    "repository": "https://github.com/VIKINGYFY/immortalwrt",
+    "commit": "3fd1e27a511851b41cf082b067b60099e8e026c4",
+    "path": "scripts/config/util.c",
+    "fixture": "immortalwrt/scripts/config/util.c",
+    "git_blob": "53e079e2e8af1a5b4b4536c92ef214de089575c8",
+    "sha256": "9a9b3c3a90c8c30a967bf06c9483696091d934cc84c20cd5e4c5c4b19474211c",
+    "license": "GPL-2.0-only (upstream COPYING / SPDX headers)"
+  },
+  {
+    "repository": "https://github.com/openwrt/video",
+    "commit": "bea0fb29f9573ab4c9bd77a9a495127958992d53",
+    "path": "frameworks/qt5/common.mk",
+    "fixture": "video/frameworks/qt5/common.mk",
+    "git_blob": "aad744caf8588257d49dc7e93775d8fc36ec0310",
+    "sha256": "6b0afeca79b5fa502d2522f09f53e9991fea69338a4b98a895b800817235cf31",
+    "license": "GPL-2.0 (recipe header; Config.in is accompanying package configuration)"
+  },
+  {
+    "repository": "https://github.com/openwrt/video",
+    "commit": "bea0fb29f9573ab4c9bd77a9a495127958992d53",
+    "path": "frameworks/qt5/qmake.mk",
+    "fixture": "video/frameworks/qt5/qmake.mk",
+    "git_blob": "fb19c1e47017101e9b8397610060800c19b53f07",
+    "sha256": "63be40282a8b46880fde610818b84db1c06c84aee9fbb17bcff8f30fb9bb5322",
+    "license": "GPL-2.0 (recipe header; Config.in is accompanying package configuration)"
+  },
+  {
+    "repository": "https://github.com/openwrt/video",
+    "commit": "bea0fb29f9573ab4c9bd77a9a495127958992d53",
+    "path": "libs/mesa/Makefile",
+    "fixture": "video/libs/mesa/Makefile",
+    "git_blob": "b85a19e2c125b6e4d83ec3e6fb5c909eec53742e",
+    "sha256": "8c1f3dafac49457767c41ab2fd2d74ce8a7a7380f271e3e40eb039503bfc94f3",
+    "license": "No recipe license header; PKG_LICENSE=BSD-3-Clause describes the Mesa payload"
+  },
+  {
+    "repository": "https://github.com/immortalwrt/packages",
+    "commit": "72c7391fb2d04080afd0bfe919605749f81eb747",
+    "path": "multimedia/ffmpeg/Config.in",
+    "fixture": "packages/multimedia/ffmpeg/Config.in",
+    "git_blob": "a0b7cb2795013a97460554a1edc9d0303358eabe",
+    "sha256": "eea378f7d7430d11294bf925c23687fcf058001e0119ce65dd97aadab2940670",
+    "license": "GPL-2.0 (recipe header; Config.in is accompanying package configuration)"
+  },
+  {
+    "repository": "https://github.com/immortalwrt/packages",
+    "commit": "72c7391fb2d04080afd0bfe919605749f81eb747",
+    "path": "libs/libx264/Makefile",
+    "fixture": "packages/libs/libx264/Makefile",
+    "git_blob": "59d24675d54f5219cd53da7ab4e215dd686a199c",
+    "sha256": "246a6e42858b247cf2a1a10e9f20552d827e9f9b95eef63f72e5d5d16a99a9eb",
+    "license": "GPL-2.0 (recipe header; Config.in is accompanying package configuration)"
+  },
+  {
+    "repository": "https://github.com/immortalwrt/packages",
+    "commit": "72c7391fb2d04080afd0bfe919605749f81eb747",
+    "path": "libs/libdrm/Makefile",
+    "fixture": "packages/libs/libdrm/Makefile",
+    "git_blob": "24315656769aa7cbf73f6411a0d1bc77cc4fa5af",
+    "sha256": "bc5129b3e60fc360092c853bd2f0ee66506c58179cf87b7c4854d711b4095513",
+    "license": "GPL-2.0 (recipe header; Config.in is accompanying package configuration)"
+  }
+]

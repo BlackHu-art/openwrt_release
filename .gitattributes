@@ -72,3 +72,12 @@
 
 # Archived SSR repairs remain reproducible test inputs on Windows.
 /tests/fixtures/ssrplus-legacy/** text eol=lf whitespace=-blank-at-eol,-space-before-tab
+
+/wrt_core/smartdns_compat.py text eol=lf
+/wrt_core/kconfig_compat.py text eol=lf
+/wrt_core/modules/target_fixes.sh text eol=lf
+/tests/test_smartdns_*.py text eol=lf
+/tests/test_kconfig_*.py text eol=lf
+/tests/test_kconfig_*.sh text eol=lf
+/tests/fixtures/smartdns-download/** text eol=lf whitespace=-blank-at-eol,-space-before-tab
+/tests/fixtures/kconfig-compat/** text eol=lf whitespace=-blank-at-eol,-blank-at-eof,-space-before-tab

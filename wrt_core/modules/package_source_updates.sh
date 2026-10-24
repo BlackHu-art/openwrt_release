@@ -111,17 +111,18 @@ update_smartdns() {
     local LUCI_APP_SMARTDNS_DIR="$BUILD_DIR/feeds/luci/applications/luci-app-smartdns"
 
     echo "正在更新 smartdns..."
-    rm -rf "$SMARTDNS_DIR"
+    rm -rf "$SMARTDNS_DIR" || return 1
     if ! git_retry clone --depth=1 "$SMARTDNS_REPO" "$SMARTDNS_DIR"; then
         echo "错误：从 $SMARTDNS_REPO 克隆 smartdns 仓库失败" >&2
         exit 1
     fi
 
-    install -Dm644 "$BASE_PATH/patches/100-smartdns-optimize.patch" "$SMARTDNS_DIR/patches/100-smartdns-optimize.patch"
-    sed -i '/define Build\/Compile\/smartdns-ui/,/endef/s/CC=\$(TARGET_CC)/CC="\$(TARGET_CC_NOCACHE)"/' "$SMARTDNS_DIR/Makefile"
+    python3 "$BASE_PATH/smartdns_compat.py" "$SMARTDNS_DIR" || return 1
+    install -Dm644 "$BASE_PATH/patches/100-smartdns-optimize.patch" "$SMARTDNS_DIR/patches/100-smartdns-optimize.patch" || return 1
+    sed -i '/define Build\/Compile\/smartdns-ui/,/endef/s/CC=\$(TARGET_CC)/CC="\$(TARGET_CC_NOCACHE)"/' "$SMARTDNS_DIR/Makefile" || return 1
 
     echo "正在更新 luci-app-smartdns..."
-    rm -rf "$LUCI_APP_SMARTDNS_DIR"
+    rm -rf "$LUCI_APP_SMARTDNS_DIR" || return 1
     if ! git_retry clone --depth=1 "$LUCI_APP_SMARTDNS_REPO" "$LUCI_APP_SMARTDNS_DIR"; then
         echo "错误：从 $LUCI_APP_SMARTDNS_REPO 克隆 luci-app-smartdns 仓库失败" >&2
         exit 1

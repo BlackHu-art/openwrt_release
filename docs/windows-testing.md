@@ -90,6 +90,7 @@ Python 依赖固定在 [`tests/requirements.txt`](../tests/requirements.txt)，�
 | --- | --- | --- |
 | PyYAML | `6.0.3` | YAML 配置检查 |
 | Lupa | `2.8` | 执行测试中的 Lua 逻辑，包括 `lupa.lua51` |
+| Kconfiglib | `14.1.0` | 解析真实包元数据生成的 Kconfig，检查循环依赖和选择语义 |
 | MSYS2 util-linux | `2.40.2-2` | 从官方包中仅提取 `flock.exe`，验证真实文件锁互斥 |
 | MSYS2 GNU Make | `4.4.1-3` | 从官方包中仅提取 `make.exe`，执行真实上游下载 recipe 的退出码与中止回归 |
 | Xray | 官方 `26.10.21` | 对 SSR 通用协议的生成配置执行核心解析检查；固件使用 fw876 定制构建 |
@@ -118,6 +119,8 @@ Ruby 与 Node.js 归档缓存位于 `<依赖目录>/downloads/`；`install` 可�
 GNU Make 同样使用[官方固定包](https://mirror.msys2.org/msys/x86_64/make-4.4.1-3-x86_64.pkg.tar.zst)，只在测试子进程的 `PATH` 中加入其私有目录，并设置 `MAKE`。`check` 使用真实 Makefile 验证递归执行，`run` 中的下载回归验证失败退出码及失败后的目标未执行。缺少 make 时 `run` 明确失败，不能静默跳过下载错误传播回归。
 
 simple-obfs 的原始源码校验、构建副本适配和 GNU Make 错误传播在 Windows 执行；真实 OpenWrt 下载器、Linux 文件模式与 tar/xz 组合由 Linux CI 强制执行。详见[归档与下载兼容验证](source-download-compat.md)，Windows 跳过该 Linux 网络用例不代表已完成真实下载验证。
+
+SmartDNS 的真实 Make 下载规则展开和适配失败传播，以及 Qt5/squeezelite 的真实元数据生成与 Kconfiglib 解析，也由 Windows 回归执行。新增 Kconfiglib 后，旧环境需重新运行 `install` 和 `check`。Linux CI 另外设置 `REQUIRE_SMARTDNS_DOWNLOAD=1`、`REQUIRE_KCONFIG_CONF=1`，强制执行实际 WebUI 下载和 OpenWrt 原生 `conf`；这两项在 Windows 明确跳过，不能据此声称已验证真实 Linux 下载或原生解析器。
 
 版本维护应作为仓库变更处理：先确认官方来源及下载包、可执行文件的校验值，再同步更新脚本、依赖文件和本说明，重新执行安装、环境检查与回归。不要因下载失败而改用未校验的二进制，也不要把哈希校验或必需依赖检查改成跳过。
 

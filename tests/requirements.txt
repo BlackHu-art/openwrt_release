@@ -1,3 +1,4 @@
 # Local regression tooling only; not included in firmware.
 PyYAML==6.0.3
 lupa==2.8
+kconfiglib==14.1.0

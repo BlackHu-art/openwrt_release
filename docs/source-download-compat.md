@@ -1,4 +1,4 @@
-# simple-obfs 归档与下载失败传播
+# 源码归档与下载兼容
 
 2026-10-24 的[京东云构建 40062153515](https://github.com/BlackHu-art/openwrt_release/actions/runs/40062153515) 已通过 SSR 源码准备，在 simple-obfs 下载归档校验时失败。本文记录两个兼容修复及复验方式。
 
@@ -41,3 +41,30 @@ REQUIRE_SIMPLE_OBFS_DOWNLOAD=1 python3 tests/test_simple_obfs_download.py -v
 ```
 
 测试为包下载建立最小构建变量和包编译目标替身，并在临时 fixture 中清空公共镜像列表，保证每次实际走固定 Git 来源的重新打包，避免公共镜像以后补齐旧包导致原哈希失败用例失效。生产镜像列表和来源保持不变。源码配方、下载规则、下载程序、Git 获取、归档和哈希检查均实际执行。它不进行目标架构交叉编译或路由器启动测试。Windows 完整复跑见 [Windows 测试说明](windows-testing.md)。
+
+## SmartDNS WebUI 固定提交传递
+
+[构建 40076155141](https://github.com/BlackHu-art/openwrt_release/actions/runs/40076155141) 的 simple-obfs 下载已经成功，随后在 SmartDNS WebUI 下载失败。此次下载失败正确终止流程，没有继续进行固件编译。
+
+SmartDNS 配方来自现有 `ZqinKing/openwrt-smartdns`；维护快照 `cdf0de1d3e64984ea2c56ec873f233495ddb1de0` 的 Makefile 与本次核验的上游内容一致。配方使用 `VERSION` 传递 WebUI 提交号，而当前下载框架只读取 `SOURCE_VERSION`。实际命令变为 `--version=""`，Git 回退拉取默认 `main`，生成错误版本的真实源码归档。
+
+独立读取固定提交的 Git tree/blob，并分别核对 `git archive`、GitHub codeload 与 GNU tar/gzip 重建：
+
+| 项目 | 保留的固定源码 | 失败时下载的默认 main |
+| --- | --- | --- |
+| 提交 | `3261c18b1b93d841e86d9e727557109ae71d71cd` | `1c06fee693434ec7c71f06010d3f87416baba9f0` |
+| 文件数 | 109 | 114 |
+| gzip 字节数 | 724404 | 730252 |
+| SHA-256 | `4401734712dd034eb1088ce440d1bc64d053dfcd6f63f66c08cd48ab68593042` | `88adb092ed7b0dc22b3964249f4969870d3b462c4d924aceb18784c0f664f16e` |
+
+因此原始 `MIRROR_HASH` 正确，不能改成错误默认分支的哈希。固定源码 tree 为 `190f76f34cfda865389b27e8f69887aa6a64edc3`，时间戳为 `1766583635`，151 个归档条目；GNU tar SHA-256 为 `a203faeeb55271853270e0e84907d29d4e32043cf1bc86f4e45a4e78ff92816f`。GNU gzip 使用 `-nc`，没有文件名或当前时间信息。
+
+[`smartdns_compat.py`](../wrt_core/smartdns_compat.py) 在 `update_smartdns` 克隆完成后、现有补丁和 CC 修正前执行，只在构建副本修正提交字段，并在已有 `CONFIG_PACKAGE_smartdns-ui` 为 y/m 时注册 WebUI 下载。主程序来源、提交、下载规则和所有插件配置保持不变。原始维护快照不修改；未知 Makefile 漂移明确失败，错误经源码准备阶段传播。
+
+[`test_smartdns_download.py`](../tests/test_smartdns_download.py) 用真实 `download.mk` 展开原配方，复现空提交号和未选 UI 仍下载；修正后验证 unset/n/y/m，以及主程序下载提交保留。Linux 必需门禁执行 y/m 的真实干净下载、逐成员 Git blob 核对、独立归档字节比较，以及错误哈希拒绝。测试不执行 Rust/Node 编译或目标架构交叉编译。
+
+```bash
+REQUIRE_SMARTDNS_DOWNLOAD=1 python3 tests/test_smartdns_download.py -v
+```
+
+框架和源码身份详见 [SmartDNS 下载 fixture](../tests/fixtures/smartdns-download/README.md)。循环依赖修复另见 [Kconfig 兼容说明](kconfig-compat.md)。

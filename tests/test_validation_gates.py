@@ -7,6 +7,7 @@ import sys
 import unittest
 
 import yaml
+from shell_test_helpers import bash_executable, bash_path
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -38,7 +39,7 @@ class ValidationGates(unittest.TestCase):
         self.assertIn('MIHOMO_OLD_TEST_BIN=', scripts)
         self.assertIn('MIHOMO_NEW_TEST_BIN=', scripts)
         environment = dict(self.job.get('env', {}), **steps[regression].get('env', {}))
-        for required in ('REQUIRE_XRAY_TEST_CORE', 'REQUIRE_FW876_XRAY_TEST_CORE', 'REQUIRE_SIMPLE_OBFS_DOWNLOAD', 'OPENCLASH_REQUIRE_RUBY34', 'OPENCLASH_REQUIRE_NODE', 'OPENCLASH_REQUIRE_MIHOMO'):
+        for required in ('REQUIRE_XRAY_TEST_CORE', 'REQUIRE_FW876_XRAY_TEST_CORE', 'REQUIRE_SIMPLE_OBFS_DOWNLOAD', 'REQUIRE_SMARTDNS_DOWNLOAD', 'REQUIRE_KCONFIG_CONF', 'OPENCLASH_REQUIRE_RUBY34', 'OPENCLASH_REQUIRE_NODE', 'OPENCLASH_REQUIRE_MIHOMO'):
             self.assertEqual(str(environment.get(required)), '1', required + ' must be enforced')
 
     def test_plugin_repair_inputs_trigger_validation(self):
@@ -51,6 +52,8 @@ class ValidationGates(unittest.TestCase):
             'maintenance/plugins/manifests/**', 'wrt_core/patches/homeproxy-*.patch',
             'wrt_core/managed/**', 'wrt_core/managed_plugins.py',
             'wrt_core/simple_obfs_compat.py', 'wrt_core/download_compat.py',
+            'wrt_core/smartdns_compat.py', 'wrt_core/kconfig_compat.py',
+            'maintenance/plugins/smartdns/**',
             'wrt_core/quickfile_verify.py', 'wrt_core/check_selected_plugins.py', 'wrt_core/deconfig/**', 'wrt_core/oaf_compat.py', 'wrt_core/theme_compat.py',
             'wrt_core/patches/990_set_argon_primary',
         }
@@ -62,6 +65,7 @@ class ValidationGates(unittest.TestCase):
             ('test_shared_xray_compat', 'REQUIRE_XRAY_TEST_CORE', 'XRAY_TEST_BINARY', 'Xray'),
             ('test_fw876_xray_compat', 'REQUIRE_FW876_XRAY_TEST_CORE', 'FW876_XRAY_TEST_BINARY', 'fw876 Xray'),
             ('test_simple_obfs_download', 'REQUIRE_SIMPLE_OBFS_DOWNLOAD', 'SIMPLE_OBFS_DOWNLOAD_UNUSED', 'simple-obfs'),
+            ('test_smartdns_download', 'REQUIRE_SMARTDNS_DOWNLOAD', 'SMARTDNS_DOWNLOAD_UNUSED', 'SmartDNS'),
             ('test_openclash_tun_stack', 'OPENCLASH_REQUIRE_MIHOMO', 'MIHOMO_OLD_TEST_BIN', 'Mihomo'),
             ('test_openclash_backports', 'OPENCLASH_REQUIRE_NODE', 'NODE', 'Node'),
             ('test_openclash_filename', 'OPENCLASH_REQUIRE_NODE', 'NODE', 'Node'),
@@ -76,6 +80,25 @@ class ValidationGates(unittest.TestCase):
                                         env=environment, capture_output=True, text=True, timeout=30)
                 self.assertNotEqual(result.returncode, 0, 'missing required ' + label + ' was silently accepted')
                 self.assertIn(label, result.stderr)
+
+    def test_required_native_kconfig_gate_rejects_missing_compiler(self):
+        # Keep the real shell and platform probe, but make the compiler lookup
+        # fail. No compiler invocation or temporary source preparation may run.
+        script = '''
+command() {
+    if [[ "$1" == -v && "$2" == gcc ]]; then return 1; fi
+    builtin command "$@"
+}
+export -f command
+source "$KCONFIG_GATE"
+'''
+        environment = dict(os.environ, REQUIRE_KCONFIG_CONF='1',
+                           KCONFIG_GATE=bash_path(ROOT / 'tests/test_kconfig_linux.sh'))
+        result = subprocess.run([bash_executable(), '--noprofile', '--norc', '-c', script],
+                                env=environment, capture_output=True, text=True, timeout=30)
+        self.assertNotEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertIn('Kconfig', result.stderr)
+        self.assertIn('needs Linux' if os.name == 'nt' else 'requires gcc', result.stderr)
 
     def test_required_ruby_cannot_be_silently_skipped(self):
         environment = dict(os.environ, OPENCLASH_REQUIRE_RUBY34='1')

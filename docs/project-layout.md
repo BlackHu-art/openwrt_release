@@ -14,6 +14,8 @@ openwrt_release/
 │   ├── managed/                     # 30 个原始受管源码单元及版本/哈希锁
 │   ├── managed_plugins.py           # 校验并安装受管构建副本
 │   ├── theme_compat.py              # 保留配置的 Aurora 构建副本初始化修复
+│   ├── smartdns_compat.py           # WebUI 固定提交传递与按需下载修复
+│   ├── kconfig_compat.py            # Qt5/squeezelite 构建副本循环依赖修复
 │   ├── modules/                     # 源码/feeds/插件处理与构建步骤
 │   ├── patches/                     # 构建时应用的补丁及注入文件
 │   ├── compat/                      # 本地兼容实现、源码基线表和包定义

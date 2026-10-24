@@ -11,6 +11,10 @@ python tests/test_managed_build.py
 python tests/test_fw876_sources.py
 python tests/test_simple_obfs_compat.py
 python tests/test_simple_obfs_download.py
+python tests/test_smartdns_compat.py
+python tests/test_smartdns_download.py
+python tests/test_kconfig_compat.py
+bash tests/test_kconfig_linux.sh
 python tests/test_download_compat.py
 python tests/test_quickfile_source.py
 python tests/test_oaf_compat.py
