@@ -1,10 +1,9 @@
 # 插件源码维护区
 
-这里保存插件原始参考快照（Passwall1 已按用户要求删除）与 SSR 的历史评估输入。
+这里保存插件原始参考快照（Passwall1、Passwall2 均已按用户要求删除）与 SSR 的历史评估输入。
 本目录不由固件构建直接读取。SSR `v198.2` 已成为生产来源：其中实际选择的 15 个配方
 以原始字节镜像到独立的 [受管目录](../../wrt_core/managed/README.md)，完整维护快照仍保留不变。
 `190-r11`、`190-r12` 都是历史派生副本，不是当前生产修复版。
-Passwall2 的部分回归会读取这里的快照，更新后仍需运行对应回归。
 
 当前实际接入固件准备流程的 **30 个顶层受管源码单元**由
 [生产来源锁](../../wrt_core/managed/sources.lock.json) 和 loader 管理。
@@ -20,11 +19,10 @@ Passwall2 的部分回归会读取这里的快照，更新后仍需运行对应�
 | --- | --- | --- | --- | --- |
 | [SmartDNS 软件包](smartdns/package) | [ZqinKing/openwrt-smartdns](https://github.com/ZqinKing/openwrt-smartdns) | 默认分支 `master` | `cdf0de1d3e64` | `1.2025.47-1` |
 | [SmartDNS LuCI](smartdns/luci-app-smartdns) | [pymumu/luci-app-smartdns](https://github.com/pymumu/luci-app-smartdns) | 默认分支 `master` | `581e5e816d92` | `1.2026.48.2-2` |
-| [Passwall2](passwall2/luci-app-passwall2) | [Openwrt-Passwall/openwrt-passwall2](https://github.com/Openwrt-Passwall/openwrt-passwall2)，仅 `luci-app-passwall2/` | 显式 `main` | `896c586a27c9` | `26.10.20-1` |
 | [OpenClash](openclash/luci-app-openclash) | [kenzok8/small-package](https://github.com/kenzok8/small-package)，仅 `luci-app-openclash/` | 默认分支 `main` | `3d5609257639` | `0.48.002`，未显式声明 release |
 | [AdGuard Home LuCI](adguardhome/luci-app-adguardhome) | [ZqinKing/luci-app-adguardhome](https://github.com/ZqinKing/luci-app-adguardhome) | 默认分支 `main` | `36108202f326` | 未显式声明版本/release，以提交标识 |
 
-当前文件集合、字节数和原始 mode 以各快照清单为准，不含本目录说明与补充许可证。OpenClash 包内跟踪的数据和资源文件也保留原样，没有额外下载代理核心。
+移除 Passwall2 后，五份原始快照清单合计 1253 个文件、38,402,012 字节（含 SSR v198.2 完整快照，不含历史派生副本、本目录说明和补充许可证）。文件数与字节数已按各快照清单核对；具体文件集合和原始 mode 以清单为准。OpenClash 包内跟踪的数据和资源文件也保留原样，没有额外下载代理核心。
 
 ## SSR Plus+ 固定来源与历史评估
 
@@ -35,7 +33,7 @@ Passwall2 的部分回归会读取这里的快照，更新后仍需运行对应�
 其中旧启动/DNS 补丁迁移建议已被本次明确要求替代，当前方案以
 [fw876 集成说明](../../docs/fw876-core-migration.md) 为准。
 
-这里的版本是 Makefile 中的软件包字段，不等于路由器上实际运行的核心版本。SmartDNS 软件包仍由 recipe 指向 `pymumu/smartdns@136c0c2690138d6dedd8b520281aafe49112643f`；本目录没有另行导入其 C 核心仓库。AdGuard Home 保存的是 LuCI 插件，未导入 Go 核心。Passwall2、OpenClash 同样不包含所有代理核心的源码。
+这里的版本是 Makefile 中的软件包字段，不等于路由器上实际运行的核心版本。SmartDNS 软件包仍由 recipe 指向 `pymumu/smartdns@136c0c2690138d6dedd8b520281aafe49112643f`；本目录没有另行导入其 C 核心仓库。AdGuard Home 保存的是 LuCI 插件，未导入 Go 核心。OpenClash 同样不包含所有代理核心的源码。
 
 ## 文件记录与存储方式
 
@@ -52,7 +50,6 @@ Passwall2 的部分回归会读取这里的快照，更新后仍需运行对应�
 | 维护对象 | 当前生效逻辑 | 已有测试基线 |
 | --- | --- | --- |
 | SmartDNS | [update_smartdns](../../wrt_core/modules/package_source_updates.sh)、[优化补丁](../../wrt_core/patches/100-smartdns-optimize.patch) | 尚无独立 SmartDNS fixture；本快照不是已完成的兼容验证 |
-| Passwall2 | [来源表](../../wrt_core/modules/custom_feed.sh)、[fix_passwall2_compat](../../wrt_core/modules/plugin_compat.sh) | 实际 Lua 生成器的 TLS、共享 Xray 配置及生成失败后停止启动回归；未做完整固件运行验收 |
 | OpenClash | [fix_openclash_compat](../../wrt_core/modules/plugin_compat.sh) 应用六份补丁：原有 WAN 子网、checksum，以及 Ruby AST、dashboard 状态、文件名/目录校验，以及 TUN 栈兼容保护 | [plugin-runtime](../../tests/fixtures/plugin-runtime/README.md) 的下载函数与 [0.48.002 完整文件](../../tests/fixtures/openclash/0.48.002/README.md)；真实 Ruby、JavaScript、Lua 入口回归 |
 | AdGuard Home | [update_adguardhome](../../wrt_core/modules/service_fixes.sh) 获取源码后调用 `fix_adguardhome_compat`，应用稳定更新安全与无需更新时不执行 UPX 两份补丁；[三文件 blob 基线](../../wrt_core/compat/adguardhome/source-files.tsv) 在写入前校验 | [plugin-runtime](../../tests/fixtures/plugin-runtime/README.md) 的固定更新器、下载配置及 Lua 控制器；补丁组合、重复执行与源码漂移回归 |
 
@@ -71,14 +68,14 @@ OpenClash 的 Ruby AST、dashboard 和文件名修复分别适配上游 `ac3c7bf
 5. 比较导入目录与 Git 文件清单，检查是否被忽略规则漏掉，并验证进入 Git 后仍保持原始字节。新上游如增加 `.gitattributes`，需要重新检查它是否覆盖本维护区的保护规则。
 6. 后续若要修复插件，单独更新 `wrt_core/patches/`、相应模块及必要 fixture/回归；维护快照更新本身不改变构建来源、软件包选择或运行行为。
 
-例如，下面的命令可在新临时目录中重新获取当前 Passwall2 基线（只获取源码，不执行源码；其他来源使用锁文件对应值）：
+例如，下面的命令可在新临时目录中重新获取当前 OpenClash 基线（只获取源码，不执行源码；其他来源使用锁文件对应值）：
 
 ```powershell
-$sourceReviewPath = Join-Path ([System.IO.Path]::GetTempPath()) ('passwall2-review-' + [guid]::NewGuid())
-git clone --filter=blob:none --no-checkout --branch main https://github.com/Openwrt-Passwall/openwrt-passwall2.git $sourceReviewPath
+$sourceReviewPath = Join-Path ([System.IO.Path]::GetTempPath()) ('openclash-review-' + [guid]::NewGuid())
+git clone --filter=blob:none --no-checkout --branch main https://github.com/kenzok8/small-package.git $sourceReviewPath
 git -C $sourceReviewPath config core.autocrlf false
-git -C $sourceReviewPath sparse-checkout set luci-app-passwall2
-git -C $sourceReviewPath checkout --detach 896c586a27c9a7c0b9e3d75b631965dea86b9945
+git -C $sourceReviewPath sparse-checkout set luci-app-openclash
+git -C $sourceReviewPath checkout --detach 3d5609257639ed76aaacdeffe242343d51265fea
 ```
 
 这是审查工作树，不应直接替换 `<BUILD_DIR>` 中已有源码；构建准备阶段可能清理该目录。
@@ -87,7 +84,6 @@ git -C $sourceReviewPath checkout --detach 896c586a27c9a7c0b9e3d75b631965dea86b9
 
 原文件中的版权和许可声明保持不变；这些第三方源码不能统一解释为适用主项目根目录的 LICENSE。
 
-- Passwall2：保留来源仓库根的 GPLv3 LICENSE，见 `licenses/passwall2/`。Passwall1 的独立许可证随已删除的插件快照移除。
 - SmartDNS 两个包装仓库：当前没有独立 LICENSE/COPYING 文件，Makefile 声明 `GPL-3.0-or-later`；后端 recipe 中的 `PKG_LICENSE_FILES:=LICENSE` 指向后续下载的核心源码文件，并不表示本包装仓库已包含它。
 - AdGuard Home LuCI：当前仓库没有独立许可证文件，Makefile 文件头声明 Apache-2.0。现有 [COPYING.AdGuardHome](../../tests/fixtures/plugin-runtime/COPYING.AdGuardHome) 随固定测试文件保留。
 - OpenClash：本次选取的聚合源包目录没有独立许可证文件；`licenses/openclash/LICENSE` 是 **small-package 聚合仓库的 Apache-2.0 文件**，不能据此给 OpenClash 重新许可。现有测试基线记录 OpenClash 的 MIT 来源，见 [fixture 说明](../../tests/fixtures/plugin-runtime/README.md) 和 [COPYING.OpenClash](../../tests/fixtures/plugin-runtime/COPYING.OpenClash)。

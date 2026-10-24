@@ -90,7 +90,7 @@ for config in [
 
 require(
     "wrt_core/deconfig/jdcloud_ipq60xx_immwrt.config",
-    "CONFIG_PACKAGE_luci-app-passwall2=y",
+    "# CONFIG_PACKAGE_luci-app-passwall2 is not set",
 )
 require(
     "wrt_core/deconfig/jdcloud_ipq60xx_immwrt.config",

@@ -25,11 +25,11 @@ class PluginSelectionTests(unittest.TestCase):
 
     def test_missing_and_demoted_apps_are_reported_together(self):
         result = self.check_selection(
-            "CONFIG_PACKAGE_luci-app-passwall2=y\nCONFIG_PACKAGE_luci-app-ssr-plus=y\n",
+            "CONFIG_PACKAGE_luci-app-homeproxy=y\nCONFIG_PACKAGE_luci-app-ssr-plus=y\n",
             "CONFIG_PACKAGE_luci-app-ssr-plus=m\n",
         )
         self.assertEqual(result.returncode, 1, result.stderr)
-        self.assertIn("luci-app-passwall2: requested=y, resolved=n", result.stderr)
+        self.assertIn("luci-app-homeproxy: requested=y, resolved=n", result.stderr)
         self.assertIn("luci-app-ssr-plus: requested=y, resolved=m", result.stderr)
 
     def test_module_can_be_built_in_and_disabled_overrides_win(self):
@@ -57,7 +57,7 @@ class PluginSelectionTests(unittest.TestCase):
     def test_feature_switches_and_non_luci_symbols_are_not_packages(self):
         result = self.check_selection(
             "CONFIG_PACKAGE_luci-app-adguardhome_INCLUDE_binary=y\n"
-            "CONFIG_PACKAGE_luci-app-passwall2_Basic_Core_All=y\n"
+            "CONFIG_PACKAGE_luci-app-example_Basic_Core_All=y\n"
             "CONFIG_PACKAGE_NSS_FIRMWARE_VERSION_11_4=y\n", "",
         )
         self.assertEqual(result.returncode, 0, result.stderr)

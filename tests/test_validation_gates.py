@@ -45,10 +45,9 @@ class ValidationGates(unittest.TestCase):
         triggers = self.workflow.get('on', self.workflow.get(True, {}))
         required = {
             'wrt_core/patches/openclash-*.patch', 'wrt_core/patches/adguardhome-*.patch',
-            'wrt_core/compat/adguardhome/**', 'wrt_core/patches/passwall2-singbox-*.patch',
-            'wrt_core/patches/passwall2-fw876-*.patch',
+            'wrt_core/compat/adguardhome/**',
             'wrt_core/patches/xray-core-*.patch', 'wrt_core/compat/proxy-cores/**',
-            'maintenance/plugins/passwall2/**',
+            'maintenance/plugins/ssrplus/**', 'maintenance/plugins/sources.lock.json',
             'maintenance/plugins/manifests/**', 'wrt_core/patches/homeproxy-*.patch',
             'wrt_core/managed/**', 'wrt_core/managed_plugins.py',
             'wrt_core/simple_obfs_compat.py', 'wrt_core/download_compat.py',

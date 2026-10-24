@@ -55,24 +55,26 @@ network_retry() {
 }
 
 install_custom_feed
-for package in luci-app-passwall2 luci-app-ssr-plus luci-app-partexp; do
+for package in luci-app-ssr-plus luci-app-partexp; do
     [[ -s "$BUILD_DIR/feeds/custom_feed/$package/Makefile" ]] || {
         echo "FAIL: requested plugin has no feed source: $package" >&2
         exit 1
     }
 done
-for upstream in Openwrt-Passwall/openwrt-passwall2 sirpdboy/luci-app-partexp; do
+for upstream in sirpdboy/luci-app-partexp; do
     grep -Fq "https://github.com/$upstream.git|" "$test_root/sources"
 done
 if grep -Fq 'https://github.com/fw876/helloworld.git|' "$test_root/sources"; then
     echo 'FAIL: pinned fw876 sources were requested from rolling upstream' >&2
     exit 1
 fi
-[[ ! -e "$BUILD_DIR/feeds/custom_feed/luci-app-passwall" ]]
-if grep -Fq 'https://github.com/Openwrt-Passwall/openwrt-passwall.git|' "$test_root/sources"; then
-    echo 'FAIL: removed Passwall1 repository was imported' >&2
-    exit 1
-fi
+for plugin in passwall passwall2; do
+    [[ ! -e "$BUILD_DIR/feeds/custom_feed/luci-app-$plugin" ]]
+    if grep -Fq "https://github.com/Openwrt-Passwall/openwrt-$plugin.git|" "$test_root/sources"; then
+        echo "FAIL: removed $plugin repository was imported" >&2
+        exit 1
+    fi
+done
 grep -Fq "src-link custom_feed $BUILD_DIR/custom_feed" "$BUILD_DIR/$FEEDS_CONF"
 echo "custom feed selected plugins: PASS"
 

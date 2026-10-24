@@ -106,12 +106,6 @@ fix_openclash_compat() {
         openclash-tun-stack.patch
 }
 
-fix_passwall2_compat() {
-    apply_plugin_compat_patches "$1" "Passwall2" \
-        passwall2-singbox-tls-pin.patch passwall2-singbox-launch.patch \
-        passwall2-fw876-core-update.patch
-}
-
 fix_ssrplus_compat() (
     # v198.2 startup and DNS remain byte-identical to fw876; the generator
     # receives only the separately reviewed Xray transport API adaptation.

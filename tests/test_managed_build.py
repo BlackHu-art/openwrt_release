@@ -7,7 +7,7 @@ import sys
 import tempfile
 import unittest
 
-import test_passwall2_tls as shell
+import shell_test_helpers as shell
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -91,11 +91,6 @@ cmp "$BASE_PATH/managed/compat/istore_backend.lua" "$target/luci-app-quickstart/
 target="$BUILD_DIR/feeds/custom_feed"
 install_managed_package xray-core "$target/xray-core"
 install_managed_package sing-box "$target/sing-box"
-for plugin in passwall2; do
-    mkdir -p "$target/luci-app-$plugin/luasrc/$plugin"
-    cp "$BASE_PATH/../maintenance/plugins/$plugin/luci-app-$plugin/luasrc/$plugin/util_xray.lua" \
-       "$target/luci-app-$plugin/luasrc/$plugin/util_xray.lua"
-done
 mkdir -p "$BUILD_DIR/feeds/packages/lang/golang/golang"
 printf 'GO_VERSION_MAJOR_MINOR:=1.27\nGO_VERSION_PATCH:=3\n' > "$BUILD_DIR/feeds/packages/lang/golang/golang/Makefile"
 fix_xray_core_compat "$target/xray-core"

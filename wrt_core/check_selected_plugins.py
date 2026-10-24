@@ -16,7 +16,10 @@ DOCKER_PACKAGES = {
     "luci-app-dockerman", "luci-i18n-dockerman-zh-cn", "luci-lib-docker",
     "docker", "dockerd", "docker-compose", "containerd", "runc",
 }
-REMOVED_PACKAGES = {"luci-app-passwall", "luci-i18n-passwall-zh-cn"}
+REMOVED_PACKAGES = {
+    "luci-app-passwall", "luci-i18n-passwall-zh-cn",
+    "luci-app-passwall2", "luci-i18n-passwall2-zh-cn",
+}
 EXCLUDED_PACKAGES = DOCKER_PACKAGES | REMOVED_PACKAGES
 
 

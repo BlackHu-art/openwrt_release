@@ -26,12 +26,6 @@ class XrayRecipeCompatibility(unittest.TestCase):
         self.package = self.feed / "xray-core"
         shutil.copytree(FIXTURE, self.package)
         self.recipe = self.package / "Makefile"
-        self.generators = []
-        for plugin in ("passwall2",):
-            generator = self.feed / f"luci-app-{plugin}/luasrc/{plugin}/util_xray.lua"
-            generator.parent.mkdir(parents=True)
-            generator.write_text('local xray_min_version = "26.7.11"\n', encoding="utf-8")
-            self.generators.append(generator)
         self.go_recipe = self.build / "feeds/packages/lang/golang/golang/Makefile"
         self.go_recipe.parent.mkdir(parents=True)
         self.go_recipe.write_text("GO_VERSION_MAJOR_MINOR:=1.27\nGO_VERSION_PATCH:=3\n", encoding="utf-8")
@@ -88,8 +82,9 @@ class XrayRecipeCompatibility(unittest.TestCase):
         self.recipe.write_bytes(official.read_bytes())
         self.assert_rejected_without_changes("xray-core")
 
-    def test_passwall2_only_tree_needs_no_passwall1_source(self):
-        self.assertFalse((self.feed / "luci-app-passwall").exists())
+    def test_recipe_gate_needs_no_removed_proxy_generator(self):
+        for plugin in ("passwall", "passwall2"):
+            self.assertFalse((self.feed / ("luci-app-" + plugin)).exists())
         result = self.apply()
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
 
@@ -110,31 +105,6 @@ class XrayRecipeCompatibility(unittest.TestCase):
     def test_changed_recipe_version_with_stale_hash_is_rejected(self):
         self.recipe.write_bytes(self.recipe.read_bytes().replace(b"26.10.21", b"26.10.22"))
         self.assert_rejected_without_changes("Makefile")
-
-    def test_passwall2_minimum_is_rechecked_after_successful_validation(self):
-        result = self.apply()
-        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
-        for generator in self.generators:
-            with self.subTest(generator=generator.name, plugin=generator.parent.name):
-                generator.write_text('local xray_min_version = "26.10.22"\n', encoding="utf-8")
-                self.assert_rejected_without_changes("26.10.22")
-                generator.write_text('local xray_min_version = "26.7.11"\n', encoding="utf-8")
-
-    def test_newer_generator_requirement_rejects_fw_recipe_without_write(self):
-        self.generators[0].write_text('local xray_min_version = "26.10.22"\n', encoding="utf-8")
-        self.assert_rejected_without_changes("26.10.22")
-
-    def test_missing_or_ambiguous_generator_requirement_is_rejected(self):
-        self.generators[0].unlink()
-        self.assert_rejected_without_changes("Passwall2")
-        self.generators[0].write_text('local xray_min_version = "26.7.11"\n' * 2, encoding="utf-8")
-        self.assert_rejected_without_changes("Passwall2")
-
-    def test_changed_generator_declaration_cannot_hide_behind_an_old_valid_one(self):
-        self.generators[0].write_text(
-            'local xray_min_version = "26.7.11"\nlocal xray_min_version = next_version\n',
-            encoding="utf-8")
-        self.assert_rejected_without_changes("Passwall2")
 
     def test_old_or_missing_go_toolchain_is_rejected_without_write(self):
         self.go_recipe.write_text("GO_VERSION_MAJOR_MINOR:=1.26\n", encoding="utf-8")
@@ -158,8 +128,7 @@ class XrayRecipeCompatibility(unittest.TestCase):
                 self.go_recipe.write_text("GO_VERSION_MAJOR_MINOR:=1.27\n" + patch, encoding="utf-8")
                 self.assert_rejected_without_changes("Go")
 
-    def test_compatible_lower_consumer_minimum_and_newer_go_are_allowed(self):
-        self.generators[0].write_text('local xray_min_version = "26.4.17"\n', encoding="utf-8")
+    def test_newer_go_is_allowed_without_a_proxy_generator(self):
         self.go_recipe.write_text("GO_VERSION_MAJOR_MINOR:=1.28\nGO_VERSION_PATCH:=0\n", encoding="utf-8")
         result = self.apply()
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)

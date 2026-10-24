@@ -31,7 +31,8 @@
 /tests/fixtures/openclash/** text eol=lf whitespace=-blank-at-eol,-blank-at-eof,-space-before-tab
 /wrt_core/modules/xray_core_compat.sh text eol=lf
 /wrt_core/compat/proxy-cores/** text eol=lf
-/tests/*passwall* text eol=lf
+/tests/shell_test_helpers.py text eol=lf
+/tests/test_removed_proxy_plugins.py text eol=lf
 /tests/*xray* text eol=lf
 /tests/test_proxy_compat_pipeline.py text eol=lf
 /tests/fixtures/proxy-cores/** text eol=lf whitespace=-blank-at-eol,-space-before-tab

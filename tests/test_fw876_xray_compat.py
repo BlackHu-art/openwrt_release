@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Current SSR/Passwall2 generators against the authenticated fw876 Linux core.
+"""Current SSR generators against the authenticated fw876 Linux core.
 
 The official Windows core is a separate standard-protocol check. It cannot stand
 in for this gate even though both executables print version 26.10.21.
@@ -62,7 +62,7 @@ class Fw876GeneratorContracts(unittest.TestCase):
         self.assertIn('Xray ' + VERSION.split('-')[0], version.stdout)
         with tempfile.TemporaryDirectory(prefix='fw876-core-config-') as directory:
             cases = {**shared.generated_configs(), **private_configs()}
-            self.assertTrue(any(name.startswith('passwall2/') for name in cases))
+            self.assertTrue(any(name.startswith('ssrplus/vless/') for name in cases))
             self.assertTrue(any(name.startswith('ssrplus/fw-') for name in cases))
             for index, (name, config) in enumerate(cases.items()):
                 with self.subTest(name=name):

@@ -1,8 +1,8 @@
 {
   "schema_version": 1,
-  "reviewed_on": "2026-10-23",
+  "reviewed_on": "2026-10-24",
   "package": "xray-core",
-  "reason": "Use the complete fw876 v198.2 Xray 26.10.21-r2 recipe and ten private-protocol patches as the sole shared production source for SSR and official Passwall2.",
+  "reason": "Use the complete fw876 v198.2 Xray 26.10.21-r2 recipe and ten private-protocol patches as the production source for SSR.",
   "recipe_source": {
     "repository": "https://github.com/fw876/helloworld.git",
     "tag": "v198.2",
@@ -131,15 +131,6 @@
     "build_toolchain_minimum_reason": "The emergency release notes require Go 1.27.3 certificate filtering in addition to the source go.mod minimum of 1.27.",
     "scope": "Official base source before the fw876 recipe applies its ten patches; this archive alone does not identify the production customized core."
   },
-  "reviewed_generators": [
-    {
-      "repository": "https://github.com/Openwrt-Passwall/openwrt-passwall2.git",
-      "commit": "0f923be3f00f9fb8db9591c9ecab41e7de5ec75e",
-      "path": "luci-app-passwall2/luasrc/passwall2/util_xray.lua",
-      "minimum_xray_version": "26.7.11",
-      "sha256": "a30dad3cc3f7b7f63314efb2aa29ad39bef4a62d2baaa5791ca13323f6356078"
-    }
-  ],
   "reviewed_go_recipe": {
     "repository": "https://github.com/sbwml/packages_lang_golang.git",
     "branch": "27.x",
@@ -151,7 +142,7 @@
   "validation_scope": [
     "Imported the complete selected fw876 package subtrees from v198.2, checking each captured blob size, SHA-256 and Git blob SHA-1 before writing managed inputs.",
     "Production Xray remains the complete fw876 26.10.21-r2 recipe, README.eip93.md and ten patches. No official-only recipe upgrade patch is used.",
-    "The gate rejects missing, modified and extra patches and rechecks Passwall2 minimum Xray and unique literal Go >=1.27.3 declarations on every run.",
+    "The gate rejects missing, modified and extra patches and rechecks unique literal Go >=1.27.3 declarations on every run.",
     "The fw876 v198.2 x86_64 IPK was downloaded and its API digest and archive SHA-256 matched. Package, version and architecture fields and the extracted ELF SHA-256 were verified.",
     "Linux CI requires the exact fw876 binary for the private-protocol generator checks. The Linux binary was not executed on the Windows authoring host.",
     "Official Windows and Linux Xray test cores below remain generic configuration cross-checks and cannot establish fw876-specific protocol compatibility.",

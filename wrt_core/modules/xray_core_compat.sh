@@ -2,30 +2,11 @@
 # Validate the complete pinned fw876 recipe and patches before compilation.
 
 fix_xray_core_compat() (
-    local package_dir=${1:-} generator minimum lowest label declarations
+    local package_dir=${1:-} lowest declarations
     local go_recipe go_version go_patch patch_declarations
     local target_version=26.10.21
     if ! python3 "$BASE_PATH/managed_plugins.py" verify-staged xray-core "$package_dir"; then
         echo "错误：Xray fw876 完整配方、补丁或来源锁校验失败：$package_dir" >&2
-        return 1
-    fi
-
-    # 每次执行都读取本轮拉取的生成器，不能让已验证过的缓存绕过版本门槛。
-    label=Passwall2
-    generator="$package_dir/../luci-app-passwall2/luasrc/passwall2/util_xray.lua"
-    if [[ ! -f "$generator" ]]; then
-        echo "错误：$label Xray 生成器不存在：$generator" >&2
-        return 1
-    fi
-    declarations=$(grep -Ec '^[[:space:]]*local[[:space:]]+xray_min_version[[:space:]]*=' "$generator" || true)
-    minimum=$(sed -nE 's/^[[:space:]]*local[[:space:]]+xray_min_version[[:space:]]*=[[:space:]]*"([0-9]+\.[0-9]+\.[0-9]+)"[[:space:]]*$/\1/p' "$generator") || return 1
-    if [[ "$declarations" != 1 || ! "$minimum" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
-        echo "错误：$label Xray 最低版本声明缺失、重复或格式变化，须重新审查。" >&2
-        return 1
-    fi
-    lowest=$(printf '%s\n' "$target_version" "$minimum" | sort -V | head -n 1) || return 1
-    if [[ "$lowest" != "$minimum" ]]; then
-        echo "错误：$label 要求 Xray >= $minimum，已审查配方只有 $target_version，停止构建。" >&2
         return 1
     fi
 
@@ -53,5 +34,5 @@ fix_xray_core_compat() (
         echo "错误：Xray $target_version 需要 Go >= 1.27.3，当前 Go 为 $go_version。" >&2
         return 1
     fi
-    echo "Xray fw876 $target_version 完整配方、补丁、共享生成器及 Go 版本门槛检查通过。"
+    echo "Xray fw876 $target_version 完整配方、补丁及 Go 版本门槛检查通过。"
 )

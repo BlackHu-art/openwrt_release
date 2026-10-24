@@ -1,6 +1,6 @@
 # 插件兼容修复与编译入口
 
-SSR 与已选共享核心固定到 `fw876/helloworld@v198.2`，保留官方 Passwall2。
+SSR 与已选共享核心固定到 `fw876/helloworld@v198.2`；Passwall1 与 Passwall2 均已移除。
 共享 Xray 使用 fw876 `26.10.21-r2` 完整配方及十份补丁，要求 Go >=1.27.3；
 sing-box 保持 `1.14.3`，其他插件选择不变。旧 SSR 启动/DNS 修复仅用于历史回归。
 项目标准 `build.sh` / GitHub Actions 在源码准备阶段应用当前集成调整，
@@ -8,12 +8,11 @@ sing-box 保持 `1.14.3`，其他插件选择不变。旧 SSR 启动/DNS 修复�
 
 当前 AX6600 的 `jdcloud_ipq60xx_immwrt.config` 已启用 SSR Plus、OpenClash 和 AdGuard Home。
 `jdcloud_ipq60xx_libwrt.config` 启用 OpenClash/ADG，SSR 需由最终配置选中；
-所有使用 `proxy` 片段的机型改为选择 Passwall2，显式排除 Passwall1；defconfig 后会复核排除项。
+所有使用 `proxy` 片段的机型均不再选择 Passwall1 或 Passwall2；defconfig 后会复核排除项。
 
 固件源码由 `wrt_core/update.sh` 编排本地受管输入和外部来源，再由 `wrt_core/modules/`
 应用兼容处理。实际参与构建的本地输入位于 [`wrt_core/managed/`](../wrt_core/managed/README.md)；
-`maintenance/plugins/` 继续保存 reference-only 审查快照。部分 Passwall2
-回归会读取维护快照，修改快照后也需运行相应回归。
+`maintenance/plugins/` 继续保存保留插件的 reference-only 审查快照。
 
 ## 受管源码与构建接入
 
@@ -35,30 +34,23 @@ HomeProxy、OAF 和主题兼容处理只作用于构建副本，不改写受管�
 `maintenance/plugins/` 的参考快照不会使本地受管输入发生变化。完整步骤见
 [受管源码说明](../wrt_core/managed/README.md)。
 
-## Passwall2 与共享 Xray
+## Passwall 移除与 Xray
 
-Passwall1 的插件源码、维护清单、独立许可证、下载入口、兼容补丁和编译选择已移除。
-保留上游主题中无运行代码的兼容样式；它们不会安装 Passwall1。Passwall2 继续从
-`Openwrt-Passwall/openwrt-passwall2` 的 `main` 获取，在 feeds install 前执行 `fix_passwall2_compat`。
+Passwall1 和 Passwall2 的插件源码、维护清单、独立许可证、下载入口、兼容补丁与
+编译选择均已移除。上游主题中无运行代码的兼容样式随主题保留，不会安装这些插件。
+本轮不再导入、修复或适配官方 Passwall2。
 
-- sing-box `<1.15.0` 遇到非空 `tls_pinSHA256` 明确拒绝，保留已指定的证书验证要求。
-- 生成器失败后删除不完整 JSON、记录诊断并停止核心启动；空指纹、显式允许不安全连接的原有语义不变。
-- sing-box 1.14.3 的当前标签不包含 Naive 出站，gRPC 为 lite 实现；这些限制没有通过强行升级核心绕过。
-
-Passwall2 的 Xray 最低版本声明继续作为构建门槛。共享 Xray 直接使用受管的
-fw876 `26.10.21-r2`，来源、完整补丁集合以及官方/定制测试核心身份见
+Xray 继续使用受管的 fw876 `26.10.21-r2` 完整配方及十份补丁，来源和测试核心身份见
 [核心记录](../wrt_core/compat/proxy-cores/xray-26.10.21.json)。
-`fix_xray_core_compat` 每次核对整个 recipe 子树及十份补丁，随后检查 Passwall2
-最低版本与 Go 的 major/minor/patch；缺失文件、额外补丁、未知声明或旧 Go 均拒绝。
+`fix_xray_core_compat` 每次核对整个 recipe 子树及十份补丁，随后检查 Go 的
+major/minor/patch；缺失文件、额外补丁、未知声明或旧 Go 均拒绝。
 `update_golang` 继续先验证 `27.x` 的 Go >=1.27.3，再替换旧源；失败保留旧源并停止准备。
 
-运行时共享 Xray 通过 SSR「组件更新」从 fw876 更新，并保留完整包修订号。
-Passwall2 禁用自己的 Xray 检查、下载、解包、移动接口和主程序自升级，
-展示当前版本及受管更新入口；路径配置和别名也不能绕过共享核心覆盖限制。
-其他组件的正常更新保留，官方 Passwall2 的 sing-box 兼容处理继续应用。
+运行时 Xray 通过 SSR「组件更新」从 fw876 更新，并保留完整包修订号；
+SSR 主程序在线自升级禁用，以保留项目适配。其他保留插件与核心的更新策略不变。
 
-共享生成器测试使用当前 SSR v198 源码与官方 Passwall2 实际生成器。
-官方 Xray 只作为通用 JSON 配置交叉检查，私有协议验证要求精确匹配的 fw876 Linux 核心；
+通用配置矩阵只使用当前 SSR v198 生成器，共 24 份配置；官方 Xray 仅作通用 JSON
+配置交叉检查，私有协议验证仍要求精确匹配的 fw876 Linux 核心。
 旧 `190-r12` 的历史测试不能代替当前集成验证。`xray-plugin` 是独立软件包，不随本次改版。
 
 ## HomeProxy、主题与 iStoreX
@@ -212,8 +204,7 @@ feeds install 后，`wrt_core/modules/service_fixes.sh` 的 `update_adguardhome`
 结构拒绝已加入专项回归入口。测试入口描述覆盖范围，不表示本轮全套回归已经执行并通过；
 完整交叉编译、最终 IPK/APK/rootfs 内容和路由器功能仍需单独验收。
 
-`tests/run_all.sh` 包含插件专项回归及现有完整回归。Passwall2 TLS 与启动入口回归覆盖旧核心
-拒绝指纹、受支持核心保留指纹、无指纹配置、隐式 TLS 协议、生成失败后停止启动，以及补丁重复应用。
+`tests/run_all.sh` 包含保留插件的专项回归及现有完整回归；Passwall2 专项回归已随其集成移除。
 Xray 配方回归覆盖源码与补丁哈希、版本及 Go 门槛、重复执行和失败时不写入原配方；
 源码准备阶段回归另外验证实际接入顺序。
 OpenClash 回归执行真实 Ruby AST/覆写入口、模板 JavaScript 和 Lua 文件入口；

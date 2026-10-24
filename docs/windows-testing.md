@@ -92,7 +92,7 @@ Python 依赖固定在 [`tests/requirements.txt`](../tests/requirements.txt)，�
 | Lupa | `2.8` | 执行测试中的 Lua 逻辑，包括 `lupa.lua51` |
 | MSYS2 util-linux | `2.40.2-2` | 从官方包中仅提取 `flock.exe`，验证真实文件锁互斥 |
 | MSYS2 GNU Make | `4.4.1-3` | 从官方包中仅提取 `make.exe`，执行真实上游下载 recipe 的退出码与中止回归 |
-| Xray | 官方 `26.10.21` | 对 SSR / Passwall2 通用协议的生成配置执行核心解析检查；固件使用 fw876 定制构建 |
+| Xray | 官方 `26.10.21` | 对 SSR 通用协议的生成配置执行核心解析检查；固件使用 fw876 定制构建 |
 | [RubyInstaller](https://github.com/oneclick/rubyinstaller2/releases/tag/RubyInstaller-3.4.9-1) | `3.4.9-1`，Ruby `3.4.9` | 私有 `bin` / `lib` 运行目录，执行真实 Ruby 3.4 AST 与 YAML 覆写检查 |
 | [Node.js](https://nodejs.org/download/release/v22.23.4/) | `22.23.4` | 仅提取 `node.exe`，执行 dashboard 与文件名 JavaScript 检查 |
 
@@ -121,7 +121,7 @@ simple-obfs 的原始源码校验、构建副本适配和 GNU Make 错误传播�
 
 版本维护应作为仓库变更处理：先确认官方来源及下载包、可执行文件的校验值，再同步更新脚本、依赖文件和本说明，重新执行安装、环境检查与回归。不要因下载失败而改用未校验的二进制，也不要把哈希校验或必需依赖检查改成跳过。
 
-更换 Xray 版本时，还需核对 [`tests/fixtures/proxy-cores/`](../tests/fixtures/proxy-cores/README.md) 中的固定基线和 [`tests/test_shared_xray_compat.py`](../tests/test_shared_xray_compat.py) 的共享核心配置用例。当前通用协议矩阵为 **48 份生成配置**：新版 SSR Plus+ 24 份、官方 Passwall2 24 份；这不是 unittest 用例数量。SSR 使用生产准备后的 v198.2 生成器，覆盖 mKCP、Hysteria2、Reality、透明代理和 DNS。不能仅凭 `xray version` 输出正确就认为配置兼容。
+更换 Xray 版本时，还需核对 [`tests/fixtures/proxy-cores/`](../tests/fixtures/proxy-cores/README.md) 中的固定基线和 [`tests/test_shared_xray_compat.py`](../tests/test_shared_xray_compat.py) 的共享核心配置用例。当前通用协议矩阵为 **24 份生成配置**，均来自新版 SSR Plus+；这不是 unittest 用例数量。SSR 使用生产准备后的 v198.2 生成器，覆盖 mKCP、Hysteria2、Reality、透明代理和 DNS。不能仅凭 `xray version` 输出正确就认为配置兼容。
 
 Windows 将完整生成 JSON 经 Xray 官方 `stdin:` 输入交给真实核心解析，避免本机原生进程与 Python 读取临时文件内容不一致；Linux CI 继续通过文件加载。两种入口都检查通用协议矩阵，并确认无效协议被核心明确拒绝。这不验证 Windows 临时文件加载，也不改变固件中的配置生成或加载流程。
 

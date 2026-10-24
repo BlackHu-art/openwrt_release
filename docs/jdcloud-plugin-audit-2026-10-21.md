@@ -1,5 +1,7 @@
 # 京东云 IPQ60xx 插件与上游修复检查
 
+> 历史资料：本文保留检查当时的事实与建议。Passwall1 先前已移除，Passwall2 的源码和构建集成也于 2026-10-24 本轮移除；当前方案见 [fw876 集成说明](fw876-core-migration.md)。
+
 检查时间：2026-10-20 至 2026-10-21。基线：本仓库 `f3e4bac`，设备
 `jdcloud_ipq60xx_immwrt`，固定源码
 `VIKINGYFY/immortalwrt@3fd1e27a511851b41cf082b067b60099e8e026c4`。

@@ -179,10 +179,10 @@ HomeProxy 从本地锁定的官方源码复制到构建目录后、最终 feeds 
 
 SSR 与已选配套核心统一固定到 `fw876/helloworld@v198.2`：SSR 为 `198-r2`，
 共享 Xray 使用 `26.10.21-r2` 完整 fw 配方及十份补丁，Go 工具链最低 `1.27.3`。
-运行时共享 Xray 通过 SSR「组件更新」管理；SSR 和 Passwall2 主程序的在线自升级禁用，
+运行时共享 Xray 通过 SSR「组件更新」管理；SSR 主程序的在线自升级禁用，
 以保留本项目适配。旧启动/DNS 修复仅留历史测试，当前集成及验证边界见
 [fw876 迁移说明](docs/fw876-core-migration.md)。sing-box 固定为 `1.14.3`，其他插件选择不变。
-Passwall1 的源码和构建入口已移除，`proxy` 片段统一选中官方 Passwall2。
+Passwall1 与 Passwall2 的源码、维护快照和构建入口均已移除；`proxy` 片段不再选择这两个插件。
 iStoreX 的七个组件及 `istore_backend.lua` 兼容文件也改从本地受管输入复制。
 
 QuickFile 仍从外部上游获取，不属于这 30 个受管单元。已核对的 `2.0.8` 使用 Rust 源码包，

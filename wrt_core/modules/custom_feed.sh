@@ -170,7 +170,7 @@ install_custom_feed() {
     local required_feed_dirs=(
         tcping v2ray-geodata luci-lib-taskd luci-app-openclash
         luci-app-quickstart luci-app-store luci-app-homeproxy luci-app-mosdns
-        luci-app-passwall2 luci-app-ssr-plus luci-app-partexp
+        luci-app-ssr-plus luci-app-partexp
         nikki luci-app-nikki mihomo-meta
         open-app-filter luci-app-oaf lucky luci-app-lucky luci-app-easytier
         luci-app-emmc-health
@@ -195,7 +195,6 @@ install_custom_feed() {
     custom_feed_sources=(
         "kenzok8/small-package|https://github.com/kenzok8/small-package.git||${base_custom_feed_packages[*]}"
         "sbwml/luci-app-mosdns|https://github.com/sbwml/luci-app-mosdns.git|v5|luci-app-mosdns"
-        "Openwrt-Passwall/openwrt-passwall2|https://github.com/Openwrt-Passwall/openwrt-passwall2.git|main|luci-app-passwall2"
         "sirpdboy/luci-app-partexp|https://github.com/sirpdboy/luci-app-partexp.git|main|luci-app-partexp"
         "nikkinikki-org/OpenWrt-nikki|https://github.com/nikkinikki-org/OpenWrt-nikki.git|main|nikki luci-app-nikki mihomo-meta"
     )

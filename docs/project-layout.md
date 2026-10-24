@@ -1,6 +1,6 @@
 # 项目文件布局
 
-本项目按构建、源码维护、验证和文档组织。`wrt_core/managed/` 是已接入固件的本地受管输入，`maintenance/plugins/` 保存独立参考快照。公共 `proxy` 片段选择 Passwall2，Passwall1 插件源码与构建入口已移除。
+本项目按构建、源码维护、验证和文档组织。`wrt_core/managed/` 是已接入固件的本地受管输入，`maintenance/plugins/` 保存独立参考快照。Passwall1 和 Passwall2 的插件源码、维护快照与构建入口均已移除；公共 `proxy` 片段不再选择它们。
 
 ## 目录总览
 
@@ -31,7 +31,6 @@ openwrt_release/
 │       ├── smartdns/
 │       │   ├── package/             # ZqinKing/openwrt-smartdns
 │       │   └── luci-app-smartdns/   # pymumu/luci-app-smartdns
-│       ├── passwall2/luci-app-passwall2/
 │       ├── openclash/luci-app-openclash/
 │       ├── adguardhome/luci-app-adguardhome/
 │       └── ssrplus/                 # v198.2 原始仓库、r11/r12 历史派生副本及证据

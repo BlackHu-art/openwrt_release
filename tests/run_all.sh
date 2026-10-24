@@ -20,10 +20,7 @@ python tests/test_windows_test_env.py
 python tests/test_validation_gates.py
 python tests/test_plugin_selection.py
 python tests/test_xray_core_compat.py
-python tests/test_passwall2_only.py
-python tests/test_passwall2_tls.py
-python tests/test_passwall2_launch.py
-python tests/test_passwall2_fw876_updates.py
+python tests/test_removed_proxy_plugins.py
 python tests/test_proxy_compat_pipeline.py
 python tests/test_shared_xray_compat.py
 python tests/test_fetch_fw876_xray.py

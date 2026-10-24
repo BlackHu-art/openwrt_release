@@ -60,7 +60,6 @@ stage_pre_install_source_fixes() {
     update_homeproxy || return 1
     fix_ssrplus_compat "$(get_custom_feed_worktree_dir)/luci-app-ssr-plus" || return 1
     fix_openclash_compat "$(get_custom_feed_worktree_dir)/luci-app-openclash" || return 1
-    fix_passwall2_compat "$(get_custom_feed_worktree_dir)/luci-app-passwall2" || return 1
     fix_default_set
     fix_miniupnpd || return 1
     update_golang || return 1

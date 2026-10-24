@@ -90,54 +90,6 @@
       "snapshot_state": "unmodified-upstream-before-project-patches"
     },
     {
-      "id": "passwall2",
-      "name": "Passwall2",
-      "repository": "https://github.com/Openwrt-Passwall/openwrt-passwall2.git",
-      "requested_ref": "main",
-      "ref_selection": "explicit-branch",
-      "resolved_branch": "main",
-      "commit": "896c586a27c9a7c0b9e3d75b631965dea86b9945",
-      "commit_date": "2026-10-21T23:54:26+08:00",
-      "commit_subject": "luci: select nslookup DNS port format based on BusyBox version",
-      "tree": "f4f597102e1b61c93858f2f1677cb1bd5f9586ee",
-      "upstream_path": "luci-app-passwall2",
-      "snapshot_kind": "package-subtree",
-      "local_path": "passwall2/luci-app-passwall2",
-      "build_source": {
-        "file": "wrt_core/modules/custom_feed.sh",
-        "function": "install_custom_feed"
-      },
-      "package_makefile_fields": {
-        "PKG_NAME": "luci-app-passwall2",
-        "PKG_VERSION": "26.10.20",
-        "PKG_RELEASE": "1",
-        "LUCI_TITLE": "LuCI support for PassWall 2"
-      },
-      "file_count": 111,
-      "total_blob_bytes": 1677527,
-      "git_mode_counts": {
-        "100644": 95,
-        "120000": 2,
-        "100755": 14
-      },
-      "manifest": "manifests/passwall2.json",
-      "manifest_sha256": "3f4aa4ea7e886a45389f5064bad7d08491af340b869fb28abd6686e7101f21e6",
-      "supplemental_license_files": [
-        {
-          "upstream_path": "LICENSE",
-          "local_path": "licenses/passwall2/LICENSE",
-          "git_blob": "f288702d2fa16d3cdf0035b15a9fcbc552cd88e7",
-          "git_mode": "100644",
-          "bytes": 35149,
-          "sha256": "3972dc9744f6499f0f9b2dbf76696f2ae7ad8af9b23dde66d6af86c9dfb36986",
-          "role": "source-repository-license-not-package-relicensing"
-        }
-      ],
-      "nested_attributes": [],
-      "nested_ignore_files": [],
-      "snapshot_state": "unmodified-upstream-before-project-patches"
-    },
-    {
       "id": "openclash",
       "name": "OpenClash",
       "repository": "https://github.com/kenzok8/small-package.git",
@@ -286,5 +238,5 @@
       "captured_at_utc": "2026-10-22T15:45:37.018902+00:00"
     }
   ],
-  "updated_at_utc": "2026-10-23T16:16:32.709522+00:00"
+  "updated_at_utc": "2026-10-24T07:51:07.870032+00:00"
 }
