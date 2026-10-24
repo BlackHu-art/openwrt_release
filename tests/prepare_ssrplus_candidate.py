@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Render the current fw876 integration from managed source; never contact a router."""
 import argparse
+import importlib.util
 import os
 from pathlib import Path
 import shutil
@@ -18,7 +19,16 @@ def main():
     output = options.output.resolve()
     if output.exists():
         parser.error("output already exists: " + str(output))
-    shutil.copytree(ROOT / "wrt_core/managed/packages/luci-app-ssr-plus", output)
+    spec = importlib.util.spec_from_file_location("candidate_managed", ROOT / "wrt_core/managed_plugins.py")
+    loader = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(loader)
+    # Production staging restores Git modes and real translation symlinks.
+    # Do not silently fall back to raw link text on hosts lacking symlink access.
+    try:
+        loader.stage_package(ROOT / "wrt_core/managed", "luci-app-ssr-plus", output, output.parent)
+    except (OSError, ValueError) as error:
+        print("Candidate source materialization failed: " + str(error), file=sys.stderr)
+        return 1
     bash = ("C:/Program Files/Git/bin/bash.exe" if os.name == "nt" else shutil.which("bash"))
     environment = os.environ.copy()
     environment.pop("MSYS_NO_PATHCONV", None)

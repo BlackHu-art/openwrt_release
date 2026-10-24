@@ -14,7 +14,7 @@ import tempfile
 import unittest
 
 from lupa.lua51 import LuaRuntime
-from test_ssrplus_v198 import prepare_source
+from test_ssrplus_v198 import prepare_source, stage_source
 
 ROOT = Path(__file__).resolve().parents[1]
 UPSTREAM = ROOT / "maintenance/plugins/ssrplus/upstream-v198.2/luci-app-ssr-plus"
@@ -29,8 +29,11 @@ class SSRUpdatePolicyTests(unittest.TestCase):
     def setUpClass(cls):
         cls.temporary = tempfile.TemporaryDirectory(prefix="ssr-update-policy-source-")
         cls.addClassCleanup(cls.temporary.cleanup)
-        cls.package = Path(cls.temporary.name)
-        shutil.copytree(UPSTREAM, cls.package, dirs_exist_ok=True)
+        cls.package = Path(cls.temporary.name) / "package"
+        if os.name == "nt":
+            shutil.copytree(UPSTREAM, cls.package)
+        else:
+            stage_source(cls.package)
         if not os.environ.get("SSR_V198_UPDATES_UNPATCHED"):
             result = prepare_source(cls.package)
             if result.returncode:

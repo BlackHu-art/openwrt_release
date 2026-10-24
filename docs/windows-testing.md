@@ -151,6 +151,14 @@ Windows 仍有依赖 Linux 能力的既有跳过项，包括 `/proc` 与真实 S
 
 本地回归覆盖固定测试输入、配置生成和受控运行逻辑；Xray 在这里用于配置解析。Windows 测试通过不能替代 Linux 网络命名空间 CI、固件交叉编译、成品校验或路由器实测。
 
+SSR 的翻译别名 `po/zh-cn -> zh_Hans` 在生产构建中必须是真实符号链接。
+Windows 的当前源码字节回归仅在测试辅助函数中模拟该别名的文件系统查询，
+不修改生产校验器，也不证明本机具备创建链接的权限。Linux 回归将实际调用
+`managed_plugins.py` 装载，再通过 Shell 执行 SSR 适配，检查链接保留、重复执行
+和错误链接拒绝。Linux 上链接创建失败会导致测试失败，不能跳过。
+`tests/prepare_ssrplus_candidate.py` 同样采用实际装载；若 Windows 权限不足，
+它会报告装载失败，不能将普通文本副本当作可构建的候选源码。
+
 OpenClash TUN capability regression also accepts explicitly downloaded old/new
 Mihomo cores. Use `tests/fetch_mihomo_test_cores.py --generation old --output <path>` (or `--generation new`) for SHA-256 pinned official 1.19.30/1.19.33 assets, then set
 `MIHOMO_OLD_TEST_BIN`, `MIHOMO_NEW_TEST_BIN` and `OPENCLASH_REQUIRE_MIHOMO=1`

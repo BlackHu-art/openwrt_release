@@ -7,6 +7,7 @@ Real Lua and shell execute with UCI/process/filesystem boundaries substituted.
 """
 import base64
 import copy
+from contextlib import contextmanager
 from functools import lru_cache
 import hashlib
 import gzip
@@ -31,9 +32,54 @@ UPSTREAM = ROOT / "maintenance/plugins/ssrplus/upstream-v198.2/luci-app-ssr-plus
 COMMIT = "45893d778767f3bdb2fcb6e873cf8f9a667d94d4"
 BASH = "C:/Program Files/Git/bin/bash.exe" if os.name == "nt" else shutil.which("bash")
 MANIFEST = "root/usr/share/shadowsocksr/ssrplus-build.json"
+TRANSLATION_LINK = "po/zh-cn"
+
+
+def load_module(name, relative):
+    spec = importlib.util.spec_from_file_location(name, ROOT / relative)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+def stage_source(package):
+    """Use the same link/mode materialization as the firmware feed loader."""
+    loader = load_module("ssr_test_managed", "wrt_core/managed_plugins.py")
+    loader.stage_package(ROOT / "wrt_core/managed", "luci-app-ssr-plus", package, package.parent)
+
+
+@contextmanager
+def windows_translation_link_boundary(package):
+    """Windows byte tests only: model the one recorded link, never other paths.
+
+    This does not prove OS symlink creation. The separate POSIX pipeline tests
+    must stage real links and execute the production shell entry point.
+    """
+    alias = package / TRANSLATION_LINK
+    is_symlink, readlink = Path.is_symlink, os.readlink
+    with mock.patch.object(Path, "is_symlink", lambda path: path == alias or is_symlink(path)), \
+            mock.patch.object(os, "readlink", lambda path, *args, **kwargs:
+                              alias.read_text(encoding="utf-8") if Path(path) == alias
+                              else readlink(path, *args, **kwargs)):
+        yield
+
+
+def source_snapshot(package):
+    return {p.relative_to(package).as_posix():
+            ("link", os.readlink(p)) if p.is_symlink() else
+            ("file", p.read_bytes(), stat.S_IMODE(p.stat().st_mode))
+            for p in package.rglob("*") if p.is_file() or p.is_symlink()}
 
 
 def prepare_source(package):
+    if os.name == "nt":
+        verifier = load_module("ssr_test_verifier", "wrt_core/ssrplus_verify.py")
+        try:
+            with windows_translation_link_boundary(package):
+                verifier.prepare_source(ROOT / "wrt_core", package)
+        except verifier.VerificationError as error:
+            return subprocess.CompletedProcess([], 1, "", str(error))
+        return subprocess.CompletedProcess([], 0, "", "")
     env = os.environ.copy()
     env.pop("MSYS_NO_PATHCONV", None)
     return subprocess.run([BASH, "--noprofile", "--norc", "-c",
@@ -56,7 +102,10 @@ def prepared_source():
     """Exercise the production preparer once and retain its resulting bytes."""
     with tempfile.TemporaryDirectory(prefix="ssr-v198-prepared-") as temporary:
         package = Path(temporary) / "package"
-        shutil.copytree(ROOT / "wrt_core/managed/packages/luci-app-ssr-plus", package)
+        if os.name == "nt":
+            shutil.copytree(ROOT / "wrt_core/managed/packages/luci-app-ssr-plus", package)
+        else:
+            stage_source(package)
         result = prepare_source(package)
         if result.returncode:
             raise AssertionError(result.stdout + result.stderr)
@@ -120,11 +169,13 @@ class SourceIntegration(unittest.TestCase):
         self.temporary = tempfile.TemporaryDirectory(prefix="ssr-v198-")
         self.addCleanup(self.temporary.cleanup)
         self.package = Path(self.temporary.name) / "package"
-        shutil.copytree(UPSTREAM, self.package)
+        if os.name == "nt":
+            shutil.copytree(UPSTREAM, self.package)
+        else:
+            stage_source(self.package)
 
     def snapshot(self):
-        return {p.relative_to(self.package).as_posix(): p.read_bytes()
-                for p in self.package.rglob("*") if p.is_file()}
+        return source_snapshot(self.package)
 
     def test_new_source_prepares_idempotently_preserving_upstream_runtime(self):
         result = prepare_source(self.package)
@@ -134,7 +185,8 @@ class SourceIntegration(unittest.TestCase):
         self.assertEqual(manifest["repair_version"], "198-r2")
         self.assertEqual(set(manifest["patches"]), {"ssrplus-v198-integration.patch", "ssrplus-v198-xray-transports.patch", "ssrplus-v198-update-policy.patch"})
         changed = {source.relative_to(UPSTREAM).as_posix() for source in UPSTREAM.rglob("*")
-                   if source.is_file() and (self.package / source.relative_to(UPSTREAM)).read_bytes() != source.read_bytes()}
+                   if source.is_file() and source.relative_to(UPSTREAM).as_posix() != TRANSLATION_LINK
+                   and (self.package / source.relative_to(UPSTREAM)).read_bytes() != source.read_bytes()}
         self.assertEqual(changed, {
             "Makefile", "root/usr/share/shadowsocksr/gen_config.lua",
             "root/usr/share/shadowsocksr/update_components.sh",
@@ -207,7 +259,11 @@ class SourceIntegration(unittest.TestCase):
             os.chmod(name, 0o444)
             return descriptor, name
         with mock.patch.object(verifier.tempfile, "mkstemp", side_effect=restricted):
-            verifier.prepare_source(ROOT / "wrt_core", self.package)
+            if os.name == "nt":
+                with windows_translation_link_boundary(self.package):
+                    verifier.prepare_source(ROOT / "wrt_core", self.package)
+            else:
+                verifier.prepare_source(ROOT / "wrt_core", self.package)
         self.assertEqual(stat.S_IMODE(recipe.stat().st_mode), previous_mode)
 
     def test_actual_prepared_payload_validates_in_ipk_and_apk_containers(self):
@@ -245,6 +301,122 @@ class SourceIntegration(unittest.TestCase):
                     self.assertEqual(result.returncode, int(damage), result.stdout + result.stderr)
                     if damage:
                         self.assertIn("ipv6.sh", result.stderr)
+
+
+class SourceLinkContract(unittest.TestCase):
+    def setUp(self):
+        self.temporary = tempfile.TemporaryDirectory(prefix="ssr-link-contract-")
+        self.addCleanup(self.temporary.cleanup)
+        self.package = Path(self.temporary.name) / "package"
+        shutil.copytree(ROOT / "wrt_core/managed/packages/luci-app-ssr-plus", self.package)
+        self.verifier = load_module("ssr_link_verifier", "wrt_core/ssrplus_verify.py")
+
+    def test_production_rejects_link_text_instead_of_a_real_translation_symlink(self):
+        before = source_snapshot(self.package)
+        with self.assertRaisesRegex(self.verifier.VerificationError, "symlink"):
+            self.verifier.prepare_source(ROOT / "wrt_core", self.package)
+        self.assertEqual(source_snapshot(self.package), before)
+
+    def test_recorded_link_boundary_accepts_the_exact_upstream_alias_idempotently(self):
+        # Deliberately controlled OS boundary, runnable without Windows privileges.
+        # This regression was red with the original blanket symlink rejection.
+        with windows_translation_link_boundary(self.package):
+            self.verifier.prepare_source(ROOT / "wrt_core", self.package)
+            before = source_snapshot(self.package)
+            self.verifier.prepare_source(ROOT / "wrt_core", self.package)
+            self.assertEqual(source_snapshot(self.package), before)
+        self.assertEqual((self.package / TRANSLATION_LINK).read_bytes(), b"zh_Hans")
+
+    def test_changed_link_targets_fail_without_partial_publication(self):
+        alias = self.package / TRANSLATION_LINK
+        for target in ("../po/zh_Hans", "../../outside", "missing", "/tmp/outside", "zh_Hans/ssr-plus.po"):
+            with self.subTest(target=target):
+                alias.write_text(target, encoding="utf-8")
+                before = source_snapshot(self.package)
+                with windows_translation_link_boundary(self.package):
+                    with self.assertRaises(self.verifier.VerificationError):
+                        self.verifier.prepare_source(ROOT / "wrt_core", self.package)
+                self.assertEqual(source_snapshot(self.package), before)
+
+    def test_missing_translation_target_fails_without_partial_publication(self):
+        shutil.rmtree(self.package / "po/zh_Hans")
+        before = source_snapshot(self.package)
+        with windows_translation_link_boundary(self.package):
+            with self.assertRaises(self.verifier.VerificationError):
+                self.verifier.prepare_source(ROOT / "wrt_core", self.package)
+        self.assertEqual(source_snapshot(self.package), before)
+
+
+@unittest.skipIf(os.name == "nt", "real managed symlink -> shell integration requires POSIX; Linux CI must run it")
+class ProductionFeedIntegration(unittest.TestCase):
+    def setUp(self):
+        self.temporary = tempfile.TemporaryDirectory(prefix="ssr-real-feed-")
+        self.addCleanup(self.temporary.cleanup)
+        self.package = Path(self.temporary.name) / "package"
+        stage_source(self.package)
+
+    def test_real_stage_then_shell_prepare_preserves_translation_link_and_is_repeatable(self):
+        alias = self.package / TRANSLATION_LINK
+        self.assertTrue(alias.is_symlink())
+        self.assertEqual(os.readlink(alias), "zh_Hans")
+        before = source_snapshot(self.package)
+        result = prepare_source(self.package)
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertTrue(alias.is_symlink())
+        self.assertEqual(os.readlink(alias), "zh_Hans")
+        self.assertEqual((alias / "ssr-plus.po").read_bytes(), (self.package / "po/zh_Hans/ssr-plus.po").read_bytes())
+        after = source_snapshot(self.package)
+        expected_changes = {"Makefile", "root/usr/share/shadowsocksr/gen_config.lua",
+            "root/usr/share/shadowsocksr/update_components.sh", "luasrc/controller/shadowsocksr.lua",
+            "luasrc/view/shadowsocksr/component.htm", "po/zh_Hans/ssr-plus.po"}
+        self.assertEqual({name for name in before if before[name][:2] != after[name][:2]}, expected_changes)
+        expected_modes = {"root/etc/hotplug.d/iface/99-ssrplus-pppoe",
+            *("root/usr/share/shadowsocksr/" + name for name in (
+                "clash_yaml.lua", "gen_anytls_server.lua", "gen_naive_server.lua",
+                "gen_snell_server.lua", "gen_ssr_server.lua", "gen_tuic_server.lua",
+                "update_components.sh"))}
+        self.assertEqual({name for name in before
+                          if before[name][0] == "file" and before[name][2] != after[name][2]}, expected_modes)
+        for name in expected_modes:
+            self.assertEqual((before[name][2], after[name][2]), (0o644, 0o755), name)
+        result = prepare_source(self.package)
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertEqual(source_snapshot(self.package), after)
+
+    def test_candidate_cli_uses_real_managed_materialization(self):
+        candidate = self.package.parent / "candidate"
+        result = subprocess.run([os.sys.executable, str(ROOT / "tests/prepare_ssrplus_candidate.py"),
+                                 "--output", str(candidate)], capture_output=True, text=True, timeout=60)
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertTrue((candidate / TRANSLATION_LINK).is_symlink())
+        self.assertEqual(os.readlink(candidate / TRANSLATION_LINK), "zh_Hans")
+        manifest = json.loads((candidate / MANIFEST).read_text())
+        self.assertEqual(manifest["source_commit"], COMMIT)
+
+    def test_bad_real_link_shapes_are_rejected_before_any_source_changes(self):
+        for mutation in ("text", "directory", "missing", "retarget", "outside", "dangling", "target_symlink", "extra"):
+            with self.subTest(mutation=mutation):
+                stage_source(self.package)
+                alias = self.package / TRANSLATION_LINK
+                if mutation == "extra":
+                    (self.package / "po/extra").symlink_to("zh_Hans", target_is_directory=True)
+                elif mutation == "target_symlink":
+                    target = self.package / "po/zh_Hans"
+                    target.rename(self.package / "po/real-translation")
+                    target.symlink_to("real-translation", target_is_directory=True)
+                else:
+                    alias.unlink()
+                    if mutation == "text":
+                        alias.write_bytes(b"zh_Hans")
+                    elif mutation == "directory":
+                        alias.mkdir()
+                    elif mutation != "missing":
+                        target = {"retarget": "templates", "outside": "../../outside", "dangling": "absent"}[mutation]
+                        alias.symlink_to(target, target_is_directory=True)
+                before = source_snapshot(self.package)
+                result = prepare_source(self.package)
+                self.assertNotEqual(result.returncode, 0, result.stdout + result.stderr)
+                self.assertEqual(source_snapshot(self.package), before)
 
 
 class UpstreamRuntime(unittest.TestCase):

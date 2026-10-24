@@ -22,6 +22,9 @@ import tempfile
 MANIFEST_TARGET = "/usr/share/shadowsocksr/ssrplus-build.json"
 PACKAGE_NAME = "luci-app-ssr-plus"
 SOURCE_COMMIT = "45893d778767f3bdb2fcb6e873cf8f9a667d94d4"
+# Upstream Git mode 120000 entries for this pinned revision. Managed storage
+# keeps link text; the production feed loader restores these directory links.
+SOURCE_LINKS = {"po/zh-cn": "zh_Hans"}
 
 
 class VerificationError(ValueError):
@@ -288,6 +291,26 @@ def create_manifest(arguments):
     Path(arguments.output).write_text(json.dumps(result, indent=2, sort_keys=True) + "\n", encoding="utf-8")
 
 
+def verify_source_link(package, relative, target, expected_blob):
+    """Accept only the recorded package-local translation directory alias."""
+    data = target.encode("utf-8")
+    blob = hashlib.sha1(b"blob " + str(len(data)).encode() + b"\0" + data).hexdigest()
+    if blob != expected_blob:
+        raise VerificationError("source symlink lock mismatch: " + relative)
+    path = package / relative
+    if not path.is_symlink():
+        raise VerificationError("source symlink missing or replaced: " + relative)
+    if os.readlink(path) != target:
+        raise VerificationError("source symlink target mismatch: " + relative)
+    destination = package
+    for part in target_parts("/" + (PurePosixPath(relative).parent / target).as_posix()):
+        destination = destination / part
+        if destination.is_symlink():
+            raise VerificationError("source symlink target uses another symlink: " + relative)
+    if not destination.is_dir() or not destination.resolve().is_relative_to(package):
+        raise VerificationError("source symlink target must be an existing package directory: " + relative)
+
+
 def prepare_source(core, package):
     """Apply only reviewed package integration, rejecting unknown upstream bytes.
 
@@ -309,6 +332,10 @@ def prepare_source(core, package):
         expected[relative] = (blob, mode)
     if not expected:
         raise VerificationError("empty upstream source lock")
+    for relative, target in SOURCE_LINKS.items():
+        if relative not in expected or expected[relative][1] != "-":
+            raise VerificationError("source symlink missing from upstream lock: " + relative)
+        verify_source_link(package, relative, target, expected[relative][0])
     marker = package / ".ssrplus-upstream-commit"
     if marker.exists() and marker.read_text().strip() != SOURCE_COMMIT:
         raise VerificationError("SSR source commit differs from the pinned fw876 revision")
@@ -317,6 +344,9 @@ def prepare_source(core, package):
     present = set()
     for path in package.rglob("*"):
         relative = path.relative_to(package).as_posix()
+        if relative in SOURCE_LINKS:
+            present.add(relative)
+            continue
         if path.is_symlink():
             raise VerificationError("source must not use symlinks: " + relative)
         if path.is_file():
@@ -345,6 +375,8 @@ def prepare_source(core, package):
         git("init", "-q")
         git("config", "core.autocrlf", "false")
         for relative in expected:
+            if relative in SOURCE_LINKS:
+                continue
             target = staged / relative
             target.parent.mkdir(parents=True, exist_ok=True)
             shutil.copyfile(root_file(package, "/" + relative), target)
@@ -352,6 +384,8 @@ def prepare_source(core, package):
             if git("apply", "--reverse", "--check", str(patch), check=False):
                 git("apply", "--reverse", str(patch))
         for relative, (blob, _mode) in expected.items():
+            if relative in SOURCE_LINKS:
+                continue
             data = (staged / relative).read_bytes()
             actual = hashlib.sha1(b"blob " + str(len(data)).encode() + b"\0" + data).hexdigest()
             if actual != blob:
@@ -371,6 +405,10 @@ def prepare_source(core, package):
             raise VerificationError("prepared source manifest drift")
         (staged / manifest_relative).write_text(json.dumps(manifest, indent=2, sort_keys=True) + "\n", encoding="utf-8")
         for relative in [*expected, manifest_relative]:
+            # Integration only changes canonical translation files. Never
+            # dereference, rewrite or replace the validated upstream alias.
+            if relative in SOURCE_LINKS:
+                continue
             source, destination = staged / relative, package / relative
             mode = expected[relative][1] if relative in expected else "0644"
             if not destination.exists() or source.read_bytes() != destination.read_bytes():

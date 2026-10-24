@@ -60,12 +60,17 @@ class BuildGate(unittest.TestCase):
 
     def source_fixture(self):
         package = self.base / "source/luci-app-ssr-plus"
-        shutil.copytree(runtime_cases.UPSTREAM, package)
+        if os.name == "nt":
+            shutil.copytree(runtime_cases.UPSTREAM, package)
+        else:
+            runtime_cases.stage_source(package)
         self.env.update(BASE_PATH=(ROOT / "wrt_core").as_posix(),
                         SSR_SOURCE_PACKAGE=package.as_posix())
         return package
 
     def prepare_source(self):
+        if os.name == "nt":
+            return runtime_cases.prepare_source(Path(self.env["SSR_SOURCE_PACKAGE"]))
         return self.shell('. "$BASE_PATH/modules/plugin_compat.sh" && '
                           'fix_ssrplus_compat "$SSR_SOURCE_PACKAGE"')
 
