@@ -31,7 +31,7 @@
 - [x] 运行 SmartDNS 定向回归，以及同一远端固定提交的真实获取验证。
 - [x] 更新下载兼容和维护文档中的构建来源说明。
 - [x] 运行 Windows 完整回归、文档链接检查、`git diff --check`，审查最终差异。
-- [ ] 按本会话既有交付要求提交推送，在 Linux 回归通过后触发京东云编译，核对启动状态。
+- [x] 按本会话既有交付要求提交推送，在 Linux 回归通过后触发京东云编译，核对启动状态。
 
 ## 执行证据
 
@@ -41,3 +41,5 @@
 - 独立差异审查未发现阻塞问题；未放松原配方或失败后不继续执行的断言。
 - Windows 完整回归于 2026-10-25 15:18–15:42（北京时间）完成，入口退出码 0；Python 用例 593 项，其中 566 项通过、27 项既有平台跳过，Shell 检查通过。Linux 必需下载与网络命名空间门禁由提交后的 CI 单独验证。
 - 维护文档入口 13 文件的本地链接检查、额外 5 个变更文档链接检查及 `git diff --check` 均通过。
+- 修复提交 [`acdf6b3`](https://github.com/BlackHu-art/openwrt_release/commit/acdf6b39dcaecb08c8e59265ede35332a69f126c) 已推送到 `master`。对应 [Linux 回归 40173794007](https://github.com/BlackHu-art/openwrt_release/actions/runs/40173794007) 成功：Python 用例 627 项，626 项通过、1 项 Windows 专用测试跳过；真实 SmartDNS 归档下载、错误哈希拒绝、fw876 DNS/IPv6 命名空间检查通过。
+- 已通过 API 触发 [京东云编译 40174060027](https://github.com/BlackHu-art/openwrt_release/actions/runs/40174060027)，核对构建提交为 `acdf6b3`、型号为 `jdcloud_ipq60xx_immwrt`，未添加或移除配置片段。记录时状态为运行中，不代表完整固件或真机验证成功。
