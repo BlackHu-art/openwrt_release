@@ -1,8 +1,12 @@
-Subject: SSR v198.2: emit mKCP masks accepted by Xray 26.10.21
+Subject: SSR v198.2: adapt mKCP masks and preserve inner-to-outer order
+
+Backport: fw876/helloworld@31b180df838e456bb36036bb8791f569af0fd661
+Keep the Xray 26.10.21 mkcp-legacy API adaptation; append seed/security
+before the optional outer header. The fixed managed source is unchanged.
 
 --- a/root/usr/share/shadowsocksr/gen_config.lua
 +++ b/root/usr/share/shadowsocksr/gen_config.lua
-@@ -722,19 +722,19 @@
+@@ -722,21 +722,21 @@
  				local PT = server.v2ray_protocol
  				local TP = server.transport
  				if TP == "kcp" then
@@ -11,6 +15,11 @@ Subject: SSR v198.2: emit mKCP masks accepted by Xray 26.10.21
 +					local map = {srtp = "srtp", utp = "utp", ["wechat-video"] = "wechat",
 +						dtls = "dtls", wireguard = "wireguard", dns = "dns"}
  					local udp = {}
++					local c = { type = "mkcp-legacy" }
++					if server.seed and server.seed ~= "" then
++						c.settings = { value = server.seed }
++					end
++					udp[#udp+1] = c
  					if server.kcp_guise and server.kcp_guise ~= "none" then
 -						local g = { type = map[server.kcp_guise] }
 +						local g = { type = "mkcp-legacy", settings = { header = map[server.kcp_guise] } }
@@ -21,10 +30,10 @@ Subject: SSR v198.2: emit mKCP masks accepted by Xray 26.10.21
  						udp[#udp+1] = g
  					end
 -					local c = { type = (server.seed and server.seed ~= "") and "mkcp-aes128gcm" or "mkcp-original" }
-+					local c = { type = "mkcp-legacy" }
- 					if server.seed and server.seed ~= "" then
+-					if server.seed and server.seed ~= "" then
 -						c.settings = { password = server.seed }
-+						c.settings = { value = server.seed }
- 					end
- 					udp[#udp+1] = c
+-					end
+-					udp[#udp+1] = c
  					finalmask.udp = udp
+ 				elseif PT == "hysteria2" then
+ 					local udp = {}

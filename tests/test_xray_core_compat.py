@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Exercise the real Xray recipe gate without downloads or firmware builds."""
 import os
+import json
 from pathlib import Path
 import shutil
 import subprocess
@@ -53,12 +54,17 @@ class XrayRecipeCompatibility(unittest.TestCase):
         self.assertIn(expected, result.stderr)
         self.assertEqual(self.snapshot(), before)
 
-    def test_reviewed_fw_recipe_and_all_private_protocol_patches_are_accepted_unchanged(self):
+    def test_reviewed_fw_recipe_is_derived_without_changing_private_protocol_patches(self):
         before = self.snapshot()
         result = self.apply()
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
         self.assertEqual(len(list((self.package / "patches").glob("*.patch"))), 10)
-        self.assertEqual(self.snapshot(), before)
+        after = self.snapshot()
+        recipe_path = self.recipe.relative_to(self.build).as_posix()
+        self.assertNotEqual(after.pop(recipe_path), before.pop(recipe_path))
+        self.assertEqual(after, before)
+        self.assertIn(b"PKG_RELEASE:=3\n", self.recipe.read_bytes())
+        self.assertIn(b"PKG_RELEASE:=2\n", (FIXTURE / "Makefile").read_bytes())
 
     def test_every_private_protocol_patch_is_required_and_verified(self):
         for patch in sorted((self.package / "patches").glob("*.patch")):
@@ -145,8 +151,189 @@ class XrayRecipeCompatibility(unittest.TestCase):
         base = self.build / "compat"
         (base / "modules").mkdir(parents=True)
         shutil.copyfile(MODULE, base / "modules/xray_core_compat.sh")
+        for helper in ("xray_core_compat.py", "managed_plugins.py"):
+            shutil.copyfile(ROOT / "wrt_core" / helper, base / helper)
         self.env["BASE_PATH"] = base.as_posix()
         self.assert_rejected_without_changes("Xray")
+
+    def test_managed_original_and_capture_cannot_be_prepared_in_place(self):
+        for original in (ROOT / "wrt_core/managed/packages/xray-core", FIXTURE):
+            with self.subTest(original=original):
+                before = {p.relative_to(original): p.read_bytes()
+                          for p in original.rglob("*") if p.is_file()}
+                self.env["XRAY_PACKAGE"] = original.as_posix()
+                result = self.apply()
+                self.assertNotEqual(result.returncode, 0, result.stdout + result.stderr)
+                self.assertEqual(before, {p.relative_to(original): p.read_bytes()
+                                         for p in original.rglob("*") if p.is_file()})
+
+    def test_raw_source_and_lock_drift_are_rejected_before_build_copy_is_changed(self):
+        base = self.build / "compat"
+        (base / "modules").mkdir(parents=True)
+        for helper in ("xray_core_compat.py", "managed_plugins.py"):
+            shutil.copyfile(ROOT / "wrt_core" / helper, base / helper)
+        shutil.copyfile(MODULE, base / "modules/xray_core_compat.sh")
+        shutil.copytree(ROOT / "wrt_core/managed/packages/xray-core", base / "managed/packages/xray-core")
+        source_lock = base / "managed/sources.lock.json"
+        shutil.copyfile(ROOT / "wrt_core/managed/sources.lock.json", source_lock)
+        self.env["BASE_PATH"] = base.as_posix()
+        patch = next((base / "managed/packages/xray-core/patches").glob("*.patch"))
+        content = patch.read_bytes()
+        patch.write_bytes(content + b"\n# unreviewed\n")
+        self.assert_rejected_without_changes(patch.name)
+        patch.write_bytes(content)
+        lock = json.loads(source_lock.read_text(encoding="utf-8"))
+        lock["packages"]["xray-core"]["commit"] = "0" * 40
+        source_lock.write_text(json.dumps(lock), encoding="utf-8")
+        self.assert_rejected_without_changes("source lock")
+
+    def test_partial_backport_and_prepared_recipe_drift_are_rejected(self):
+        original = self.recipe.read_bytes()
+        self.recipe.write_bytes(original.replace(b"PKG_RELEASE:=2", b"PKG_RELEASE:=3"))
+        self.assert_rejected_without_changes("Makefile")
+        self.recipe.write_bytes(original)
+        result = self.apply()
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        prepared = self.recipe.read_bytes()
+        for changed in (prepared.replace(b"PKG_RELEASE:=3", b"PKG_RELEASE:=2"),
+                        prepared + b"\n# unreviewed dependency\n"):
+            with self.subTest(recipe=changed[-80:]):
+                self.recipe.write_bytes(changed)
+                self.assert_rejected_without_changes("Makefile")
+
+    def test_prepared_package_still_checks_all_files_and_patches(self):
+        result = self.apply()
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        for path in sorted(p for p in self.package.rglob("*") if p.is_file() and p != self.recipe):
+            content = path.read_bytes()
+            path.write_bytes(content + b"\n# unreviewed\n")
+            self.assert_rejected_without_changes(path.name)
+            path.write_bytes(content)
+        extra = self.package / "patches/999-unreviewed.patch"
+        extra.write_bytes(b"unreviewed")
+        self.assert_rejected_without_changes(extra.name)
+
+
+class XrayPackingRecipeCompatibility(unittest.TestCase):
+    """Run the production Make macros; only compilation and UPX are stand-ins."""
+
+    apply = XrayRecipeCompatibility.apply
+
+    def setUp(self):
+        XrayRecipeCompatibility.setUp(self)
+        self.make = os.environ.get("MAKE") or shutil.which("make")
+        self.assertTrue(self.make, "GNU Make is required; use the repository test environment")
+        (self.build / "rules.mk").write_bytes(b"")
+        (self.build / "include").mkdir()
+        (self.build / "include/package.mk").write_bytes(b"")
+        (self.go_recipe.parent.parent / "golang-package.mk").write_text('''define GoPackage/Build/Compile
+	$(INSTALL_DIR) $(GO_PKG_BUILD_BIN_DIR)
+	cp source.bin $(GO_PKG_BUILD_BIN_DIR)/main
+endef
+define Build/Compile
+	$(call GoPackage/Build/Compile)
+endef
+define GoPackage/Package/Install/Bin
+	$(INSTALL_DIR) $(1)/usr/bin
+	cp $(GO_PKG_BUILD_BIN_DIR)/main $(1)/usr/bin/main
+endef
+''', encoding="utf-8")
+        (self.build / "host/bin").mkdir(parents=True)
+        upx = self.build / "host/bin/upx"
+        upx.write_text('''#!/bin/sh
+set -eu
+[ "$1" = --lzma ] && [ "$2" = --best ] && [ "$#" = 3 ]
+printf '%s\\n' "$3" >> upx.calls
+if [ -f fail-upx ]; then
+    printf 'partial' > "$3"
+    exit 23
+fi
+printf ':packed' >> "$3"
+''', encoding="utf-8")
+        upx.chmod(0o755)
+        (self.build / "source.bin").write_bytes(b"compiled-generation-one")
+        (self.build / "harness.mk").write_text('''TOPDIR := .
+INCLUDE_DIR := include
+BUILD_DIR := build
+STAGING_DIR_HOST := host
+INSTALL_DIR := mkdir -p
+INSTALL_BIN := cp
+GO_PKG_BUILD_BIN_DIR = $(PKG_BUILD_DIR)/go/bin
+PKG_INSTALL_DIR = $(PKG_BUILD_DIR)/ipkg-install
+include feeds/custom_feed/xray-core/Makefile
+.PHONY: pack-one pack-two
+$(PKG_BUILD_DIR)/.built: source.bin
+	$(call Build/Compile)
+	$(call Build/Install)
+	touch $@
+pack-one: $(PKG_BUILD_DIR)/.built
+	$(call Package/xray-core/install,device-one)
+pack-two: $(PKG_BUILD_DIR)/.built
+	$(call Package/xray-core/install,device-two)
+''', encoding="utf-8")
+
+    def make_packages(self, *targets):
+        return subprocess.run([self.make, "--no-print-directory", "-f", "harness.mk", *targets],
+                              cwd=self.build, env=self.env, capture_output=True, text=True,
+                              encoding="utf-8", errors="replace", timeout=30)
+
+    def assert_make_succeeds(self, *targets):
+        result = self.make_packages(*targets)
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+
+    def upx_calls(self):
+        path = self.build / "upx.calls"
+        return path.read_text(encoding="utf-8").splitlines() if path.exists() else []
+
+    def prepare(self):
+        result = self.apply()
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+
+    def test_original_recipe_recompresses_for_each_device_and_forced_repackage(self):
+        self.assert_make_succeeds("pack-one", "pack-two")
+        self.assert_make_succeeds("pack-one")
+        self.assertEqual(len(self.upx_calls()), 3)
+
+    def test_two_devices_and_forced_repackage_share_one_packed_build(self):
+        self.prepare()
+        self.assert_make_succeeds("pack-one", "pack-two")
+        self.assert_make_succeeds("pack-one")
+        self.assertEqual(len(self.upx_calls()), 1)
+        binary = self.build / "build/Xray-core-26.10.21/go/bin/main"
+        self.assertEqual(binary.read_bytes(), b"compiled-generation-one")
+        for device in ("device-one", "device-two"):
+            self.assertEqual((self.build / device / "usr/bin/xray").read_bytes(),
+                             b"compiled-generation-one:packed")
+
+    def test_rebuild_replaces_packed_copy_and_compresses_the_new_binary_once(self):
+        self.prepare()
+        self.assert_make_succeeds("pack-one", "pack-two")
+        (self.build / "source.bin").write_bytes(b"compiled-generation-two")
+        (self.build / "build/Xray-core-26.10.21/.built").unlink()
+        self.assert_make_succeeds("pack-one", "pack-two")
+        self.assertEqual(len(self.upx_calls()), 2)
+        self.assertEqual((self.build / "build/Xray-core-26.10.21/go/bin/main").read_bytes(),
+                         b"compiled-generation-two")
+        for device in ("device-one", "device-two"):
+            self.assertEqual((self.build / device / "usr/bin/xray").read_bytes(),
+                             b"compiled-generation-two:packed")
+
+    def test_upx_failure_aborts_build_and_retry_does_not_publish_partial_binary(self):
+        self.prepare()
+        (self.build / "fail-upx").touch()
+        result = self.make_packages("pack-one", "pack-two")
+        self.assertNotEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertIn("Error 23", result.stdout + result.stderr)
+        self.assertFalse((self.build / "build/Xray-core-26.10.21/.built").exists())
+        self.assertFalse((self.build / "device-one/usr/bin/xray").exists())
+        self.assertFalse((self.build / "device-two/usr/bin/xray").exists())
+        self.assertEqual((self.build / "build/Xray-core-26.10.21/go/bin/main").read_bytes(),
+                         b"compiled-generation-one")
+        (self.build / "fail-upx").unlink()
+        self.assert_make_succeeds("pack-one", "pack-two")
+        self.assertEqual(len(self.upx_calls()), 2)
+        self.assertEqual((self.build / "device-one/usr/bin/xray").read_bytes(),
+                         b"compiled-generation-one:packed")
 
 
 class GoToolchainSourceUpdate(unittest.TestCase):

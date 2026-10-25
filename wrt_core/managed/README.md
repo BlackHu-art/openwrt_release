@@ -75,7 +75,11 @@ SSR 和实际选择的共享核心统一使用 `fw876/helloworld@v198.2`，固�
 
 Xray 保存完整 `26.10.21-r2` recipe、EIP93 说明及十份补丁。
 [`fix_xray_core_compat`](../modules/xray_core_compat.sh) 对整个包做精确校验，
-随后检查 Go >=1.27.3；每次准备都会重新检查。Passwall1 与 Passwall2 的源码及构建集成均已移除。
+并检查 Go >=1.27.3；每次准备都会重新检查。构建副本通过
+[`xray_core_compat.py`](../xray_core_compat.py) 移植上游 UPX 产物复用，派生为
+`26.10.21-r3`，仅接受完整原始输入或完整预期派生结果。此目录的原始 r2 输入和
+来源锁不改变，详见 [移植记录](../../docs/fw876-upstream-backports.md)。
+Passwall1 与 Passwall2 的源码及构建集成均已移除。
 原官方 Xray 升级补丁不再用于生产。fw876 Xray 需要 `golang/host` 和 `upx/host`，
 UPX 只作为编译依赖引入；shadowsocks-rust 依赖标准 `rust/host`。
 Xray recipe 内启用 Naive outbound 时另按原配方下载固定哈希的 Cronet Clang，

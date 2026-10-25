@@ -65,11 +65,18 @@ stage_pre_install_source_fixes
         result = self.prepare()
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
         self.assertIn("PKG_VERSION:=26.10.21\n", recipe.read_text(encoding="utf-8"))
+        self.assertIn("PKG_RELEASE:=3\n", recipe.read_text(encoding="utf-8"))
+        prepared = {p.relative_to(self.feed): p.read_bytes()
+                    for p in self.feed.rglob("*") if p.is_file()}
+        recipe_relative = recipe.relative_to(self.feed)
+        self.assertNotEqual(before[recipe_relative], prepared[recipe_relative])
+        self.assertEqual({p: data for p, data in before.items() if p != recipe_relative},
+                         {p: data for p, data in prepared.items() if p != recipe_relative})
         self.assertEqual(self.go_recipe.read_bytes(), self.refreshed_go.read_bytes())
         self.assertTrue((self.build / "passed-core-gate").exists())
         repeat = self.prepare()
         self.assertEqual(repeat.returncode, 0, repeat.stdout + repeat.stderr)
-        self.assertEqual(before, {p.relative_to(self.feed): p.read_bytes()
+        self.assertEqual(prepared, {p.relative_to(self.feed): p.read_bytes()
                                  for p in self.feed.rglob("*") if p.is_file()})
         self.assertFalse((self.build / ".config").exists())
 

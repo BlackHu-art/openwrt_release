@@ -2,6 +2,8 @@
 
 Windows 测试入口为 [`tests/windows-tests.ps1`](../tests/windows-tests.ps1)，实际环境管理由 [`tests/windows_test_env.py`](../tests/windows_test_env.py) 完成。它在仓库外安装专用依赖，再执行现有 [`tests/run_all.sh`](../tests/run_all.sh)，适合本地检查构建契约、补丁、插件配置和运行逻辑。
 
+新电脑获取仓库与交接清单见 [维护快速开始](maintenance/quickstart.md)，其他维护入口见 [文档索引](README.md)。
+
 ## 环境要求
 
 - Windows x64，已安装 **Python 3.11 或更高版本的 x64 解释器**，可创建 `venv` 并使用 pip。
@@ -128,7 +130,7 @@ SmartDNS 的真实 Make 下载规则展开和适配失败传播，以及 Qt5/squ
 
 Windows 将完整生成 JSON 经 Xray 官方 `stdin:` 输入交给真实核心解析，避免本机原生进程与 Python 读取临时文件内容不一致；Linux CI 继续通过文件加载。两种入口都检查通用协议矩阵，并确认无效协议被核心明确拒绝。这不验证 Windows 临时文件加载，也不改变固件中的配置生成或加载流程。
 
-固件使用 `fw876/helloworld@v198.2` 的定制 Xray `26.10.21-r2`。官方 Windows 核心不支持它新增的全部协议，因此 Windows 通用配置解析通过不能证明 fw 私有协议兼容。[`tests/test_fw876_xray_compat.py`](../tests/test_fw876_xray_compat.py) 另有 6 份私有协议/传输配置（AnyTLS、ShadowsocksR、TUIC、Snell、Naive、ShadowTLS），Linux CI 使用校验过的 fw 实际二进制解析通用矩阵与这 6 份配置，并要求错误协议失败。
+原始配方与 Linux 测试产物使用 `fw876/helloworld@v198.2` 的定制 Xray `26.10.21-r2`；生产构建副本的派生修订见 [fw876 集成说明](fw876-core-migration.md)。官方 Windows 核心不支持它新增的全部协议，因此 Windows 通用配置解析通过不能证明 fw 私有协议兼容。[`tests/test_fw876_xray_compat.py`](../tests/test_fw876_xray_compat.py) 另有 6 份私有协议/传输配置（AnyTLS、ShadowsocksR、TUIC、Snell、Naive、ShadowTLS），Linux CI 使用校验过的 fw 实际二进制解析通用矩阵与这 6 份配置，并要求错误协议失败。
 
 Linux CI 显式执行以下准备，再运行完整回归；`REQUIRE_FW876_XRAY_TEST_CORE=1` 防止漏装定制核心后跳过检查：
 
@@ -159,7 +161,9 @@ sudo unshare -n bash tests/test_ssrplus_v198_linux.sh
 
 Windows 仍有依赖 Linux 能力的既有跳过项，包括 `/proc` 与真实 SIGKILL 场景、已安装的 dnsmasq、`luac`、BusyBox，以及 POSIX 安装权限。实际跳过项以本次日志为准，测试新增后入口数和用例总数可能变化。必需的 PyYAML、Lupa、flock、Xray、Ruby 3.4+ 或 Node.js 缺失时，环境检查应失败，不能把新增跳过当作通过。
 
-本地回归覆盖固定测试输入、配置生成和受控运行逻辑；Xray 在这里用于配置解析。Windows 测试通过不能替代 Linux 网络命名空间 CI、固件交叉编译、成品校验或路由器实测。
+本地回归覆盖固定测试输入、配置生成和受控运行逻辑；官方 Xray 用于通用配置解析，
+另通过回环客户端/服务端检查当前 v198 KCP 的实际数据传输及逆序失败对照。
+Windows 测试通过不能替代 Linux fw876 私有核心、网络命名空间 CI、固件交叉编译、成品校验或路由器实测。
 
 SSR 的翻译别名 `po/zh-cn -> zh_Hans` 在生产构建中必须是真实符号链接。
 Windows 的当前源码字节回归仅在测试辅助函数中模拟该别名的文件系统查询，

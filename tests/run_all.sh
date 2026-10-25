@@ -4,6 +4,7 @@ set -euo pipefail
 repo_root=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
 cd "$repo_root"
 
+python tests/check_doc_links.py
 python tests/verify_upstream_sync.py
 python wrt_core/managed_plugins.py check
 python tests/test_managed_plugins.py
@@ -54,6 +55,8 @@ python tests/test_ssrplus_persistence.py
 python tests/test_ssrplus_persistence_lifecycle.py
 python tests/test_ssrplus_subscription.py
 python tests/test_ssrplus_core_config.py
+# Contains current v198 KCP generation/loopback coverage and explicitly labelled
+# historical 190-r12 cases for the remaining transports.
 python tests/test_ssrplus_core_transports.py
 python tests/test_ssrplus_monitor_scheduler.py
 python tests/test_ssrplus_availability.py

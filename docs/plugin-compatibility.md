@@ -1,7 +1,7 @@
 # 插件兼容修复与编译入口
 
 SSR 与已选共享核心固定到 `fw876/helloworld@v198.2`；Passwall1 与 Passwall2 均已移除。
-共享 Xray 使用 fw876 `26.10.21-r2` 完整配方及十份补丁，要求 Go >=1.27.3；
+共享 Xray 原始输入为 fw876 `26.10.21-r2` 完整配方及十份补丁，构建副本移植 UPX 复用后派生为 r3，要求 Go >=1.27.3；
 sing-box 保持 `1.14.3`，其他插件选择不变。旧 SSR 启动/DNS 修复仅用于历史回归。
 项目标准 `build.sh` / GitHub Actions 在源码准备阶段应用当前集成调整，
 完整范围见 [fw876 集成说明](fw876-core-migration.md)。
@@ -40,10 +40,12 @@ Passwall1 和 Passwall2 的插件源码、维护清单、独立许可证、下�
 编译选择均已移除。上游主题中无运行代码的兼容样式随主题保留，不会安装这些插件。
 本轮不再导入、修复或适配官方 Passwall2。
 
-Xray 继续使用受管的 fw876 `26.10.21-r2` 完整配方及十份补丁，来源和测试核心身份见
+Xray 继续保存受管的 fw876 `26.10.21-r2` 完整原始配方及十份补丁，来源和测试核心身份见
 [核心记录](../wrt_core/compat/proxy-cores/xray-26.10.21.json)。
-`fix_xray_core_compat` 每次核对整个 recipe 子树及十份补丁，随后检查 Go 的
-major/minor/patch；缺失文件、额外补丁、未知声明或旧 Go 均拒绝。
+`fix_xray_core_compat` 每次检查 Go 的 major/minor/patch，完整校验原始或预期派生 recipe
+子树及十份补丁，再在构建副本移植上游 UPX 复用；派生版本为 `26.10.21-r3`。
+缺失文件、额外补丁、未知声明或旧 Go 均拒绝，重复准备不重写配方。
+来源及取舍见 [fw876 修复移植记录](fw876-upstream-backports.md)。
 `update_golang` 继续先验证 `27.x` 的 Go >=1.27.3，再替换旧源；失败保留旧源并停止准备。
 
 运行时 Xray 通过 SSR「组件更新」从 fw876 更新，并保留完整包修订号；
@@ -206,7 +208,7 @@ feeds install 后，`wrt_core/modules/service_fixes.sh` 的 `update_adguardhome`
 
 `tests/run_all.sh` 包含保留插件的专项回归及现有完整回归；Passwall2 专项回归已随其集成移除。
 Xray 配方回归覆盖源码与补丁哈希、版本及 Go 门槛、重复执行和失败时不写入原配方；
-源码准备阶段回归另外验证实际接入顺序。
+源码准备阶段回归另外验证实际接入顺序；GNU Make 回归验证跨设备打包/重打包复用压缩产物、重建重新压缩与 UPX 失败传播。
 OpenClash 回归执行真实 Ruby AST/覆写入口、模板 JavaScript 和 Lua 文件入口；
 ADG 回归覆盖无需更新时不触碰核心、实际下载及 force 控制、四种完整补丁状态、重复执行与漂移拒绝。
 `.github/workflows/test_ssrplus.yml` 在 Linux 上执行该入口，并在隔离网络
@@ -221,6 +223,8 @@ CI 配置 Ruby `3.4`、Node.js `22`，并强制要求 Ruby 3.4 AST、Node.js、�
 Linux CI 设置 `FW876_XRAY_TEST_BINARY` 与 `REQUIRE_FW876_XRAY_TEST_CORE=1`，
 私有协议检查缺少正确核心时失败。Windows 的官方核心通过不能替代该项。
 这些配置解析检查不启动代理监听，不能证明真实 TLS 握手或数据转发成功。
+另外，当前 v198 KCP transport 回归启动回环地址上的 Xray 客户端、服务端和回显端点，
+验证伪装 header 与 security/seed 的正确层序，并保留逆序失败对照；该互通结果不外推到真实路由器或所有协议。
 Windows 使用官方 `stdin:` 加载完整生成 JSON，Linux 继续验证文件加载；两者均包含非法协议拒绝对照，
 不将本机临时文件访问问题误判为生成器或核心兼容问题。
 

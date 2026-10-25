@@ -52,6 +52,7 @@ class ValidationGates(unittest.TestCase):
             'maintenance/plugins/manifests/**', 'wrt_core/patches/homeproxy-*.patch',
             'wrt_core/managed/**', 'wrt_core/managed_plugins.py',
             'wrt_core/simple_obfs_compat.py', 'wrt_core/download_compat.py',
+            'wrt_core/xray_core_compat.py',
             'wrt_core/smartdns_compat.py', 'wrt_core/kconfig_compat.py',
             'maintenance/plugins/smartdns/**',
             'wrt_core/quickfile_verify.py', 'wrt_core/check_selected_plugins.py', 'wrt_core/deconfig/**', 'wrt_core/oaf_compat.py', 'wrt_core/theme_compat.py',

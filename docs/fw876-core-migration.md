@@ -36,6 +36,11 @@ Git blob、mode、SHA-256、来源与许可证记录。以下 15 个顶层配方
 | ipt2socks | 1.1.4-r1 | SSR 透明代理配套组件 |
 | upx | 5.2.1-r1 | Xray 的 host 编译依赖，不因此选择目标机 UPX 包 |
 
+上述表格与来源锁记录原始输入。2026-10-25 起，构建副本另移植 fw876 的
+KCP 层序修复和 Xray UPX 复用补丁；Xray 生产配方派生为 `26.10.21-r3`。
+原始 r2 配方、测试产物、核心版本、十份协议补丁和选择配置保持不变。
+具体上游提交、采用/暂缓原因与验证入口见 [必要修复移植记录](fw876-upstream-backports.md)。
+
 SSR 从项目旧 `190-r12` 切换到 fw876 `198-r2`。Xray 由旧的官方基础配方
 加版本升级补丁，切换为 fw876 `26.10.21-r2` 完整配方及十份定制补丁；
 两者即使显示相同核心版本号，也不能视为同一产物。其余表列版本是此次固定输入，
@@ -67,6 +72,8 @@ SSR 主程序的内置在线自升级禁用，防止直接安装上游原包后�
 
 生产准备只应用 [当前补丁清单](../wrt_core/compat/ssrplus/patches.list)
 所列的 v198 集成调整，包括所需依赖、安装权限、当前 Xray 配置及更新入口适配。
+KCP 层序修复合并在该清单已有的 transport 补丁中；Xray 配方打包修复由独立
+[`xray_core_compat.py`](../wrt_core/xray_core_compat.py) 在构建副本准备阶段处理。
 保留新来源检查、准备幂等、IPK/APK、公共 rootfs 与按设备 rootfs 校验；
 未知来源、缺失清单、内容或权限不一致都会中止对应检查。
 
@@ -119,12 +126,12 @@ fw876 测试包为 `xray-core_26.10.21-r2_x86_64.ipk`，归档 SHA-256 为
 下载器校验归档、Package/Version/Architecture 字段及 ELF 哈希，来源证据见
 [核心凭据](../wrt_core/compat/proxy-cores/xray-26.10.21.json)。
 
-Windows 已有的官方 Xray 测试核只做通用配置交叉检查，不能证明 fw876 私有协议可用。
+Windows 已有的官方 Xray 测试核做通用配置交叉检查和 KCP 回环互通，不能证明 fw876 私有协议可用。
 Linux 定制核心由 `FW876_XRAY_TEST_BINARY` 指定，CI 设置
 `REQUIRE_FW876_XRAY_TEST_CORE=1`，缺少或身份不符时失败。
 Windows 上下载并核对 Linux ELF 不等于执行该 ELF；POSIX 权限、符号链接和真实
 nft/dnsmasq 行为也应以 Linux 执行结果为准。
 
 完整固件交叉编译、最终发布产物、保留配置升级及路由器上的 DNS/IPv6/UDP、
-握手和数据转发仍需独立验证。本次迁移未操作路由器；用户已授权在验证通过后提交推送，
-并通过原有发布工作流触发 `jdcloud_ipq60xx_immwrt` 编译。
+握手和数据转发仍需独立验证。迁移及后续补丁记录不代表已操作路由器或已发布固件；
+编译/发布应按当次任务范围执行，并记录对应 ref、设备、运行 ID 与最终结果。

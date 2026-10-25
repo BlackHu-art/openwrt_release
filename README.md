@@ -2,6 +2,9 @@
 
 本仓库用于按设备配置自动拉取 OpenWrt / ImmortalWrt / LiBwrt 源码、应用自定义补丁与软件包配置，并输出固件到 `firmware/` 目录。
 
+维护与新电脑接手请先读 [文档索引](docs/README.md) 和 [维护快速开始](docs/maintenance/quickstart.md)。
+当前事实、来源锁、验证边界与历史诊断在索引中分别标明；其他 AI 接手也使用这些仓库内入口。
+
 ![截图](./tu.png)
 
 ## 1. 环境准备
@@ -22,8 +25,8 @@ sudo bash -c 'bash <(curl -sL https://build-scripts.immortalwrt.org/init_build_e
 ## 3. 获取源码
 
 ```bash
-git clone https://github.com/ZqinKing/wrt_release.git
-cd wrt_release
+git clone https://github.com/BlackHu-art/openwrt_release.git
+cd openwrt_release
 ```
 
 ## 4. 编译用法
@@ -73,6 +76,7 @@ Windows 使用独立依赖目录运行同一套回归，首次执行 `install`�
 
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File .\tests\windows-tests.ps1 -Action install
+powershell -NoProfile -ExecutionPolicy Bypass -File .\tests\windows-tests.ps1 -Action check
 powershell -NoProfile -ExecutionPolicy Bypass -File .\tests\windows-tests.ps1 -Action run
 ```
 
@@ -178,7 +182,9 @@ HomeProxy 从本地锁定的官方源码复制到构建目录后、最终 feeds 
 补丁保存在 `wrt_core/patches/homeproxy-*.patch`。构建时从两个兼容补丁版本中选择一个，再预检 ACL 和特性缓存补丁，全部通过后才修改源码；已应用的补丁逐份跳过。遇到无法匹配的上游源码变化会停止构建，需检查并更新补丁，避免静默编出有兼容问题的 HomeProxy。
 
 SSR 与已选配套核心统一固定到 `fw876/helloworld@v198.2`：SSR 为 `198-r2`，
-共享 Xray 使用 `26.10.21-r2` 完整 fw 配方及十份补丁，Go 工具链最低 `1.27.3`。
+共享 Xray 原始输入为 `26.10.21-r2` 完整 fw 配方及十份补丁；生产构建副本应用
+UPX 复用补丁后为 `26.10.21-r3`，Go 工具链最低 `1.27.3`。来源与取舍见
+[本轮上游修复记录](docs/fw876-upstream-backports.md)。
 运行时共享 Xray 通过 SSR「组件更新」管理；SSR 主程序的在线自升级禁用，
 以保留本项目适配。旧启动/DNS 修复仅留历史测试，当前集成及验证边界见
 [fw876 迁移说明](docs/fw876-core-migration.md)。sing-box 固定为 `1.14.3`，其他插件选择不变。

@@ -49,7 +49,7 @@
 
 | 维护对象 | 当前生效逻辑 | 已有测试基线 |
 | --- | --- | --- |
-| SmartDNS | [update_smartdns](../../wrt_core/modules/package_source_updates.sh)、[优化补丁](../../wrt_core/patches/100-smartdns-optimize.patch) | 尚无独立 SmartDNS fixture；本快照不是已完成的兼容验证 |
+| SmartDNS | [update_smartdns](../../wrt_core/modules/package_source_updates.sh)、[优化补丁](../../wrt_core/patches/100-smartdns-optimize.patch)，以及构建副本的 WebUI 提交字段/按需下载适配 | [SmartDNS 下载 fixture](../../tests/fixtures/smartdns-download/README.md) 与真实 Make/下载回归；本快照本身不是已完成的兼容验证，执行边界见 [下载兼容说明](../../docs/source-download-compat.md) |
 | OpenClash | [fix_openclash_compat](../../wrt_core/modules/plugin_compat.sh) 应用六份补丁：原有 WAN 子网、checksum，以及 Ruby AST、dashboard 状态、文件名/目录校验，以及 TUN 栈兼容保护 | [plugin-runtime](../../tests/fixtures/plugin-runtime/README.md) 的下载函数与 [0.48.002 完整文件](../../tests/fixtures/openclash/0.48.002/README.md)；真实 Ruby、JavaScript、Lua 入口回归 |
 | AdGuard Home | [update_adguardhome](../../wrt_core/modules/service_fixes.sh) 获取源码后调用 `fix_adguardhome_compat`，应用稳定更新安全与无需更新时不执行 UPX 两份补丁；[三文件 blob 基线](../../wrt_core/compat/adguardhome/source-files.tsv) 在写入前校验 | [plugin-runtime](../../tests/fixtures/plugin-runtime/README.md) 的固定更新器、下载配置及 Lua 控制器；补丁组合、重复执行与源码漂移回归 |
 

@@ -1,17 +1,22 @@
 #!/usr/bin/env python3
-# Historical 190-r12 regression only; production v198.2 coverage is test_ssrplus_v198.py.
+# Historical regressions plus the current v198.2 mKCP layer and loopback gate.
 """Run subscribed/selected SSR transports through the actual official Xray.
 
-Only UCI and host OS boundaries are adapted. Never contact a router or start
-listeners. Reuse the complete subscription, final generator and core loader.
+Only UCI and host OS boundaries are adapted. Never contact a router. The current
+mKCP interoperability gate starts isolated listeners on loopback only.
 """
 import base64
 import copy
+from contextlib import contextmanager
 import json
 import os
 from pathlib import Path
+import socket
+import socketserver
 import subprocess
 import tempfile
+import threading
+import time
 from types import SimpleNamespace
 import unittest
 from unittest import mock
@@ -23,6 +28,7 @@ import test_ssrplus_firstboot as firstboot
 
 ROOT = core.ROOT
 BINARY = os.environ.get("XRAY_TEST_BINARY")
+KCP_BINARIES = tuple(binary for binary in (BINARY, os.environ.get("FW876_XRAY_TEST_BINARY")) if binary)
 
 
 def stale_transport_node(protocol, transport):
@@ -93,24 +99,6 @@ class CoreTransportRegressions(unittest.TestCase):
                     with self.assertRaisesRegex(Exception, "unsupported.*transport"):
                         core.generate_core_config(node)
                     self.assertEqual(node, before)
-
-    def test_kcp_all_headers_and_seed_reach_supported_finalmask_api(self):
-        for header in ("none", "dns", "srtp", "utp", "wechat-video", "dtls", "wireguard"):
-            for seed in ("", "MiXeD%2B%252F"):
-                with self.subTest(header=header, seed=seed):
-                    node = next(iter(self.subscribe([core.link("vless", "type=kcp&security=none&headerType=" +
-                        header + "&host=Dns.Example&seed=" + seed)]).values()))
-                    config = core.generate_core_config(node)
-                    masks = config["outbounds"][0]["streamSettings"]["finalmask"]["udp"]
-                    expected = []
-                    if header != "none":
-                        settings = {"header": "wechat" if header == "wechat-video" else header}
-                        if header == "dns":
-                            settings["value"] = "Dns.Example"
-                        expected.append({"type": "mkcp-legacy", "settings": settings})
-                    expected.append({"type": "mkcp-legacy", **({"settings": {"value": "MiXeD+%2F"}} if seed else {})})
-                    self.assertEqual(masks, expected)
-                    self.check_real_core(config)
 
     def test_gecko_preserves_packet_sizes_auth_and_quic_parameters(self):
         for size, expected in (("", "512-1200"), ("&minPacketSize=600&maxPacketSize=1300", "600-1300")):
@@ -213,6 +201,182 @@ class CoreTransportRegressions(unittest.TestCase):
                 config = core.generate_core_config(node, section_name=sid, uci_sections=subscriber.persisted)
                 self.assertEqual(config["outbounds"][0]["streamSettings"]["finalmask"]["udp"][0]["settings"]["packetSize"], "600-1300")
                 self.check_real_core(config)
+
+
+@unittest.skipUnless(subscription.LuaRuntime, "lupa.lua51 is required")
+class CurrentKcpTransportRegressions(unittest.TestCase):
+    """Exercise the prepared production v198.2 generator, not the 190 fixture."""
+
+    def node(self, header=None, seed=None):
+        node = shared.ssr_node("vless", "kcp")
+        node.update(tls="0", server="127.0.0.1", kcp_domain="Dns.Example")
+        if header is not None:
+            node["kcp_guise"] = header
+        if seed is not None:
+            node["seed"] = seed
+        return node
+
+    def test_kcp_security_is_inner_and_every_header_is_outer(self):
+        for header in (None, "none", "dns", "srtp", "utp", "wechat-video", "dtls", "wireguard"):
+            for seed in (None, "", "MiXeD+%2F"):
+                with self.subTest(header=header, seed=seed):
+                    node = self.node(header, seed)
+                    before = copy.deepcopy(node)
+                    config = shared.generate_ssr_config(node)
+                    masks = config["outbounds"][0]["streamSettings"]["finalmask"]["udp"]
+                    expected = [{"type": "mkcp-legacy", **({"settings": {"value": seed}} if seed else {})}]
+                    if header not in (None, "none"):
+                        settings = {"header": "wechat" if header == "wechat-video" else header}
+                        if header == "dns":
+                            settings["value"] = "Dns.Example"
+                        expected.append({"type": "mkcp-legacy", "settings": settings})
+                    self.assertEqual(masks, expected)
+                    self.assertEqual(node, before, "generation changed the saved node")
+                    if BINARY:
+                        with tempfile.TemporaryDirectory(prefix="ssr-current-kcp-") as directory:
+                            result = shared.check_core_config(BINARY, config, Path(directory) / "config.json")
+                        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+
+    def test_custom_finalmask_replaces_automatic_kcp_layers(self):
+        custom = {"udp": [{"type": "mkcp-legacy", "settings": {"value": "CustomSeed"}},
+                          {"type": "mkcp-legacy", "settings": {"header": "srtp"}}]}
+        node = self.node("dns", "AutomaticSeed")
+        node["finalmask"] = base64.b64encode(json.dumps(custom).encode()).decode()
+        config = shared.generate_ssr_config(node)
+        self.assertEqual(config["outbounds"][0]["streamSettings"]["finalmask"], custom)
+
+
+class LoopbackEcho(socketserver.BaseRequestHandler):
+    def handle(self):
+        self.request.settimeout(5)
+        while True:
+            try:
+                payload = self.request.recv(65536)
+            except (socket.timeout, ConnectionError):
+                return
+            if not payload:
+                return
+            try:
+                self.request.sendall(payload)
+            except ConnectionError:
+                return
+
+
+@contextmanager
+def loopback_xray(binary, config):
+    """Feed config through the same native stdin boundary as the parser gate."""
+    process = subprocess.Popen([binary, "run", "-config", "stdin:", "-format", "json"],
+                               stdin=subprocess.PIPE, stdout=subprocess.PIPE,
+                               stderr=subprocess.STDOUT, text=True, encoding="utf-8")
+    lines, started = [], threading.Event()
+
+    def read_output():
+        for line in process.stdout:
+            lines.append(line)
+            if "started" in line:
+                started.set()
+
+    reader = threading.Thread(target=read_output, daemon=True)
+    reader.start()
+    try:
+        process.stdin.write(json.dumps(config))
+        process.stdin.close()
+        if not started.wait(5):
+            raise AssertionError("loopback Xray did not start:\n" + "".join(lines))
+        yield lines
+    finally:
+        if process.poll() is None:
+            process.terminate()
+        process.wait(timeout=5)
+        reader.join(timeout=5)
+        process.stdout.close()
+
+
+@unittest.skipUnless(KCP_BINARIES and subscription.LuaRuntime,
+                     "XRAY_TEST_BINARY or FW876_XRAY_TEST_BINARY and lupa.lua51 are required")
+class CurrentKcpLoopbackInteroperability(unittest.TestCase):
+    """A real TCP payload crosses VLESS/mKCP, not just `run -test`."""
+
+    def exchange(self, binary, *, reverse_client_masks=False, timeout=5):
+        with socketserver.ThreadingTCPServer(("127.0.0.1", 0), LoopbackEcho) as echo:
+            echo.daemon_threads = True
+            echo_thread = threading.Thread(target=echo.serve_forever, daemon=True)
+            echo_thread.start()
+            try:
+                # Reserve ephemeral ports until both configs have been assembled.
+                with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as udp, \
+                        socket.socket(socket.AF_INET, socket.SOCK_STREAM) as tcp:
+                    udp.bind(("127.0.0.1", 0))
+                    tcp.bind(("127.0.0.1", 0))
+                    server_port, client_port = udp.getsockname()[1], tcp.getsockname()[1]
+                    node = shared.ssr_node("vless", "kcp")
+                    node.update(tls="0", server="127.0.0.1", server_port=str(server_port),
+                                kcp_guise="srtp", seed="LoopbackSeed+%2F")
+                    client = shared.generate_ssr_config(node, runtime_args=["tcp", "0", str(client_port)])
+                    # Keep the complete generated outbound and route its inbound
+                    # directly to a loopback echo service without external DNS.
+                    client["log"] = {"loglevel": "warning"}
+                    client.pop("dns", None)
+                    client.pop("routing", None)
+                    client["inbounds"] = [{"listen": "127.0.0.1", "port": client_port,
+                        "protocol": "dokodemo-door", "settings": {
+                            "address": "127.0.0.1", "port": echo.server_address[1], "network": "tcp"}}]
+                    if reverse_client_masks:
+                        client["outbounds"][0]["streamSettings"]["finalmask"]["udp"].reverse()
+                    # Independently authored peer encodes the upstream wire
+                    # contract: seed/security inside, SRTP header outside.
+                    server = {"log": {"loglevel": "warning"}, "inbounds": [{
+                        "listen": "127.0.0.1", "port": server_port, "protocol": "vless",
+                        "settings": {"clients": [{"id": shared.UUID}], "decryption": "none"},
+                        "streamSettings": {"network": "kcp", "security": "none", "kcpSettings": {},
+                            "finalmask": {"udp": [
+                                {"type": "mkcp-legacy", "settings": {"value": "LoopbackSeed+%2F"}},
+                                {"type": "mkcp-legacy", "settings": {"header": "srtp"}}]}}}],
+                        # Xray 26.10.21 blocks private targets after VLESS by
+                        # default; allow only this isolated echo endpoint.
+                        "outbounds": [{"protocol": "freedom", "settings": {"finalRules": [{
+                            "action": "allow", "ip": ["127.0.0.1/32"], "network": "tcp",
+                            "port": echo.server_address[1]}]}}]}
+                with loopback_xray(binary, server) as server_logs, loopback_xray(binary, client) as client_logs:
+                    # Confirm the locally bound client is accepting before using
+                    # the one connection whose exact payload must reach the peer.
+                    deadline = time.monotonic() + 5
+                    while True:
+                        try:
+                            connection = socket.create_connection(("127.0.0.1", client_port), timeout=1)
+                            break
+                        except OSError:
+                            if time.monotonic() >= deadline:
+                                self.fail("loopback client listener unavailable:\n" + "".join(client_logs))
+                            time.sleep(0.02)
+                    with connection:
+                        connection.settimeout(timeout)
+                        payload = b"ssr-v198-mkcp-wire-contract\x00" + bytes(range(256)) * 16
+                        connection.sendall(payload)
+                        received = bytearray()
+                        while len(received) < len(payload):
+                            part = connection.recv(len(payload) - len(received))
+                            if not part:
+                                break
+                            received.extend(part)
+                        self.assertEqual(bytes(received), payload,
+                                         "\n" + "".join(server_logs + client_logs))
+            finally:
+                echo.shutdown()
+                echo_thread.join(timeout=5)
+
+    def test_generated_srtp_and_seed_cross_real_mkcp_client_server(self):
+        for binary in KCP_BINARIES:
+            with self.subTest(binary=binary):
+                try:
+                    self.exchange(binary)
+                except (socket.timeout, ConnectionError) as error:
+                    self.fail("generated mKCP client could not exchange the loopback payload: " + str(error))
+
+    def test_reversing_the_generated_layers_breaks_peer_interoperability(self):
+        for binary in KCP_BINARIES:
+            with self.subTest(binary=binary), self.assertRaises((socket.timeout, ConnectionError)):
+                self.exchange(binary, reverse_client_masks=True, timeout=2)
 
 
 class SelectedTransportStartupRegressions(unittest.TestCase):

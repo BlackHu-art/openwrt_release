@@ -2,6 +2,9 @@
 
 本项目按构建、源码维护、验证和文档组织。`wrt_core/managed/` 是已接入固件的本地受管输入，`maintenance/plugins/` 保存独立参考快照。Passwall1 和 Passwall2 的插件源码、维护快照与构建入口均已移除；公共 `proxy` 片段不再选择它们。
 
+文档入口见 [索引](README.md)；新电脑先读 [维护快速开始](maintenance/quickstart.md)，
+调用顺序与来源区别见 [架构与来源](maintenance/architecture-and-sources.md)。
+
 ## 目录总览
 
 ```text
@@ -45,7 +48,7 @@ openwrt_release/
 │   ├── fetch_fw876_xray.py          # 校验固定 fw876 定制 Xray 测试产物
 │   ├── test_*.sh / test_*.py        # 构建契约、插件及运行逻辑测试
 │   └── fixtures/                    # 固定、已经审查的测试输入
-├── docs/                            # 当前说明及历史设计/诊断记录
+├── docs/                            # README 索引、maintenance/ 维护指南及历史记录
 ├── README.md                        # 使用入口与编译指南
 └── firmware/                        # 构建生成，Git 忽略
 ```
