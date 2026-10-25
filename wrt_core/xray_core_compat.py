@@ -16,6 +16,8 @@ import stat
 import sys
 import tempfile
 
+# Validation must not create local import caches, including on rejected input.
+sys.dont_write_bytecode = True
 from managed_plugins import DEFAULT_SOURCES, read_lock, verify_staged
 
 

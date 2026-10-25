@@ -50,3 +50,9 @@
 - 27 项跳过包括 POSIX 文件模式/符号链接、Linux 进程与锁/dnsmasq、luac/BusyBox、fw876 Linux ELF、两版 Mihomo 实际核心以及 Linux CI 强制执行的真实下载。没有添加跳过条件以绕过本次修复验证。
 - 独立复核固定 Xray 26.10.21 的 `sockopt_linux.go`、`system_dialer.go` 与 finalmask 拨号链：普通用户设置 `SO_MARK` 失败仅记录日志，非 `BindError` 不终止 UDP 拨号；现有十份 fw876 补丁不修改该路径。因此 KCP 本地互通测试保留完整生成的 outbound，无需提权或删去 mark。此项为源码确认。
 - 本机未执行 Linux fw876 ELF、POSIX 网络命名空间、真实 Go/UPX 交叉编译或路由器验收。Linux CI 已接入官方与 fw876 两种核心的 KCP 互通检查，实际通过以对应提交的运行结果为准。
+
+### 首轮 Linux CI 暴露的平台差异与修正
+
+- 提交 `6756b86` 的 [Linux 回归 40166228551](https://github.com/BlackHu-art/openwrt_release/actions/runs/40166228551) 在 Xray 配方的两项失败无写入断言处失败：导入 `managed_plugins` 新增了 `compat/__pycache__`。该轮在此终止，不能据此前置步骤通过声称完整回归或网络命名空间检查通过。
+- Windows 包装器预设 `PYTHONDONTWRITEBYTECODE`，遮蔽了上述副作用。测试现显式移除子进程中的该变量；两项先按原实现复现失败，再由 helper 在导入本地模块前禁用字节码缓存后通过。保留完整目录快照断言，没有忽略缓存文件。
+- 修正后定向复跑：Xray 配方 29 项、实际装载组合 4 项、fw876 来源 4 项全部通过；文档链接和 `git diff --check` 通过。后续 Linux 完整结果以修正提交关联的 Actions 运行记录为准。

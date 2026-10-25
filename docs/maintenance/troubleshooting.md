@@ -44,6 +44,7 @@ $ciRuns.workflow_runs | Select-Object id,run_attempt,head_sha,event,status,concl
 | 现象 | 检查入口与处理方向 |
 | --- | --- |
 | Windows 找不到工具、运行失败、依赖路径不一致 | 先执行 `-Action check`；按 [Windows 说明](../windows-testing.md) 修复后显式 install；不要取消哈希/必需依赖检查 |
+| Windows 通过而 Linux 的“失败无写入”断言出现 `__pycache__` 差异 | Windows 包装器设有 `PYTHONDONTWRITEBYTECODE`；应在子进程移除该环境变量后复现。要求无写入的适配脚本须自行禁止本地模块导入缓存，不能忽略快照中的新增文件来通过测试 |
 | 来源校验、权限或 SSR 翻译链接拒绝 | 看 [受管来源](../../wrt_core/managed/README.md) 和 [fw876 链接说明](../fw876-core-migration.md)；区分原始输入文本与实际 Linux 链接，不用普通复制绕过 loader |
 | 补丁不匹配、未知源码或部分应用 | 记录目标来源 SHA 和失败补丁，比较完整基线与适配后文件；按 [维护流程](maintenance-workflow.md) 重新审查 |
 | 下载哈希错误，或下载失败后继续编译 | 看 [归档与下载兼容](../source-download-compat.md)；先确认提交字段、归档格式和真实失败退出码，不根据错误默认分支改哈希 |

@@ -31,6 +31,9 @@ class XrayRecipeCompatibility(unittest.TestCase):
         self.go_recipe.parent.mkdir(parents=True)
         self.go_recipe.write_text("GO_VERSION_MAJOR_MINOR:=1.27\nGO_VERSION_PATCH:=3\n", encoding="utf-8")
         self.env = os.environ.copy()
+        # Exercise the helper's own no-write guarantee even when the test
+        # environment wrapper disables bytecode globally for other suites.
+        self.env.pop("PYTHONDONTWRITEBYTECODE", None)
         self.env.update(BASE_PATH=(ROOT / "wrt_core").as_posix(),
                         BUILD_DIR=self.build.as_posix(),
                         XRAY_PACKAGE=self.package.as_posix(), TEST_PYTHON=Path(sys.executable).as_posix())
