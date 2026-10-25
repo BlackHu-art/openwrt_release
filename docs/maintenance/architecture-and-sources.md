@@ -34,13 +34,15 @@ build.sh：设备/模式与 fragments → 判断 Docker 选择
 | 位置 | 身份 | 修改方式 |
 | --- | --- | --- |
 | `wrt_core/managed/` | 30 个生产原始源码单元；锁记录文件集合、提交、blob、mode、SHA-256 | 升级来源时独立审查并完整更新；兼容补丁不直接写入原始字节 |
-| `maintenance/plugins/` | 原始参考快照及 SSR 历史派生输入，构建不从这里读取 | 用于比较上游、追溯来源和许可证；刷新不会自动改变生产输入 |
+| `maintenance/plugins/` | 原始参考快照及 SSR 历史派生输入，不作为包安装来源；SmartDNS 兼容脚本读取其原始配方进行基线校验 | 用于比较上游、追溯来源和许可证；更新 SmartDNS 快照须联动审核固定提交与兼容基线 |
 | `<BUILD_DIR>/custom_feed/`、`feeds/`、`package/` | 本次构建实际使用的副本 | loader 恢复执行权限/符号链接，模块再应用修正；下次准备可能清理 |
 
 [`managed_plugins.py`](../../wrt_core/managed_plugins.py) 校验输入并装载到允许的构建目录；
 损坏或缺失不会自动回退远端，外部同名包会被拒绝。Windows 中保存的链接目标文本不等于 Linux 真正链接。
 [`tests/fixtures/`](../../tests/fixtures/) 是固定回归输入，与参考快照和生产输入分别维护。
 受管的是包装配方及随包文件，并不代表核心源码归档、二进制和所有 feeds 已内嵌或全部固定。
+
+SmartDNS 包装仓库仍从 `ZqinKing/openwrt-smartdns` 获取，但 `update_smartdns` 在克隆后 fetch、checkout 并核对固定提交 `cdf0de1d3e64984ea2c56ec873f233495ddb1de0`，随后才执行 WebUI 下载兼容、优化补丁和 CC 修正。当前核心配方仍为 `1.2025.47-r1`，未升级到默认分支的新配方 48.4；LuCI 来源仍为 `pymumu/luci-app-smartdns`，插件选择与配置保持不变。此 pin 与原始快照、归档身份和补丁须一起审核更新，不能跳过源码漂移检查。失败背景及核验边界见 [SmartDNS 来源固定说明](../source-download-compat.md#smartdns-包装来源固定)。
 
 ## 当前 SSR／核心边界
 

@@ -47,6 +47,7 @@ $ciRuns.workflow_runs | Select-Object id,run_attempt,head_sha,event,status,concl
 | Windows 通过而 Linux 的“失败无写入”断言出现 `__pycache__` 差异 | Windows 包装器设有 `PYTHONDONTWRITEBYTECODE`；应在子进程移除该环境变量后复现。要求无写入的适配脚本须自行禁止本地模块导入缓存，不能忽略快照中的新增文件来通过测试 |
 | 来源校验、权限或 SSR 翻译链接拒绝 | 看 [受管来源](../../wrt_core/managed/README.md) 和 [fw876 链接说明](../fw876-core-migration.md)；区分原始输入文本与实际 Linux 链接，不用普通复制绕过 loader |
 | 补丁不匹配、未知源码或部分应用 | 记录目标来源 SHA 和失败补丁，比较完整基线与适配后文件；按 [维护流程](maintenance-workflow.md) 重新审查 |
+| `SmartDNS build source has unreviewed drift: Makefile` | 先核对包装仓库实际 HEAD 是否为 `cdf0de1d3e64984ea2c56ec873f233495ddb1de0`；2026-10-25 默认分支升级 48.4 曾触发主动拒绝。现有入口须先获取、检出并核对固定提交，再执行兼容处理；不要移除 SmartDNS 或绕过校验。升级需联动审核 pin、快照、归档及补丁，见 [来源固定说明](../source-download-compat.md#smartdns-包装来源固定) |
 | 下载哈希错误，或下载失败后继续编译 | 看 [归档与下载兼容](../source-download-compat.md)；先确认提交字段、归档格式和真实失败退出码，不根据错误默认分支改哈希 |
 | defconfig 出现 Qt5/squeezelite 循环或包被重新选入 | 看 [Kconfig 说明](../kconfig-compat.md)、`.config.requested`、最终 `.config` 和选择检查；不能忽略循环后直接发布 |
 | 环境准备很慢 | 对比当次 APT/网络日志及阶段时间；[历史耗时调查](../build-environment-2026-10-24.md) 仅说明一次 APT 瓶颈 |

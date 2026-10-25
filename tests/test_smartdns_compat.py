@@ -18,6 +18,7 @@ ROOT = Path(__file__).resolve().parents[1]
 RAW = ROOT / "maintenance/plugins/smartdns/package"
 COMPAT = ROOT / "wrt_core/smartdns_compat.py"
 ORIGINAL_SHA256 = "e0e6589e5031683536bda4665dcbf928cde0fe45c228f74b7ebaab02be342907"
+PACKAGE_COMMIT = "cdf0de1d3e64984ea2c56ec873f233495ddb1de0"
 SOURCE_COMMIT = b"3261c18b1b93d841e86d9e727557109ae71d71cd"
 ARCHIVE_HASH = b"4401734712dd034eb1088ce440d1bc64d053dfcd6f63f66c08cd48ab68593042"
 
@@ -217,7 +218,8 @@ class SmartdnsCompatibility(unittest.TestCase):
         self.assertIn("SmartDNS", result.stderr)
         self.assertEqual(snapshot(self.package), before)
 
-    def run_update(self, *, stage=False, drift=False, failure=""):
+    def run_update(self, *, stage=False, drift=False, failure="", local_repository=None,
+                   local_commit=""):
         fixture = self.temporary / "clone-fixture"
         fixture.mkdir()
         (fixture / "Makefile").write_bytes(self.original + (b"\n# upstream drift\n" if drift else b""))
@@ -230,6 +232,13 @@ while read -r _ _ name; do
         *) eval "$name() { :; }" ;;
     esac
 done < <(declare -F)
+# Only the local integration fixture substitutes the reviewed commit identity.
+# Its clone, fetch, checkout and HEAD verification still execute real Git.
+if [ -n "$TEST_LOCAL_REPOSITORY" ]; then
+    definition=$(declare -f update_smartdns)
+    definition=${definition//"$TEST_PACKAGE_COMMIT"/"$TEST_LOCAL_COMMIT"}
+    eval "$definition"
+fi
 python3() {
     case "$1" in */simple_obfs_compat.py) return 0 ;; esac
     "$TEST_PYTHON" "$@"
@@ -257,10 +266,26 @@ sed() {
     command sed "$@"
 }
 git_retry() {
+    if [ "$#" -eq 6 ] && [ "$1" = -C ] && \
+        [ "$2" = "$BUILD_DIR/feeds/packages/net/smartdns" ] && \
+        [ "$3" = fetch ] && [ "$4" = --depth=1 ] && [ "$5" = origin ]; then
+        if [ -n "$TEST_LOCAL_REPOSITORY" ]; then
+            command git -c "url.$TEST_LOCAL_REPOSITORY.insteadOf=https://github.com/ZqinKing/openwrt-smartdns.git" "$@"
+            return $?
+        fi
+        [ "$6" = "$TEST_PACKAGE_COMMIT" ] || return 95
+        if [ "$TEST_FAILURE" = smartdns-fetch ]; then fail_io; return $?; fi
+        return 0
+    fi
     [ "$#" -eq 4 ] && [ "$1" = clone ] && [ "$2" = --depth=1 ] || return 91
     case "$3" in
         https://github.com/ZqinKing/openwrt-smartdns.git)
             [ "$4" = "$BUILD_DIR/feeds/packages/net/smartdns" ] || return 92
+            if [ -n "$TEST_LOCAL_REPOSITORY" ]; then
+                command git -c "url.$TEST_LOCAL_REPOSITORY.insteadOf=$3" "$@" || return $?
+                command git -C "$4" rev-parse HEAD > "$BUILD_DIR/cloned-head"
+                return $?
+            fi
             mkdir -p "$4/.git"
             cp "$TEST_FIXTURE/Makefile" "$4/Makefile"
             printf 'clone metadata\n' > "$4/.git/config"
@@ -273,6 +298,25 @@ git_retry() {
         *) return 94 ;;
     esac
 }
+git() {
+    if [ -n "$TEST_LOCAL_REPOSITORY" ]; then command git "$@"; return $?; fi
+    [ "$1" = -C ] && [ "$2" = "$BUILD_DIR/feeds/packages/net/smartdns" ] || return 96
+    if [ "$#" -eq 5 ] && [ "$3" = checkout ] && [ "$4" = --detach ]; then
+        [ "$5" = "$TEST_PACKAGE_COMMIT" ] || return 97
+        if [ "$TEST_FAILURE" = smartdns-checkout ]; then fail_io; return $?; fi
+        printf '%s\n' "$5" > "$2/.git/HEAD"
+    elif [ "$#" -eq 4 ] && [ "$3" = rev-parse ] && [ "$4" = HEAD ]; then
+        if [ "$TEST_FAILURE" = smartdns-rev-parse ]; then fail_io; return $?; fi
+        if [ "$TEST_FAILURE" = smartdns-head ]; then
+            fail_io
+            printf '%040d\n' 0
+        else
+            cat "$2/.git/HEAD"
+        fi
+    else
+        return 98
+    fi
+}
 get_custom_feed_worktree_dir() { printf '%s/custom_feed\n' "$BUILD_DIR"; }
 update_mwan3_fw4() { touch "$BUILD_DIR/later-hook-reached"; }
 if "$TEST_ENTRY"; then status=0; else status=$?; fi
@@ -281,6 +325,9 @@ exit "$status"
         environment = dict(os.environ, BASE_PATH=bash_path(ROOT / "wrt_core"),
                            BUILD_DIR=bash_path(self.build), TEST_FIXTURE=bash_path(fixture),
                            TEST_FAILURE=failure,
+                           TEST_PACKAGE_COMMIT=PACKAGE_COMMIT,
+                           TEST_LOCAL_REPOSITORY=local_repository.as_uri() if local_repository else "",
+                           TEST_LOCAL_COMMIT=local_commit,
                            TEST_PYTHON=Path(sys.executable).as_posix(),
                            TEST_ENTRY="stage_pre_install_source_fixes" if stage else "update_smartdns",
                            PYTHONDONTWRITEBYTECODE="1")
@@ -318,13 +365,47 @@ exit "$status"
         self.assertEqual(self.recipe.read_bytes(), expected_recipe(self.original).replace(
             b"CC=$(TARGET_CC)", b'CC="$(TARGET_CC_NOCACHE)"'))
 
+    def test_real_git_pins_reviewed_recipe_after_default_branch_advances(self):
+        repository = self.temporary / "local-upstream"
+
+        def git(*arguments):
+            result = subprocess.run(["git", "-c", "core.autocrlf=false",
+                                     "-c", "commit.gpgsign=false", "-c", "user.name=SmartDNS test",
+                                     "-c", "user.email=smartdns-test@example.invalid", *arguments],
+                                    capture_output=True, text=True, timeout=20)
+            self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+            return result.stdout.strip()
+
+        git("init", "-q", str(repository))
+        recipe = repository / "Makefile"
+        recipe.write_bytes(self.original)
+        (repository / ".gitattributes").write_bytes(b"* -text\n")
+        git("-C", str(repository), "add", ".")
+        git("-C", str(repository), "commit", "-qm", "reviewed recipe")
+        reviewed = git("-C", str(repository), "rev-parse", "HEAD")
+        recipe.write_bytes(self.original + b"\n# later upstream recipe\n")
+        git("-C", str(repository), "commit", "-qam", "advance default branch")
+        advanced = git("-C", str(repository), "rev-parse", "HEAD")
+        self.assertNotEqual(reviewed, advanced)
+
+        result = self.run_update(stage=True, local_repository=repository, local_commit=reviewed)
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertEqual((self.build / "cloned-head").read_text().strip(), advanced)
+        self.assertEqual(git("-C", str(self.package), "rev-parse", "HEAD"), reviewed)
+        self.assertEqual(git("-C", str(self.package), "rev-parse", "--is-shallow-repository"), "true")
+        self.assertEqual(git("-C", str(self.package), "rev-parse", "--abbrev-ref", "HEAD"), "HEAD")
+        self.assertEqual(self.recipe.read_bytes(), expected_recipe(self.original).replace(
+            b"CC=$(TARGET_CC)", b'CC="$(TARGET_CC_NOCACHE)"'))
+        self.assertTrue((self.build / "luci-clone-reached").is_file())
+        self.assertTrue((self.build / "later-hook-reached").is_file())
+
     def assert_stage_io_failure_stops(self, failure, *, adapted, patch, cc_changed):
         luci = self.build / "feeds/luci/applications/luci-app-smartdns"
         luci.mkdir(parents=True)
         (luci / "existing-file").write_bytes(b"existing LuCI package\n")
         result = self.run_update(stage=True, failure=failure)
-        self.assertEqual((self.build / "io-failure-reached").read_text().strip(), failure)
         self.assertNotEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertEqual((self.build / "io-failure-reached").read_text().strip(), failure)
         self.assertFalse((self.build / "later-hook-reached").exists())
         self.assertFalse((self.build / "luci-clone-reached").exists())
         self.assertEqual((luci / "existing-file").read_bytes(), b"existing LuCI package\n")
@@ -342,6 +423,18 @@ exit "$status"
     def test_real_stage_stops_when_removing_previous_smartdns_package_fails(self):
         self.assert_stage_io_failure_stops("smartdns-rm", adapted=False, patch=False, cc_changed=False)
         self.assertFalse((self.package / ".git/config").exists())
+
+    def test_real_stage_stops_when_fetching_reviewed_smartdns_commit_fails(self):
+        self.assert_stage_io_failure_stops("smartdns-fetch", adapted=False, patch=False, cc_changed=False)
+
+    def test_real_stage_stops_when_checking_out_reviewed_smartdns_commit_fails(self):
+        self.assert_stage_io_failure_stops("smartdns-checkout", adapted=False, patch=False, cc_changed=False)
+
+    def test_real_stage_stops_when_reading_smartdns_head_fails(self):
+        self.assert_stage_io_failure_stops("smartdns-rev-parse", adapted=False, patch=False, cc_changed=False)
+
+    def test_real_stage_stops_when_smartdns_head_does_not_match_reviewed_commit(self):
+        self.assert_stage_io_failure_stops("smartdns-head", adapted=False, patch=False, cc_changed=False)
 
     def test_real_stage_stops_when_installing_smartdns_patch_fails(self):
         self.assert_stage_io_failure_stops("patch-install", adapted=True, patch=False, cc_changed=False)

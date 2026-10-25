@@ -46,7 +46,7 @@ REQUIRE_SIMPLE_OBFS_DOWNLOAD=1 python3 tests/test_simple_obfs_download.py -v
 
 [构建 40076155141](https://github.com/BlackHu-art/openwrt_release/actions/runs/40076155141) 的 simple-obfs 下载已经成功，随后在 SmartDNS WebUI 下载失败。此次下载失败正确终止流程，没有继续进行固件编译。
 
-SmartDNS 配方来自现有 `ZqinKing/openwrt-smartdns`；维护快照 `cdf0de1d3e64984ea2c56ec873f233495ddb1de0` 的 Makefile 与本次核验的上游内容一致。配方使用 `VERSION` 传递 WebUI 提交号，而当前下载框架只读取 `SOURCE_VERSION`。实际命令变为 `--version=""`，Git 回退拉取默认 `main`，生成错误版本的真实源码归档。
+SmartDNS 配方来自现有 `ZqinKing/openwrt-smartdns`；在这次下载问题核验时，维护快照 `cdf0de1d3e64984ea2c56ec873f233495ddb1de0` 的 Makefile 与当时上游内容一致。配方使用 `VERSION` 传递 WebUI 提交号，而当前下载框架只读取 `SOURCE_VERSION`。实际命令变为 `--version=""`，Git 回退拉取默认 `main`，生成错误版本的真实源码归档。
 
 独立读取固定提交的 Git tree/blob，并分别核对 `git archive`、GitHub codeload 与 GNU tar/gzip 重建：
 
@@ -59,7 +59,7 @@ SmartDNS 配方来自现有 `ZqinKing/openwrt-smartdns`；维护快照 `cdf0de1d
 
 因此原始 `MIRROR_HASH` 正确，不能改成错误默认分支的哈希。固定源码 tree 为 `190f76f34cfda865389b27e8f69887aa6a64edc3`，时间戳为 `1766583635`，151 个归档条目；GNU tar SHA-256 为 `a203faeeb55271853270e0e84907d29d4e32043cf1bc86f4e45a4e78ff92816f`。GNU gzip 使用 `-nc`，没有文件名或当前时间信息。
 
-[`smartdns_compat.py`](../wrt_core/smartdns_compat.py) 在 `update_smartdns` 克隆完成后、现有补丁和 CC 修正前执行，只在构建副本修正提交字段，并在已有 `CONFIG_PACKAGE_smartdns-ui` 为 y/m 时注册 WebUI 下载。主程序来源、提交、下载规则和所有插件配置保持不变。原始维护快照不修改；未知 Makefile 漂移明确失败，错误经源码准备阶段传播。
+[`smartdns_compat.py`](../wrt_core/smartdns_compat.py) 在 `update_smartdns` 获取并核对下述固定包装提交后、现有补丁和 CC 修正前执行，只在构建副本修正 WebUI 提交字段，并在已有 `CONFIG_PACKAGE_smartdns-ui` 为 y/m 时注册 WebUI 下载。它不升级主程序版本或源码提交。原始维护快照不修改；未知 Makefile 漂移明确失败，错误经源码准备阶段传播。
 
 [`test_smartdns_download.py`](../tests/test_smartdns_download.py) 用真实 `download.mk` 展开原配方，复现空提交号和未选 UI 仍下载；修正后验证 unset/n/y/m，以及主程序下载提交保留。Linux 必需门禁执行 y/m 的真实干净下载、逐成员 Git blob 核对、独立归档字节比较，以及错误哈希拒绝。测试不执行 Rust/Node 编译或目标架构交叉编译。
 
@@ -68,3 +68,11 @@ REQUIRE_SMARTDNS_DOWNLOAD=1 python3 tests/test_smartdns_download.py -v
 ```
 
 框架和源码身份详见 [SmartDNS 下载 fixture](../tests/fixtures/smartdns-download/README.md)。循环依赖修复另见 [Kconfig 兼容说明](kconfig-compat.md)。
+
+## SmartDNS 包装来源固定
+
+2026-10-25 的[构建 40170792954](https://github.com/BlackHu-art/openwrt_release/actions/runs/40170792954/job/121101615745) 在源码准备阶段报出 `SmartDNS build source has unreviewed drift: Makefile`。同日北京时间 14:38，上游提交 [`b4a7fa1`](https://github.com/ZqinKing/openwrt-smartdns/commit/b4a7fa1dba3ffe0c9cb17ab32c492277007cd660) 将默认分支配方升级为 48.4。此前浅克隆取得移动后的 HEAD，严格校验主动拒绝了尚未审查的新配方；这不是 WebUI 归档哈希错误，也不是移除 SmartDNS 的理由。
+
+[`update_smartdns`](../wrt_core/modules/package_source_updates.sh) 继续使用原 `ZqinKing/openwrt-smartdns` 仓库，在克隆后 fetch 并 checkout 已审查的完整提交 `cdf0de1d3e64984ea2c56ec873f233495ddb1de0`，核对实际 HEAD 后才执行兼容脚本、优化补丁和 CC 修正。获取、检出或身份核对失败时终止准备，不回退到默认分支。该提交保持核心配方 `1.2025.47-r1`、核心源码 `136c0c2690138d6dedd8b520281aafe49112643f` 及上文 WebUI 归档身份。SmartDNS 保留，LuCI 仍从原 `pymumu/luci-app-smartdns` 来源获取，插件选择和编译配置不变。
+
+未来升级需要一起审查包装提交 pin、原始维护快照及清单、核心和 WebUI 归档身份、兼容脚本基线、优化/CC 补丁与相应回归。不能只移动 pin、接受新哈希或跳过严格校验；来源准备通过也不代表 Rust/Node、目标架构编译或路由器运行已经通过。

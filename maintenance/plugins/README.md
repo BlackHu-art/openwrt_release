@@ -1,14 +1,14 @@
 # 插件源码维护区
 
 这里保存插件原始参考快照（Passwall1、Passwall2 均已按用户要求删除）与 SSR 的历史评估输入。
-本目录不由固件构建直接读取。SSR `v198.2` 已成为生产来源：其中实际选择的 15 个配方
+本目录不作为固件软件包的安装来源；SmartDNS 兼容脚本会读取这里的原始配方，核对构建副本的完整基线。SSR `v198.2` 已成为生产来源：其中实际选择的 15 个配方
 以原始字节镜像到独立的 [受管目录](../../wrt_core/managed/README.md)，完整维护快照仍保留不变。
 `190-r11`、`190-r12` 都是历史派生副本，不是当前生产修复版。
 
 当前实际接入固件准备流程的 **30 个顶层受管源码单元**由
 [生产来源锁](../../wrt_core/managed/sources.lock.json) 和 loader 管理。
 本维护区的锁记录参考快照身份，并注明 SSR 哪些配方已镜像到生产；仅修改维护快照
-不会自动更新受管副本，也不能把第一批参考版本表当作当前固件版本表。
+不会自动更新受管副本，也不能把第一批参考版本表当作当前固件版本表。SmartDNS 包装来源现已固定到下表已有审核提交；其快照、pin 与兼容基线需要一起审核更新。
 当前迁移范围与验证边界见 [fw876 集成说明](../../docs/fw876-core-migration.md)。
 
 获取日期：2026-10-22（Asia/Shanghai）。项目基线：`6d76ce124426086bbc5f90a9fcb9fcc0ba3b0a41`。完整来源、提交、Git tree、版本原始字段和内容清单入口见 [sources.lock.json](sources.lock.json)。
@@ -37,7 +37,7 @@
 
 ## 文件记录与存储方式
 
-- `sources.lock.json` 记录来源 URL、构建采用的引用策略、实际分支、完整 commit/tree、原始子目录、本地目录、提交时间、版本表达式及清单哈希。`HEAD` 表示构建使用上游默认分支，本次解析结果另有记录。
+- `sources.lock.json` 记录来源 URL、采集时的引用策略、实际分支、完整 commit/tree、原始子目录、本地目录、提交时间、版本表达式及清单哈希。`HEAD` 表示采集时解析上游默认分支，不保证当前构建仍跟随该分支；SmartDNS 的生产入口已改为固定其已有审核提交，见下表。
 - `manifests/<id>.json` 为每个原始文件记录相对路径、Git blob、Git mode、字节数和 SHA-256。清单与源码一同更新，单独改写清单不能作为修复通过的证据。
 - `licenses/<id>/` 保存从源仓库根额外带入的许可证，并在锁文件中注明原路径和 blob。它们不混入原始包子树。
 - 源码按 Git blob 直接导出，保留原始字节；未使用可能应用 `export-ignore` / `export-subst` 的默认 archive 结果。目录内没有嵌套 `.git`、子模块或 LFS 指针。
@@ -49,7 +49,7 @@
 
 | 维护对象 | 当前生效逻辑 | 已有测试基线 |
 | --- | --- | --- |
-| SmartDNS | [update_smartdns](../../wrt_core/modules/package_source_updates.sh)、[优化补丁](../../wrt_core/patches/100-smartdns-optimize.patch)，以及构建副本的 WebUI 提交字段/按需下载适配 | [SmartDNS 下载 fixture](../../tests/fixtures/smartdns-download/README.md) 与真实 Make/下载回归；本快照本身不是已完成的兼容验证，执行边界见 [下载兼容说明](../../docs/source-download-compat.md) |
+| SmartDNS | [update_smartdns](../../wrt_core/modules/package_source_updates.sh) 从原仓库获取并核对固定提交 `cdf0de1d3e64984ea2c56ec873f233495ddb1de0`，再执行 WebUI 提交字段/按需下载适配、[优化补丁](../../wrt_core/patches/100-smartdns-optimize.patch) 和 CC 修正；核心仍为 `1.2025.47-r1`，LuCI 来源不变 | [SmartDNS 下载 fixture](../../tests/fixtures/smartdns-download/README.md) 与真实 Make/下载回归；本快照本身不是已完成的兼容验证，执行边界见 [下载兼容说明](../../docs/source-download-compat.md) |
 | OpenClash | [fix_openclash_compat](../../wrt_core/modules/plugin_compat.sh) 应用六份补丁：原有 WAN 子网、checksum，以及 Ruby AST、dashboard 状态、文件名/目录校验，以及 TUN 栈兼容保护 | [plugin-runtime](../../tests/fixtures/plugin-runtime/README.md) 的下载函数与 [0.48.002 完整文件](../../tests/fixtures/openclash/0.48.002/README.md)；真实 Ruby、JavaScript、Lua 入口回归 |
 | AdGuard Home | [update_adguardhome](../../wrt_core/modules/service_fixes.sh) 获取源码后调用 `fix_adguardhome_compat`，应用稳定更新安全与无需更新时不执行 UPX 两份补丁；[三文件 blob 基线](../../wrt_core/compat/adguardhome/source-files.tsv) 在写入前校验 | [plugin-runtime](../../tests/fixtures/plugin-runtime/README.md) 的固定更新器、下载配置及 Lua 控制器；补丁组合、重复执行与源码漂移回归 |
 
@@ -66,7 +66,7 @@ OpenClash 的 Ruby AST、dashboard 和文件名修复分别适配上游 `ac3c7bf
 3. 按 `upstream_path` 导出完整目标子树的原始 Git blobs，不能只复制改过的文件，否则上游已删除文件会残留。根许可证单独保留，已有本地补丁不混入原始文件。
 4. 对所有文件重新记录 mode、blob、大小和 SHA-256，再更新对应 manifest 及其锁文件摘要；同时更新本页版本表。新出现的 Git 链接、子模块或 LFS 指针需要明确处理，不能当作普通内容跳过。
 5. 比较导入目录与 Git 文件清单，检查是否被忽略规则漏掉，并验证进入 Git 后仍保持原始字节。新上游如增加 `.gitattributes`，需要重新检查它是否覆盖本维护区的保护规则。
-6. 后续若要修复插件，单独更新 `wrt_core/patches/`、相应模块及必要 fixture/回归；维护快照更新本身不改变构建来源、软件包选择或运行行为。
+6. 后续若要修复插件，单独更新 `wrt_core/patches/`、相应模块及必要 fixture/回归；维护快照更新本身不改变软件包选择。SmartDNS 升级还须联动审核生产 pin、完整原始配方基线、核心/WebUI 归档身份及已有补丁，不能只刷新快照或绕过校验。
 
 例如，下面的命令可在新临时目录中重新获取当前 OpenClash 基线（只获取源码，不执行源码；其他来源使用锁文件对应值）：
 

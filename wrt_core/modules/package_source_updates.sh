@@ -106,6 +106,9 @@ add_timecontrol() {
 
 update_smartdns() {
     local SMARTDNS_REPO="https://github.com/ZqinKing/openwrt-smartdns.git"
+    # 与维护快照及 smartdns_compat.py 的已审核配方保持一致。
+    local SMARTDNS_COMMIT="cdf0de1d3e64984ea2c56ec873f233495ddb1de0"
+    local SMARTDNS_ACTUAL
     local SMARTDNS_DIR="$BUILD_DIR/feeds/packages/net/smartdns"
     local LUCI_APP_SMARTDNS_REPO="https://github.com/pymumu/luci-app-smartdns.git"
     local LUCI_APP_SMARTDNS_DIR="$BUILD_DIR/feeds/luci/applications/luci-app-smartdns"
@@ -116,6 +119,21 @@ update_smartdns() {
         echo "错误：从 $SMARTDNS_REPO 克隆 smartdns 仓库失败" >&2
         exit 1
     fi
+
+    if ! git_retry -C "$SMARTDNS_DIR" fetch --depth=1 origin "$SMARTDNS_COMMIT"; then
+        echo "错误：获取 SmartDNS 固定提交 $SMARTDNS_COMMIT 失败" >&2
+        return 1
+    fi
+    if ! git -C "$SMARTDNS_DIR" checkout --detach "$SMARTDNS_COMMIT"; then
+        echo "错误：检出 SmartDNS 固定提交 $SMARTDNS_COMMIT 失败" >&2
+        return 1
+    fi
+    SMARTDNS_ACTUAL=$(git -C "$SMARTDNS_DIR" rev-parse HEAD) || return 1
+    if [[ "$SMARTDNS_ACTUAL" != "$SMARTDNS_COMMIT" ]]; then
+        echo "错误：SmartDNS 实际提交 $SMARTDNS_ACTUAL 与固定提交 $SMARTDNS_COMMIT 不匹配" >&2
+        return 1
+    fi
+    echo "SmartDNS 固定来源：$SMARTDNS_REPO@$SMARTDNS_ACTUAL"
 
     python3 "$BASE_PATH/smartdns_compat.py" "$SMARTDNS_DIR" || return 1
     install -Dm644 "$BASE_PATH/patches/100-smartdns-optimize.patch" "$SMARTDNS_DIR/patches/100-smartdns-optimize.patch" || return 1
