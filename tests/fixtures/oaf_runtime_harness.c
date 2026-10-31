@@ -35,7 +35,7 @@ typedef struct {
     char *url_pos, *host_pos, *data_pos;
 } http_proto_t;
 typedef struct {
-    char *l4_data;
+    unsigned char *l4_data;
     int l4_len, l4_protocol, src, dst, sport, dport;
     http_proto_t http;
 } flow_info_t;
@@ -157,7 +157,7 @@ static int test_nonlinear(void) {
         struct sk_buff skb = packet((unsigned int)lengths[index] + 20);
         flow_info_t flow;
         int position, copied;
-        memset(&flow, 0, sizeof(flow)); flow.l4_data = (char *)skb.data + 20; flow.l4_len = lengths[index];
+        memset(&flow, 0, sizeof(flow)); flow.l4_data = skb.data + 20; flow.l4_len = lengths[index];
         copied = hook ? copy_fwx_hook_gateway_handle(&skb, &flow) : copy_fwx_hook_bypass_handle(&skb, &flow);
         REQUIRE(copied == 77);
         REQUIRE(flow.l4_len == min(lengths[index], 3000));
@@ -166,7 +166,7 @@ static int test_nonlinear(void) {
     }
     return 0;
 }
-static char *guarded_data(const char *text, size_t length) {
+static unsigned char *guarded_data(const char *text, size_t length) {
     char *region;
     size_t page;
 #ifdef _WIN32
@@ -181,7 +181,7 @@ static char *guarded_data(const char *text, size_t length) {
     if (region == MAP_FAILED || mprotect(region + page, page, PROT_NONE)) abort();
 #endif
     memcpy(region + page - length, text, length);
-    return region + page - length;
+    return (unsigned char *)(region + page - length);
 }
 static int test_http_short(void) {
     const char *cases[] = {"abcdefghijklmno\r", "abcdefghijklmn\r\n", "abcdefghij\r\nG\r\n", "abcdefghij\r\nP\r\n", "abcdefghij\r\nHost:\r\n", "abcdefghij\r\n\r\n"};

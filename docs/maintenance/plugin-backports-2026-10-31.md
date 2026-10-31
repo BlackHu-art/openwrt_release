@@ -43,3 +43,5 @@ Linux CI 已具备 GCC、Ruby、Lua 和两个固定 Mihomo 核心，继续执行
 本次通过 `windows_test_env.py run` 执行相同的完整入口，并设置 `MIHOMO_OLD_TEST_BIN`、`MIHOMO_NEW_TEST_BIN` 和 `OPENCLASH_REQUIRE_MIHOMO=1`，实际验证两版核心；核心获取脚本见 [fixture 说明](../../tests/fixtures/openclash/0.48.002/README.md)。Windows 跳过项涉及真实链接/模式、Linux 原生下载/核心、服务和 rootfs 边界；推送后的原有 Linux CI 继续补验，结果以对应提交的 Actions 运行记录为准。
 
 30 个受管包完整性、上游同步不变量、文档本地链接及差异空白检查通过；来源、选择和固件编译配置无差异。本轮不包含路由器 nginx/Samba/fstab 排查、核心版本升级、固件交叉编译或实机验证。
+
+首次 Linux CI 发现 OAF 主机替身将 `l4_data` 误声明为 `char *`，与真实 `fwx.h` 的 `unsigned char *` 不符；MSVC 接受的混合指针减法被 GCC 拒绝。后续仅纠正 C 夹具类型并新增头文件契约检查，先在 Windows 复现契约失败，再通过 OAF 18 项；生产函数和补丁不改，最终专项总数为 68 项。完整 Windows 663 项记录对应首次提交，补充契约后的完整 Linux 结果以最终提交的 Actions 记录为准。

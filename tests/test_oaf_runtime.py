@@ -268,6 +268,18 @@ class RuntimeCFunctions(unittest.TestCase):
 
 
 class CompilerAvailability(unittest.TestCase):
+    def test_payload_pointer_type_matches_production_header(self):
+        # MSVC accepts arithmetic between differently signed character pointers;
+        # GCC rejects it. Keep the kernel boundary model faithful on both hosts.
+        header = (RAW / "oaf/src/fwx.h").read_text(encoding="utf-8")
+        harness = HARNESS.read_text(encoding="utf-8")
+        pattern = r"(?m)^\s*((?:unsigned\s+)?char\s*\*)\s*l4_data\s*;"
+        actual = re.findall(pattern, header)
+        modeled = re.findall(pattern, harness)
+        self.assertEqual(len(actual), 1)
+        self.assertEqual(len(modeled), 1)
+        self.assertEqual(re.sub(r"\s+", "", modeled[0]), re.sub(r"\s+", "", actual[0]))
+
     def test_absent_compiler_is_a_failure_not_a_skip(self):
         with mock.patch.object(c_test_env.shutil, "which", return_value=None), \
                 mock.patch.object(c_test_env, "msvc_environment_script", return_value=None):

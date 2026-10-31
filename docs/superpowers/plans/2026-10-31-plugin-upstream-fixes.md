@@ -78,10 +78,11 @@
 - 实施分工：三个互不修改共享入口的插件子任务；主任务负责调用链接入、完整验证、文档及交付。
 - Windows 已有 Ruby/Node/Make/flock/Xray 依赖校验通过；发现现成 VS Build Tools C 编译器，可用于 OAF 主机 C 回归，无需下载新工具链。
 
-- 针对性验证：OAF 17 项、Quickstart 21 项、OpenClash 29 项（含 64 种原有补丁完整组合）通过；主任务另核验真实构建入口与原有文件名保护。
+- 针对性验证：OAF 18 项、Quickstart 21 项、OpenClash 29 项（含 64 种原有补丁完整组合）通过；主任务另核验真实构建入口与原有文件名保护。
 - 独立审查复现并推动修正：过滤后空策略组需再次核心校验；ETag 不得根据年龄删除仍持有的锁。修正后五项定向复验通过。
 - 另修正 OpenClash 发布时沿用旧 mtime 导致 prepare 缓存无法失效的问题；两项回归验证内容变化更新时间、重复准备保持时间，以及发布失败恢复原字节、权限和时间。独立复核无剩余阻断项。
 - Windows 新增 venv 内 python3 同字节入口及路径校验，避免 Bash 调用系统应用别名；32 项工具回归及真实环境检查通过。
 - 完整 Windows 入口于 2026-10-31 21:03:39～21:29:34 执行，`result.json` 与 `regression.log` 均确认退出码 0；46 组 unittest 共 663 项，其中 643 通过、20 项平台跳过。16 个 Shell 入口中 15 个通过，Linux Kconfig 原生检查按平台跳过。
 - 本次通过 `windows_test_env.py run` 执行同一 `tests/run_all.sh`，另设置两个已校验 Mihomo 路径及 `OPENCLASH_REQUIRE_MIHOMO=1`；运行记录标识为 `20261031-210339-079610`。新增 OAF、Quickstart、OpenClash 67 项均无跳过。
 - 30 个受管包完整性、上游同步不变量、14 份文档本地链接和 `git diff --check` 通过；来源、选择、设备配置及固件编译工作流无差异。Linux 特有下载、链接、核心和 namespace 检查由推送后的原有 CI 补验；不把主机回归当作固件交叉编译或路由器验证。
+- 首次推送 `160bf3e` 的 Linux CI 在 OAF 主机 harness 编译失败：替身误用 `char *l4_data`，真实 `fwx.h` 为 `unsigned char *`，MSVC 接受而 GCC 拒绝混合指针减法。仅纠正替身及其边界返回类型，新增真实头文件契约回归；该契约先失败后通过，OAF 18 项在 MSVC 下通过。生产源码、补丁及断言不变，后续完整 Linux CI 核验最终提交。
