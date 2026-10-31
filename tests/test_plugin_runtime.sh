@@ -95,7 +95,9 @@ test_openclash() {
     if [[ ${PLUGIN_FIX_MODE:-fixed} != original ]]; then
         fix_openclash_compat "$package"
     fi
-    source "$package/root/usr/share/openclash/openclash_curl.sh"
+    # The fixture is now the complete reviewed file. Only replace its OpenWrt
+    # library includes; execute every production download/checksum function.
+    source <(sed '/^\. /d' "$package/root/usr/share/openclash/openclash_curl.sh")
     DEFAULT_UA=test
     LOG_WARN() { :; }
     LOG_OUT() { :; }

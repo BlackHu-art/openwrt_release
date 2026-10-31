@@ -100,10 +100,9 @@ fix_adguardhome_compat() (
 )
 
 fix_openclash_compat() {
-    apply_plugin_compat_patches "$1" "OpenClash" \
-        openclash-wan-subnets.patch openclash-checksum-filename.patch \
-        openclash-ruby-ast.patch openclash-dashboard-switch.patch openclash-filename-safety.patch \
-        openclash-tun-stack.patch
+    # The later subscription/group fixes overlap earlier patches. Prepare the
+    # entire reviewed stack in scratch before publishing any build-copy files.
+    python3 "$BASE_PATH/openclash_runtime_compat.py" prepare --core "$BASE_PATH" --package "$1"
 }
 
 fix_ssrplus_compat() (

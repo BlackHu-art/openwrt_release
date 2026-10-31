@@ -86,6 +86,11 @@ SHA-256 为 `5eb5e0524a42b62895ee8163d50bf1d78999db7c1321646fdcca3c99c26249e2`�
 Apache-2.0 文件也不能作为该独立 gist 的许可证明。quickstart 二进制与 istore-ui
 发行归档仍按各 recipe 的固定版本和哈希外部下载。
 
+`quickstart_compat.py` 现在先在临时副本装载上述原始兼容模板，再回移完整发送、
+chunk/EOF/CRLF 校验及安装参数双层验证，最后发布三份运行文件。原模板和锁定身份不变，
+保留温度/status 适配。非法包名在日志写入和安装前拒绝；源码漂移不会先覆盖后端。
+来源与真实 Lua/Shell 组合回归见 [本轮回移说明](maintenance/plugin-backports-2026-10-31.md)。
+
 ## OAF 7 默认状态与配置边界
 
 本次保持受管 OAF 7 / `fwx` schema，适用前提是用户确认尚未使用 OAF 规则。
@@ -101,6 +106,10 @@ Apache-2.0 文件也不能作为该独立 gist 的许可证明。quickstart 二�
 后端与 LuCI 重复的同名 ACL 合并到后端包，由一个文件所有者提供全部已审查权限。
 使用者仍需按主 README 的流程手动 enable/start appfilter，之后界面才可使用控制面。
 本次不承诺旧 OAF 6 的 `appfilter` 规则自动迁移到 `fwx`，也未验证旧规则的语义转换。
+
+`oaf_runtime_compat.py` 另在构建副本修复网络数据包分段复制、原子分配、HTTP 边界及
+连接创建失败的锁释放，并纠正 LAN 配置键为现有 `fwx` schema。入口先预检运行源码，
+再执行上述默认值和 ACL 处理，最后发布运行修复；原始来源、版本及 3000 字节上限不变。
 
 ## QuickFile 外部源码检查
 
@@ -138,7 +147,7 @@ SSR 自身组件选择显式保持已有能力，新增必需依赖单独声明�
 ## OpenClash
 
 从当前 `kenzok8/small-package` 获取包，在 feeds install 前调用
-`fix_openclash_compat`，在已审查的 `0.48.002` 源码上应用以下六份补丁：
+`fix_openclash_compat`，在已审查的 `0.48.002` 源码上保留以下六份补丁，并追加必要局部修复：
 
 - `openclash-wan-subnets.patch`：保留原有 WAN 子网修复。
 - `openclash-checksum-filename.patch`：对照
@@ -163,10 +172,15 @@ SSR 自身组件选择显式保持已有能力，新增必需依赖单独声明�
   依据 [官方模式/流量指南 §8.2](https://github.com/vernesong/OpenClash/blob/dev/.github/skills/openclash-user-guide/08-settings-mode-traffic.md)
   并通过旧/新官方 Mihomo 的实际配置解析复核。
 
-标准构建每次刷新 custom feed 后应用补丁。既有五份补丁的任意完整子集（32 种历史组合）
-均可补齐，包括原始源码、原有两份完整补丁和完整补丁状态。
-更早不同版本的 checksum 补丁、不完整 hunk 状态或无法通过补丁上下文校验的源码变化会停止构建，需重新审查。
-OpenClash 此处校验补丁上下文，并非 SSR、ADG 所采用的完整受保护文件 blob 校验。
+新增 `openclash-subscription-safety.patch`、`openclash-group-rename.patch`、
+`openclash-etag-lock.patch`，分别处理订阅失败保留旧配置和延后 ETag、组名引用同步及
+缓存并发更新。校验器无法运行也拒绝替换；不重复覆盖已有 checksum 和文件名保护。
+
+标准构建每次刷新 custom feed 后，由 `openclash_runtime_compat.py` 统一处理完整补丁栈。
+入口在 scratch 逆序规范化完整已知补丁，按 [完整文件身份](../wrt_core/compat/openclash-runtime/sources.json)
+验证原始 Git blob，顺序应用全部补丁后才发布构建副本。原有完整补丁组合可补齐，
+不完整 hunk、旧版 checksum 或未知源码漂移在真实文件写入前拒绝；重复准备不重写相同文件。
+具体取舍和回归见 [本轮回移说明](maintenance/plugin-backports-2026-10-31.md)。
 
 WAN 上游修复 [#5359 / a4b7073](https://github.com/vernesong/OpenClash/commit/a4b7073)
 暂不回移：自定义 WAN 区域与默认链共存时可选错区域，且 fw3 分支仅枚举 IPv4 区域，

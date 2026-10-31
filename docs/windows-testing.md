@@ -11,8 +11,11 @@ Windows 测试入口为 [`tests/windows-tests.ps1`](../tests/windows-tests.ps1)�
 - Windows 自带的 `%SystemRoot%\System32\tar.exe` 能解压 zstd 格式的 `.tar.zst` 文件和 Ruby 的 `.7z` 归档。
 - 首次 `install` 时能访问 Python 包索引、MSYS2 官方下载源，以及 Xray、Ruby、Node.js 的官方发行资源。
 - 可写的仓库外依赖目录。默认值为 **`%LOCALAPPDATA%\openwrt-release-test-deps`**；Microsoft Store 应用可能重定向本地应用数据路径，以脚本实际打印的绝对路径为准。
+- OAF 主机 C 回归需要可用的 GCC/Clang，或包含 C++ 工具链及 Windows SDK 的 Visual Studio Build Tools。测试通过 `vswhere` 自动定位 MSVC，并只在编译子进程加载环境；缺少编译器明确失败。Python 依赖安装器不代装系统编译器，详见 [本轮回移与复跑说明](maintenance/plugin-backports-2026-10-31.md)。
 
 脚本不会自动安装 Git 或 Python，不会替换 Git for Windows 的 DLL，也不会修改用户或系统的全局 `PATH`。Ruby 和 Node.js 使用依赖目录内的固定私有版本；测试工具只用于本地回归，不打包进固件。
+
+`install` 另在专用 venv 中建立与 `python.exe` 字节一致的 `python3.exe`，供 Bash 构建适配入口调用；`check` 同时核对两个入口及实际解释器路径，避免误用 Windows 应用执行别名。已有环境需复跑一次 `install` 补齐此入口。
 
 ## 首次安装
 

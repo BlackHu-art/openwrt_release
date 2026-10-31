@@ -264,12 +264,12 @@ update_mosdns_deconfig() {
 
 
 fix_quickstart() {
-    local file_path="$(get_custom_feed_worktree_dir)/luci-app-quickstart/luasrc/controller/istore_backend.lua"
-    local makefile_path="$(get_custom_feed_worktree_dir)/quickstart/Makefile"
-    if [ -f "$file_path" ]; then
-        echo "正在修复 quickstart..."
-        install_managed_support compat/istore_backend.lua "$file_path" || return 1
-    fi
+    local feed_dir
+    feed_dir=$(get_custom_feed_worktree_dir)
+    local makefile_path="$feed_dir/quickstart/Makefile"
+    # Validate all runtime inputs before replacing the local compatibility
+    # backend, so a controller/script drift cannot leave a partially fixed app.
+    python3 "$BASE_PATH/quickstart_compat.py" "$feed_dir/luci-app-quickstart" || return 1
 
     if [ -f "$makefile_path" ]; then
         echo "正在移除 quickstart 非必要存储依赖..."
@@ -289,7 +289,11 @@ update_oaf_deconfig() {
     feed_dir=$(get_custom_feed_worktree_dir)
     # The managed package has a reviewed fwx schema. Unknown future schemas
     # must stop here instead of falling back to obsolete no-op substitutions.
-    python3 "$BASE_PATH/oaf_compat.py" "$feed_dir/open-app-filter" "$feed_dir/luci-app-oaf"
+    # Runtime preflight happens first; either source guard can reject the
+    # combined preparation before the other stage publishes any files.
+    python3 "$BASE_PATH/oaf_runtime_compat.py" --check-only "$feed_dir/oaf" "$feed_dir/open-app-filter" || return 1
+    python3 "$BASE_PATH/oaf_compat.py" "$feed_dir/open-app-filter" "$feed_dir/luci-app-oaf" || return 1
+    python3 "$BASE_PATH/oaf_runtime_compat.py" "$feed_dir/oaf" "$feed_dir/open-app-filter"
 }
 
 

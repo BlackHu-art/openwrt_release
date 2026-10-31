@@ -81,3 +81,19 @@
 /tests/test_kconfig_*.sh text eol=lf
 /tests/fixtures/smartdns-download/** text eol=lf whitespace=-blank-at-eol,-space-before-tab
 /tests/fixtures/kconfig-compat/** text eol=lf whitespace=-blank-at-eol,-blank-at-eof,-space-before-tab
+
+# Reviewed plugin backports and executable regression inputs.
+/wrt_core/oaf_runtime_compat.py text eol=lf
+/wrt_core/quickstart_compat.py text eol=lf
+/wrt_core/openclash_runtime_compat.py text eol=lf
+/wrt_core/compat/openclash-runtime/** text eol=lf
+/wrt_core/patches/oaf-runtime-safety.json text eol=lf
+/wrt_core/patches/quickstart-runtime-safety.json text eol=lf
+/tests/c_test_env.py text eol=lf
+/tests/test_quickstart_runtime.py text eol=lf
+/tests/fixtures/oaf_runtime_harness.c text eol=lf
+/tests/fixtures/quickstart/** -text -filter -ident -working-tree-encoding whitespace=-blank-at-eol,-space-before-tab
+/tests/fixtures/quickstart/README.md text eol=lf
+/tests/fixtures/quickstart/sources.json text eol=lf
+/docs/maintenance/plugin-backports-2026-10-31.md text eol=lf
+/docs/superpowers/plans/2026-10-31-plugin-upstream-fixes.md text eol=lf

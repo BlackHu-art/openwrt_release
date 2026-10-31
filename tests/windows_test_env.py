@@ -68,6 +68,10 @@ class Layout:
         return self.dependencies / "python-venv/Scripts/python.exe"
 
     @property
+    def python3(self):
+        return self.python.with_name("python3.exe")
+
+    @property
     def flock(self):
         return self.dependencies / ("flock-" + FLOCK_VERSION) / "usr/bin/flock.exe"
 
@@ -116,6 +120,13 @@ def atomic_write(path, data):
 
 def write_json(path, value):
     atomic_write(path, (json.dumps(value, ensure_ascii=True, indent=2) + "\n").encode("utf-8"))
+
+
+def stage_python3_alias(layout):
+    """Keep Bash's python3 inside the selected venv, away from Store aliases."""
+    data = layout.python.read_bytes()
+    if not matches_hash(layout.python3, hashlib.sha256(data).hexdigest()):
+        atomic_write(layout.python3, data)
 
 
 def download_verified(url, output, expected):
@@ -261,8 +272,10 @@ def checked_output(command, environment, cwd):
 
 
 def check(layout):
-    require_files([layout.python, layout.bash, layout.git / "usr/bin/msys-2.0.dll", layout.flock, layout.xray,
+    require_files([layout.python, layout.python3, layout.bash, layout.git / "usr/bin/msys-2.0.dll", layout.flock, layout.xray,
                    layout.ruby, layout.node, layout.make])
+    if sha256(layout.python3) != sha256(layout.python):
+        raise ValueError("python3 launcher differs from the managed venv; rerun install")
     for path, digest in [(layout.flock, FLOCK_EXE_SHA256), (layout.xray, XRAY_EXE_SHA256),
                          (layout.ruby, RUBY_EXE_SHA256), (layout.node, NODE_EXE_SHA256),
                          (layout.make, MAKE_EXE_SHA256)]:
@@ -287,6 +300,10 @@ def check(layout):
                                   "python -c 'import sys; print(sys.executable)'"], environment, layout.repository)
     if Path(interpreter).resolve() != layout.python.resolve():
         raise ValueError("Git Bash did not select the test venv: " + interpreter)
+    interpreter3 = checked_output([layout.bash, "--noprofile", "--norc", "-c",
+                                   "python3 -c 'import sys; print(sys.executable)'"], environment, layout.repository)
+    if Path(interpreter3).resolve() != layout.python3.resolve():
+        raise ValueError("Git Bash python3 did not select the test venv: " + interpreter3)
     selected_make = checked_output([layout.python, "-c", "import shutil; print(shutil.which('make') or '')"],
                                    environment, layout.repository)
     if not selected_make or Path(selected_make).resolve() != layout.make.resolve():
@@ -332,7 +349,7 @@ flock --version
     node_version = checked_output([layout.node, "-e", node_probe], environment, layout.repository)
     if node_version != NODE_VERSION:
         raise ValueError("unexpected Node version: " + node_version)
-    return {"python": str(layout.python), "python_packages": actual,
+    return {"python": str(layout.python), "python3": str(layout.python3), "python_packages": actual,
             "requirements_sha256": sha256(layout.repository / "tests/requirements.txt"),
             "flock": str(layout.flock), "flock_version": flock_version,
             "flock_url": FLOCK_URL, "flock_archive_sha256": FLOCK_ARCHIVE_SHA256,
@@ -356,6 +373,7 @@ def install(layout):
     environment = child_environment(layout)
     if not layout.python.exists():
         subprocess.run([sys.executable, "-m", "venv", str(layout.python.parent.parent)], env=environment, check=True)
+    stage_python3_alias(layout)
     subprocess.run([str(layout.python), "-m", "pip", "install", "-r",
                     str(layout.repository / "tests/requirements.txt")], env=environment, check=True)
     if not matches_hash(layout.flock, FLOCK_EXE_SHA256):

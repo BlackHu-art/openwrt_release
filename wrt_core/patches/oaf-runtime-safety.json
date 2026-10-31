@@ -1,0 +1,39 @@
+{
+  "schema_version": 1,
+  "purpose": "Reviewed runtime safety backport applied only to OAF build copies",
+  "upstream_repository": "https://github.com/kenzok8/small-package",
+  "upstream_commit": "0892bf4fbaa2d4f99fe5e9c1425ced31574c965e",
+  "upstream_commit_url": "https://github.com/kenzok8/small-package/commit/0892bf4fbaa2d4f99fe5e9c1425ced31574c965e",
+  "managed_baseline_commit": "fca4816303d6157379efc3842310621cc9095963",
+  "patch_sha256": "d67b7ac294074edbe9539f5099e267cc82db2f6f409a5df08845c01e30a57ca6",
+  "files": {
+    "oaf/src/fwx_main.c": {
+      "before_sha256": "daf59e7fa8173f047e8b82a05f71bc297f159b606bd55b8bce2a071084957750",
+      "after_sha256": "5dc233d63960dbd94735cb46cb24f5a02423cb777a3eb441acc302758ef0e34e",
+      "selected": [
+        "read_skb range validation, GFP_ATOMIC and exact skb_copy_bits with failure cleanup",
+        "HTTP null payload, CRLF lookahead and minimum request/header line lengths",
+        "bypass connection allocation failure releases af_conn_lock",
+        "both nonlinear skb paths copy a bounded prefix and bound subsequent DPI length"
+      ]
+    },
+    "open-app-filter/src/main.c": {
+      "before_sha256": "e0ea3ab83ab3f60612244172fe8e7b78828fc8d4e31c4aafd21e41aff307bdfb",
+      "after_sha256": "5cd5c09c72c201be9ace761ee422610c7b6b7b0bd9510030fb392ced3f9be9ff",
+      "selected": ["update_lan_ip reads the current fwx.global.lan_ifname schema"]
+    }
+  },
+  "excluded": [
+    "MAX_AF_SUPPORT_DATA_LEN increase from 3000 to 4096; retain the existing 3000 byte DPI limit",
+    "versions, package releases and compiler warning configuration",
+    "LuCI layouts, themes, status scrolling and translations",
+    "nickname and whitelist rule reload behavior changes",
+    "ifconfig stderr redirection; unrelated to the schema correction",
+    "all unrelated packages in the upstream aggregate commit"
+  ],
+  "preserved": [
+    "managed source and maintenance snapshot bytes and source locks",
+    "existing oaf_compat.py default-off, service lifecycle and ACL behavior",
+    "plugin selection and build configuration"
+  ]
+}

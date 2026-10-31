@@ -18,7 +18,9 @@ python tests/test_kconfig_compat.py
 bash tests/test_kconfig_linux.sh
 python tests/test_download_compat.py
 python tests/test_quickfile_source.py
+python tests/test_quickstart_runtime.py
 python tests/test_oaf_compat.py
+python tests/test_oaf_runtime.py
 python tests/test_oaf_lifecycle.py
 python tests/test_theme_preservation.py
 python tests/test_windows_test_env.py
@@ -39,6 +41,7 @@ python tests/test_adguard_compat.py
 python tests/test_openclash_backports.py
 python tests/test_openclash_filename.py
 python tests/test_openclash_tun_stack.py
+python tests/test_openclash_updates.py
 bash tests/test_banner.sh
 bash tests/test_repo_checkout.sh
 python tests/test_homeproxy_dns_expire.py

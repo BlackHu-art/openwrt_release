@@ -16,3 +16,8 @@ ssrplus-*.patch text eol=lf whitespace=-blank-at-eol,-blank-at-eof,-space-before
 passwall2-singbox-*.patch text eol=lf whitespace=-blank-at-eol,-blank-at-eof,-space-before-tab
 passwall2-fw876-*.patch text eol=lf whitespace=-blank-at-eol,-blank-at-eof,-space-before-tab
 xray-core-*.patch text eol=lf whitespace=-blank-at-eol,-space-before-tab
+oaf-runtime-safety.patch text eol=lf whitespace=-blank-at-eol,-space-before-tab
+quickstart-runtime-safety.patch text eol=lf whitespace=-blank-at-eol,-space-before-tab
+openclash-subscription-safety.patch text eol=lf whitespace=-blank-at-eol,-space-before-tab
+openclash-group-rename.patch text eol=lf whitespace=-blank-at-eol,-space-before-tab
+openclash-etag-lock.patch text eol=lf whitespace=-blank-at-eol,-space-before-tab

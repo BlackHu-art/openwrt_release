@@ -31,6 +31,28 @@ class WindowsTestEnvironmentTests(unittest.TestCase):
         self.addCleanup(self.temporary.cleanup)
         self.base = Path(self.temporary.name)
 
+    def test_python3_alias_is_exact_venv_launcher_and_repairs_only_alias(self):
+        layout = tooling.Layout(self.base / "repository", self.base / "dependencies")
+        layout.python.parent.mkdir(parents=True)
+        layout.python.write_bytes(b"the selected venv launcher")
+        alias = layout.python.with_name("python3.exe")
+        alias.write_bytes(b"wrong launcher")
+        stage = getattr(tooling, "stage_python3_alias", None)
+        self.assertTrue(callable(stage), "the installer must provide a managed python3 launcher")
+        stage(layout)
+        self.assertEqual(alias.read_bytes(), layout.python.read_bytes())
+        self.assertEqual(layout.python.read_bytes(), b"the selected venv launcher")
+        before = alias.stat().st_mtime_ns
+        stage(layout)
+        self.assertEqual(alias.stat().st_mtime_ns, before)
+
+    def test_check_rejects_python3_alias_drift_before_running_any_tool(self):
+        layout = self.make_check_layout()
+        layout.python.with_name("python3.exe").write_bytes(b"unreviewed alias")
+        with patch.object(tooling, "checked_output", side_effect=AssertionError("unverified launcher ran")):
+            with self.assertRaisesRegex(ValueError, "python3"):
+                tooling.check(layout)
+
     def test_download_rejects_wrong_hash_without_replacing_existing_file(self):
         target = self.base / "cached archive"
         target.write_bytes(b"previous verified archive")
@@ -221,14 +243,14 @@ class WindowsTestEnvironmentTests(unittest.TestCase):
 
     def make_check_layout(self, missing=()):
         layout = tooling.Layout(self.base / "repository", self.base / "dependencies", self.base / "Git")
-        files = {"python": layout.python, "bash": layout.bash,
+        files = {"python": layout.python, "python3": layout.python3, "bash": layout.bash,
                  "msys": layout.git / "usr/bin/msys-2.0.dll", "flock": layout.flock,
                  "xray": layout.xray, "ruby": layout.ruby, "node": layout.node,
                  "make": layout.dependencies / "make-4.4.1-3/usr/bin/make.exe"}
         for name, path in files.items():
             if name not in missing:
                 path.parent.mkdir(parents=True, exist_ok=True)
-                path.write_bytes((name + " executable").encode())
+                path.write_bytes((("python" if name == "python3" else name) + " executable").encode())
         if "ruby" not in missing:
             library = layout.ruby.parent.parent / "lib/yaml.rb"
             library.parent.mkdir()
@@ -252,7 +274,11 @@ class WindowsTestEnvironmentTests(unittest.TestCase):
                     return str(layout.dependencies / "make-4.4.1-3/usr/bin/make.exe")
                 return '{"PyYAML":"6.0.3","lupa":"2.8"}'
             if executable == layout.bash:
-                return str(layout.python) if command[4].startswith("python ") else "flock from util-linux 2.40.2"
+                if command[4].startswith("python "):
+                    return str(layout.python)
+                if command[4].startswith("python3 "):
+                    return str(layout.python3)
+                return "flock from util-linux 2.40.2"
             if executable == layout.xray:
                 return "Xray 26.10.21 fixture"
             if executable == layout.ruby:
@@ -265,7 +291,7 @@ class WindowsTestEnvironmentTests(unittest.TestCase):
         return probe
 
     def test_check_rejects_missing_managed_tools_without_downloading(self):
-        for missing in ("ruby", "node", "make"):
+        for missing in ("ruby", "node", "make", "python3"):
             with self.subTest(dependency=missing):
                 # Each fixture has otherwise valid pinned dependencies. Inherited
                 # global tools must never satisfy a missing managed installation.

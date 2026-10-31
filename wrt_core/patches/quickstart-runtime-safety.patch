@@ -1,0 +1,189 @@
+Backport Quickstart runtime safety from kenzok8/small-package
+commit d4611b99118531f49f26a834e5ee6400e201c15a.
+
+Apply to a build copy after loading managed compat/istore_backend.lua.
+Keep the local temperature/status adapter. Explicitly load nixio.util and
+reject short readall EOF, malformed framing and oversized chunk headers.
+Package validation uses the same ASCII alphabet in Lua and shell.
+
+--- a/luasrc/controller/istore_backend.lua
++++ b/luasrc/controller/istore_backend.lua
+@@ -3,6 +3,7 @@
+ 
+ local http = require "luci.http"
+ local nixio = require "nixio"
++require "nixio.util"
+ local ltn12 = require "luci.ltn12"
+ local table = require "table"
+ local util = require "luci.util"
+@@ -22,7 +23,7 @@
+       if not chunk then 
+         return 1 
+       else 
+-        return sock:send(chunk)
++        return sock:sendall(chunk)
+       end 
+     end 
+   else 
+@@ -62,43 +63,55 @@
+ local function chunksource(sock, buffer)
+         buffer = buffer or ""
+         return function()
+-                local output
+-                local _, endp, count = buffer:find("^([0-9a-fA-F]+);?.-\r\n")
+-                while not count and #buffer <= 1024 do
++                local _, endp, header = buffer:find("^(.-)\r\n")
++                while not endp and #buffer < 1024 do
+                         local newblock, code = sock:recv(1024 - #buffer)
+-                        if not newblock then
+-                                return nil, code
++                        if not newblock or newblock == "" then
++                                return nil, code or -1, "incomplete chunk header"
+                         end
+-                        buffer = buffer .. newblock  
+-                        _, endp, count = buffer:find("^([0-9a-fA-F]+);?.-\r\n")
+-                end
+-                count = tonumber(count, 16)
+-                if not count then
+-                        return nil, -1, "invalid encoding"
++                        buffer = buffer .. newblock
++                        _, endp, header = buffer:find("^(.-)\r\n")
++                end
++                if not endp or endp > 1024 then
++                        return nil, -1, "invalid chunk header"
++                end
++                local count = header:match("^([0-9a-fA-F]+)$") or
++                        header:match("^([0-9a-fA-F]+);[^\r\n]*$")
++                count = count and tonumber(count, 16)
++                if not count or count > 9007199254740991 then
++                        return nil, -1, "invalid chunk size"
+                 elseif count == 0 then
+                         return nil
+-                elseif count + 2 <= #buffer - endp then
+-                        output = buffer:sub(endp+1, endp+count)
++                end
++
++                local output = buffer:sub(endp+1, endp+count)
++                local tail = buffer:sub(endp+#output+1, endp+count+2)
++                if count + 2 <= #buffer - endp then
+                         buffer = buffer:sub(endp+count+3)
+-                        return output
+                 else
+-                        output = buffer:sub(endp+1, endp+count)
+                         buffer = ""
+-                        if count - #output > 0 then
+-                                local remain, code = sock:recvall(count-#output)
+-                                if not remain then
+-                                        return nil, code
++                        if #output < count then
++                                local needed = count - #output
++                                local remain, code = sock:recvall(needed)
++                                -- nixio.util.readall may return a short string on EOF.
++                                if not remain or #remain ~= needed then
++                                        return nil, code or -1, "incomplete chunk body"
+                                 end
+                                 output = output .. remain
+-                                count, code = sock:recvall(2)
+-                        else
+-                                count, code = sock:recvall(count+2-#buffer+endp)
+                         end
+-                        if not count then
+-                                return nil, code
++                        if #tail < 2 then
++                                local needed = 2 - #tail
++                                local remain, code = sock:recvall(needed)
++                                if not remain or #remain ~= needed then
++                                        return nil, code or -1, "incomplete chunk terminator"
++                                end
++                                tail = tail .. remain
+                         end
+-                        return output
+-                end
++                end
++                if tail ~= "\r\n" then
++                        return nil, -1, "invalid chunk terminator"
++                end
++                return output
+         end
+ end
+ 
+--- a/luasrc/controller/quickstart.lua
++++ b/luasrc/controller/quickstart.lua
+@@ -95,14 +95,30 @@
+     -- form style
+     local packages = luci.http.formvalue("packages")
+     local pkgs = ""
++    local function valid_package(value)
++        return type(value) == "string" and #value <= 128 and
++            value:match("^[a-zA-Z0-9][a-zA-Z0-9%.%+_%-]*$") ~= nil
++    end
++    local function invalid_package()
++        luci.http.prepare_content("application/json")
++        luci.http.write_json({success=1, scope="params", error="Invalid package name"})
++    end
+     if type(packages) == "table" then
+         if #packages > 0 then
+             for k, v in pairs(packages) do
++                if not valid_package(v) then
++                    invalid_package()
++                    return
++                end
+                 pkgs = pkgs .. " " .. luci.util.shellquote(v)
+             end
+         end
+     else
+         if packages ~= nil and packages ~= "" then
++            if not valid_package(packages) then
++                invalid_package()
++                return
++            end
+             pkgs = luci.util.shellquote(packages)
+         end
+     end
+--- a/root/usr/libexec/quickstart/auto_setup.sh
++++ b/root/usr/libexec/quickstart/auto_setup.sh
+@@ -1,4 +1,14 @@
+ #!/bin/sh
++
++# Validate all arguments before touching logs, installing packages or sourcing
++# metadata scripts. This script is also callable without the LuCI controller.
++[ "$#" -gt 0 ] || { echo "No packages specified" >&2; exit 1; }
++for pkg in "$@"; do
++    case "$pkg" in
++        ''|[!a-zA-Z0-9]*|*[!a-zA-Z0-9_.+-]*) echo "Invalid package name" >&2; exit 1 ;;
++    esac
++    [ "${#pkg}" -le 128 ] || { echo "Invalid package name" >&2; exit 1; }
++done
+ 
+ > /var/log/auto_setup.success
+ > /var/log/auto_setup.failed
+@@ -6,7 +16,7 @@
+ 
+ save_input() {
+     local pkg
+-    for pkg in $@; do
++    for pkg in "$@"; do
+         echo "$pkg" >> /var/log/auto_setup.input
+     done
+ }
+@@ -35,16 +45,16 @@
+ }
+ 
+ auto_setup_app() {
+-    local pkg=$1
++    local pkg="$1"
+     is-opkg install "app-meta-$pkg" || return 1
+-    sh -c ". '/usr/libexec/istorea/$pkg.sh'"
++    sh -c '. "$1"' sh "/usr/libexec/istorea/$pkg.sh"
+ }
+ 
+ auto_setup_apps() {
+     local pkg
+-    for pkg in $@; do
++    for pkg in "$@"; do
+         echo "Setting up $pkg..."
+-        if auto_setup_app $pkg; then
++        if auto_setup_app "$pkg"; then
+             echo "Set up $pkg success"
+             echo "$pkg" >> /var/log/auto_setup.success
+         else

@@ -1,9 +1,10 @@
 # OpenClash 0.48.002 regression fixtures
 
-These are complete, byte-identical files from
+The original nine complete, byte-identical files came from
 [kenzok8/small-package 549bdea5056436c9c2f9b8ad6eb9297318bbd6a1](https://github.com/kenzok8/small-package/tree/549bdea5056436c9c2f9b8ad6eb9297318bbd6a1/luci-app-openclash).
 The package Makefile identifies version `0.48.002`.
-The files were rechecked against mirror commit
+The five subscription/ETag/group-update fixtures were added from the mirror
+snapshot below. All fourteen files were checked against mirror commit
 [`3d5609257639ed76aaacdeffe242343d51265fea`](https://github.com/kenzok8/small-package/tree/3d5609257639ed76aaacdeffe242343d51265fea/luci-app-openclash)
 and official [`e553e82e01c697aefbe1555261a503f425e00ccd`](https://github.com/vernesong/OpenClash/tree/e553e82e01c697aefbe1555261a503f425e00ccd/luci-app-openclash).
 
@@ -18,6 +19,11 @@ and official [`e553e82e01c697aefbe1555261a503f425e00ccd`](https://github.com/ver
 | `config_edit.js` | `root/www/luci-static/resources/openclash/js/config_edit.js` | `07b04ca809cfbd4b3a14eaa1c639b31eb6131a3c` |
 | `yml_change.sh` | `root/usr/share/openclash/yml_change.sh` | `abbce9f50b25f5459611f7d32940a018caf40ecd` |
 | `settings.lua` | `luasrc/model/cbi/openclash/settings.lua` | `047b497980b53b159f95a3f38d41106097ee0f16` |
+| `openclash.sh` | `root/usr/share/openclash/openclash.sh` | `6c181265ca96c452660653d60ec552d58eccc12c` |
+| `openclash_curl.sh` | `root/usr/share/openclash/openclash_curl.sh` | `0d2a371bc2389d833bc81cdafdf075e5d70f0648` |
+| `openclash_etag.sh` | `root/usr/share/openclash/openclash_etag.sh` | `9a5313dccf8603fa0dc82737d08941604574c3f3` |
+| `uci.rb` | `root/usr/share/openclash/uci.rb` | `726b0ea480762404aa9a15903fcce5bc1e2801ed` |
+| `proxy-groups-config.lua` | `luasrc/model/cbi/openclash/proxy-groups-config.lua` | `ee986b054aeedc999584e37d824289485bb9f872` |
 
 OpenClash is Copyright (c) 2019-2026 vernesong, MIT; see
 [COPYING.OpenClash](../../plugin-runtime/COPYING.OpenClash).
@@ -52,3 +58,10 @@ assets; their archive SHA-256 values match the official release API digests:
 
 These binaries are validation inputs only. Firmware runtime core selection and
 saved OpenClash configuration remain under the plugin/user's control.
+
+`test_openclash_updates.py` executes the complete production-patched subscription,
+ETag, and group-update functions with Bash, Lua, Ruby, and real `flock`. It covers
+failed/filtered downloads, deferred ETag publication, concurrent cache writes,
+and rule references after group renaming. The fixture blob identities and
+backport donors are recorded in
+[`sources.json`](../../../../wrt_core/compat/openclash-runtime/sources.json).

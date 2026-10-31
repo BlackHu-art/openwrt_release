@@ -22,6 +22,7 @@
 - [fw876 SSR 与共享核心集成](fw876-core-migration.md)：当前 v198.2 方案、原始配方与构建副本、测试核心身份、升级及验证边界。
 - [fw876 上游修复记录](fw876-upstream-backports.md)：本轮 KCP 层序、Xray UPX 复用的来源、取舍和执行证据。
 - [插件兼容性](plugin-compatibility.md)：保留插件的构建接入和兼容处理；Xray 派生修订以 fw876 集成说明及实现为准。
+- [OAF、Quickstart、OpenClash 必要修复](maintenance/plugin-backports-2026-10-31.md)：本轮局部回移、来源取舍、构建副本预检及回归入口。
 - [归档与下载兼容](source-download-compat.md)：simple-obfs、SmartDNS 与下载错误传播。
 - [Kconfig 兼容](kconfig-compat.md)：Qt5/squeezelite 循环依赖与原生解析器验证。
 - [Linux 回归工作流](../.github/workflows/test_ssrplus.yml) 与 [完整回归入口](../tests/run_all.sh)：依赖准备、强制门禁和执行顺序。

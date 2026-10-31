@@ -1,0 +1,39 @@
+{
+  "schema": 1,
+  "source": {
+    "repository": "kenzok8/small-package",
+    "upstream_path": "luci-app-openclash",
+    "tracking": "rolling",
+    "reviewed_snapshot_commit": "3d5609257639ed76aaacdeffe242343d51265fea",
+    "reviewed_subtree": "d544bd03cdaae26d19836bd911875458ba9cae76",
+    "version": "0.48.002"
+  },
+  "equivalent_official_reference": {
+    "repository": "vernesong/OpenClash",
+    "commit": "e553e82e01c697aefbe1555261a503f425e00ccd",
+    "verified_file_count": 14,
+    "verification": "Git blob equality for all files in this receipt; this is not the production fetch source"
+  },
+  "backport_donor_repository": "vernesong/OpenClash",
+  "backports": [
+    "373d0023c7006fee3bb66c90f40355ef02e2d682",
+    "2cd5ad9847b1debcb65b9843925041305aa3c2b3",
+    "4015008110e8a40b41c416677c0e7224635d9379"
+  ],
+  "files": {
+    "luasrc/controller/openclash.lua": "f04546b358bdcb7e8c98a93b5980eec30bbb6304",
+    "luasrc/model/cbi/openclash/config-subscribe-edit.lua": "609f2f3804639877e716805dc4fd5bd5a9b29a76",
+    "luasrc/model/cbi/openclash/proxy-groups-config.lua": "ee986b054aeedc999584e37d824289485bb9f872",
+    "luasrc/model/cbi/openclash/settings.lua": "047b497980b53b159f95a3f38d41106097ee0f16",
+    "luasrc/openclash.lua": "72f61f4f81507f68a6e57aacb12a51de78a4342c",
+    "luasrc/view/openclash/switch_dashboard.htm": "735d7fbefd51bf0e6ba716a09a630d463901138c",
+    "root/etc/init.d/openclash": "7bc7e7568c74c197668ddf6372c7013de2baf152",
+    "root/usr/share/openclash/YAML.rb": "1addd1d1cbf09de4ecbec4593a2ba3af25c20e27",
+    "root/usr/share/openclash/openclash.sh": "6c181265ca96c452660653d60ec552d58eccc12c",
+    "root/usr/share/openclash/openclash_curl.sh": "0d2a371bc2389d833bc81cdafdf075e5d70f0648",
+    "root/usr/share/openclash/openclash_etag.sh": "9a5313dccf8603fa0dc82737d08941604574c3f3",
+    "root/usr/share/openclash/uci.rb": "726b0ea480762404aa9a15903fcce5bc1e2801ed",
+    "root/usr/share/openclash/yml_change.sh": "abbce9f50b25f5459611f7d32940a018caf40ecd",
+    "root/www/luci-static/resources/openclash/js/config_edit.js": "07b04ca809cfbd4b3a14eaa1c639b31eb6131a3c"
+  }
+}

@@ -16,6 +16,11 @@ SOURCES = {
     "config-subscribe-edit.lua": "luasrc/model/cbi/openclash/config-subscribe-edit.lua",
     "luci-openclash.lua": "luasrc/openclash.lua",
     "config_edit.js": "root/www/luci-static/resources/openclash/js/config_edit.js",
+    "openclash.sh": "root/usr/share/openclash/openclash.sh",
+    "openclash_etag.sh": "root/usr/share/openclash/openclash_etag.sh",
+    "openclash_curl.sh": "root/usr/share/openclash/openclash_curl.sh",
+    "uci.rb": "root/usr/share/openclash/uci.rb",
+    "proxy-groups-config.lua": "luasrc/model/cbi/openclash/proxy-groups-config.lua",
 }
 
 
@@ -24,8 +29,6 @@ def make_package(destination):
         path = destination / target
         path.parent.mkdir(parents=True, exist_ok=True)
         shutil.copyfile(FIXTURES / fixture, path)
-    target = destination / "root/usr/share/openclash/openclash_curl.sh"
-    shutil.copyfile(ROOT / "tests/fixtures/plugin-runtime/openclash_curl.sh", target)
 
 
 if __name__ == "__main__":

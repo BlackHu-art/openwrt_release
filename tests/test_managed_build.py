@@ -78,11 +78,18 @@ test "$(cat "$BUILD_DIR/files/etc/config/argon")" = 'user custom theme'
         result = self.run_stage('''
 target="$BUILD_DIR/feeds/custom_feed"
 install_managed_package quickstart "$target/quickstart"
-mkdir -p "$target/luci-app-quickstart/luasrc/controller"
-printf 'old controller' > "$target/luci-app-quickstart/luasrc/controller/istore_backend.lua"
+mkdir -p "$target/luci-app-quickstart/luasrc/controller" "$target/luci-app-quickstart/root/usr/libexec/quickstart"
+cp "$BASE_PATH/managed/packages/luci-app-quickstart/luasrc/controller/istore_backend.lua" "$target/luci-app-quickstart/luasrc/controller/istore_backend.lua"
+cp "$BASE_PATH/managed/packages/luci-app-quickstart/luasrc/controller/quickstart.lua" "$target/luci-app-quickstart/luasrc/controller/quickstart.lua"
+cp "$BASE_PATH/managed/packages/luci-app-quickstart/root/usr/libexec/quickstart/auto_setup.sh" "$target/luci-app-quickstart/root/usr/libexec/quickstart/auto_setup.sh"
 fix_quickstart
-cmp "$BASE_PATH/managed/compat/istore_backend.lua" "$target/luci-app-quickstart/luasrc/controller/istore_backend.lua"
+grep -q 'sock:sendall' "$target/luci-app-quickstart/luasrc/controller/istore_backend.lua"
+grep -q 'get_cpu_temperature' "$target/luci-app-quickstart/luasrc/controller/istore_backend.lua"
 ! grep -Eq '[+]smartmontools|[+]mdadm|[+]parted|[+]e2fsprogs' "$target/quickstart/Makefile"
+find "$target" -type f -exec sha256sum {} + | sort > "$BUILD_DIR/quickstart-first"
+fix_quickstart
+find "$target" -type f -exec sha256sum {} + | sort > "$BUILD_DIR/quickstart-second"
+cmp "$BUILD_DIR/quickstart-first" "$BUILD_DIR/quickstart-second"
 ''')
         self.assert_ok(result)
 
@@ -151,6 +158,7 @@ cmp "$BASE_PATH/managed/packages/tcping/Makefile" "$target/tcping/Makefile"
         result = self.run_stage('''
 target="$BUILD_DIR/feeds/custom_feed"
 install_managed_package open-app-filter "$target/open-app-filter"
+install_managed_package oaf "$target/oaf"
 mkdir -p "$target/luci-app-oaf/root/usr/share/rpcd/acl.d"
 cp "$BASE_PATH/managed/packages/luci-app-oaf/root/usr/share/rpcd/acl.d/luci-app-oaf.json" \
    "$target/luci-app-oaf/root/usr/share/rpcd/acl.d/luci-app-oaf.json"
@@ -158,6 +166,8 @@ update_oaf_deconfig
 test -f "$target/open-app-filter/files/fwx"
 test -f "$target/open-app-filter/files/99_disable_oaf"
 test ! -e "$target/luci-app-oaf/root/usr/share/rpcd/acl.d/luci-app-oaf.json"
+grep -q 'GFP_ATOMIC' "$target/oaf/src/fwx_main.c"
+grep -q 'skb_copy_bits' "$target/oaf/src/fwx_main.c"
 update_oaf_deconfig
 ''')
         self.assert_ok(result)
@@ -166,6 +176,7 @@ update_oaf_deconfig
         result = self.run_stage('''
 target="$BUILD_DIR/feeds/custom_feed"
 install_managed_package open-app-filter "$target/open-app-filter"
+install_managed_package oaf "$target/oaf"
 mkdir -p "$target/luci-app-oaf/root/usr/share/rpcd/acl.d"
 cp "$BASE_PATH/managed/packages/luci-app-oaf/root/usr/share/rpcd/acl.d/luci-app-oaf.json" \
    "$target/luci-app-oaf/root/usr/share/rpcd/acl.d/luci-app-oaf.json"
@@ -173,6 +184,23 @@ sed -i 's/PKG_VERSION:=7.0.1/PKG_VERSION:=8.0.0/' "$target/open-app-filter/Makef
 if update_oaf_deconfig; then echo 'unknown OAF recipe accepted' >&2; exit 94; fi
 test ! -e "$target/open-app-filter/files/fwx"
 test -f "$target/luci-app-oaf/root/usr/share/rpcd/acl.d/luci-app-oaf.json"
+cmp "$BASE_PATH/managed/packages/oaf/src/fwx_main.c" "$target/oaf/src/fwx_main.c"
+''')
+        self.assert_ok(result)
+
+    def test_oaf_runtime_drift_is_rejected_before_default_and_acl_changes(self):
+        result = self.run_stage('''
+target="$BUILD_DIR/feeds/custom_feed"
+install_managed_package open-app-filter "$target/open-app-filter"
+install_managed_package oaf "$target/oaf"
+mkdir -p "$target/luci-app-oaf/root/usr/share/rpcd/acl.d"
+cp "$BASE_PATH/managed/packages/luci-app-oaf/root/usr/share/rpcd/acl.d/luci-app-oaf.json" \
+   "$target/luci-app-oaf/root/usr/share/rpcd/acl.d/luci-app-oaf.json"
+printf '\\n/* unreviewed source */\\n' >> "$target/oaf/src/fwx_main.c"
+find "$target" -type f -exec sha256sum {} + | sort > "$BUILD_DIR/oaf-before"
+if update_oaf_deconfig; then echo 'unknown OAF runtime accepted' >&2; exit 94; fi
+find "$target" -type f -exec sha256sum {} + | sort > "$BUILD_DIR/oaf-after"
+cmp "$BUILD_DIR/oaf-before" "$BUILD_DIR/oaf-after"
 ''')
         self.assert_ok(result)
 

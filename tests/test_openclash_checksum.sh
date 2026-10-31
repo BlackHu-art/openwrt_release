@@ -37,7 +37,8 @@ git -C "$test_root" config core.autocrlf false
 package="$test_root/package"
 make_package "$package"
 fix_openclash_compat "$package"
-source "$package/root/usr/share/openclash/openclash_curl.sh"
+# Isolate OpenWrt absolute library includes while executing the complete file.
+source <(sed '/^\. /d' "$package/root/usr/share/openclash/openclash_curl.sh")
 
 # Keep the production SHA calculation and parser; isolate only remote I/O/logging.
 DEFAULT_UA=test
