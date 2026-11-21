@@ -179,6 +179,21 @@ jobs:
           if-no-files-found: error
           retention-days: 7
 
+      - name: Upload AX6000 configuration diagnostics
+        if: ${{ !cancelled() && inputs.model == 'jdcloud_ax6000_immwrt' && inputs.build_mode == 'config_only' }}
+        uses: actions/upload-artifact@v7.0.1
+        with:
+          name: ax6000-config-diagnostics-${{ github.run_id }}
+          include-hidden-files: true
+          retention-days: 1
+          if-no-files-found: ignore
+          path: |
+            ./action_build/.config
+            ./action_build/.config.requested
+            ./action_build/tmp/.config-package.in
+            ./action_build/tmp/.config-target.in
+            ./action_build/tmp/.packageinfo
+
       - name: Upload Build Logs
         if: ${{ !cancelled() }}
         uses: actions/upload-artifact@v7.0.1
