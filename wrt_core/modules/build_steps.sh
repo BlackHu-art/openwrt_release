@@ -94,12 +94,28 @@ prepare_defconfig() {
     return 0
 }
 
+build_miniupnpd_unpacker() {
+    make tools/libdeflate/compile -j1 V=s BUILD_LOG=1 || return $?
+    # A restored build stamp can report success without its installed binary.
+    # Stop here rather than proceeding into package unpacking or cleaning caches.
+    if [[ ! -x staging_dir/host/bin/libdeflate-gzip ]]; then
+        echo 'ERROR: tools/libdeflate/compile completed without executable staging_dir/host/bin/libdeflate-gzip.' >&2
+        return 1
+    fi
+}
+
 build_firmware() {
     local jobs=$(($(nproc) + 1))
     python "$BUILD_STEPS_CORE_PATH/download_compat.py" . || return $?
     run_build_step download make download "-j$(($(nproc) * 2))" V=s BUILD_LOG=1 || return $?
     # Reject patch drift before starting all the expensive firmware packages.
     if grep -qE '^CONFIG_PACKAGE_miniupnpd(-(nftables|iptables))?=[ym]$' .config; then
+        # flock-only download variants do not reach zstd's libdeflate dependency.
+        # Build just the unpacker required by this core before early preparation.
+        if [[ -f include/unpack.mk ]] && grep -Fq 'DECOMPRESS_CMD:=$(STAGING_DIR_HOST)/bin/libdeflate-gzip' include/unpack.mk \
+                && [[ ! -x staging_dir/host/bin/libdeflate-gzip ]]; then
+            run_build_step miniupnpd-host-tools build_miniupnpd_unpacker || return $?
+        fi
         run_build_step miniupnpd-prepare make package/feeds/packages/miniupnpd/prepare -j1 V=s BUILD_LOG=1 || return $?
     fi
     run_build_step compile make "-j$jobs" V=s BUILD_LOG=1 || return $?

@@ -40,6 +40,28 @@
 完整块与六个固定底座的来源校验记录见
 [下载夹具说明](../tests/fixtures/download-toplevel/README.md)；其余四个固定新底座的下载块均与既有 flock+zstd 形式逐字节一致。
 
+### S20M 提前 prepare 所需的宿主解包工具
+
+[S20M 流程 44909468432](https://github.com/BlackHu-art/openwrt_release/actions/runs/44909468432/job/136862847992)
+已经通过下载，随后在提前执行 miniupnpd prepare 时找不到
+`staging_dir/host/bin/libdeflate-gzip`。下载源码完成，并不代表编译主机的解包工具已经安装。
+该底座的 `include/unpack.mk` 对 gzip 源码包直接使用这个程序；完整编译通常会先构建 tools，
+而现有提前补丁校验绕到了这个顺序之前。其他下载规则会先编译 zstd，继而带入 libdeflate，
+S20M 的 flock-only 下载入口没有经过这条依赖链。
+
+现只在 miniupnpd 已选择、当前底座的解包规则确实使用 libdeflate-gzip，且该程序尚不可执行时，
+在提前 prepare 之前执行一次已记录日志的 `tools/libdeflate/compile`。
+工具已经存在、底座使用原生 gzip 或未选择 miniupnpd 时不增加构建步骤；
+不改上游 download 规则，不提前构建所有工具，也不增加重试或清缓存。
+目标报告成功后仍核对可执行文件，防止缓存 stamp 已恢复而产物缺失时继续进入 prepare。
+
+固定源码中 libdeflate 自身通过 `staging_dir/host/bin/gzip` 解开源码包，避免依赖自己的产物；
+该 gzip 由正常 prereq 主机命令准备流程提供。真实 GNU Make 回归加载固定 tools 依赖与 unpack 规则，
+验证冷启动、这条 bootstrap 解包路径、已有 zstd 依赖链、热缓存不增加步骤、失败立即停止，
+以及“目标成功但未生成可执行程序”的拒绝；编译器边界使用调用真实 gzip 的测试程序替身。
+来源记录见 [宿主工具夹具](../tests/fixtures/download-toplevel/host-tools-sources.json)，
+测试见 [`test_host_unpack_tools.py`](../tests/test_host_unpack_tools.py)。实际 S20M 完整构建仍需重新验证。
+
 本次环境准备约 5 分 31 秒，下载阶段 76 秒但错误返回 0，编译阶段 8058 秒后失败。Rust host 本身成功完成，用时约 7610 秒；长时间等待来自已启动的并行编译任务，并不是 Rust 编译错误。
 
 ## 回归和复跑

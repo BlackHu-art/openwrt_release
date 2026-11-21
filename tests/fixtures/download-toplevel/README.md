@@ -40,3 +40,26 @@ LiBwrt 000a4e74, ImmortalWrt 6003f6b8 and ZqinKing 796897b5) contain the exact
 existing flock+zstd block, excerpt SHA-256
 `c2a0d2c2a061ebb84a5599ce742e7aa86dabe6857af3a84ab83fce84d3644e89`.
 No additional download recipe form was found in those fixed source states.
+
+## Early package prepare host unpacker
+
+The same pinned S20M source also provides the unchanged `tools/Makefile`,
+`tools/libdeflate/Makefile`, `include/unpack.mk` and `include/prereq-build.mk`
+under `ec9ef10e/`. Their Git blobs and SHA-256 values are recorded in
+[`host-tools-sources.json`](host-tools-sources.json). Original GPL-2.0 headers
+remain intact.
+
+`test_host_unpack_tools.py` loads the real tools dependency assignments and
+unpack implementation. A bounded Make dispatcher retains those target edges;
+only compiler/install payload and expensive recursive downloads are isolated.
+The actual libdeflate producer recipe's `DECOMPRESS_CMD` override is evaluated
+when unpacking a gzip source fixture, proving it can bootstrap through the
+prereq-provided staged gzip without its own libdeflate-gzip binary or zstd.
+A wrapper invoking the actual system gzip stands in for the compiled tool.
+The early miniupnpd source fixture is then unpacked by the real `PKG_UNPACK`.
+
+The regression covers cold flock-only downloads, a preinstalled warm unpacker,
+nonexecutable cache output, existing zstd-to-libdeflate dependency behavior,
+unselected miniupnpd/native-gzip cores, a failed host build, and successful stale
+stamps without installed output. It does not claim to compile the real
+libdeflate C implementation, cross-compile miniupnpd or complete firmware.

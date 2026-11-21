@@ -1,0 +1,38 @@
+[
+  {
+    "repository": "https://github.com/padavanonly/immortalwrt-mt798x-6.6",
+    "commit": "ec9ef10efc65da1e6d1de4e2c043c0e13d08eed8",
+    "path": "tools/Makefile",
+    "git_blob": "92b2782d58c261d9effe804231560b2023086cd1",
+    "sha256": "d8ded615e37dcb5cd4e9a7d859c023db9697c88e328cf7a8d84ba553adfc8c31",
+    "fixture": "ec9ef10e/tools/Makefile",
+    "license": "GPL-2.0 (source file header)"
+  },
+  {
+    "repository": "https://github.com/padavanonly/immortalwrt-mt798x-6.6",
+    "commit": "ec9ef10efc65da1e6d1de4e2c043c0e13d08eed8",
+    "path": "tools/libdeflate/Makefile",
+    "git_blob": "8f7946d90ed76c7028fbdf3e8028cd97eb1a2e41",
+    "sha256": "7d823e980276f93ea859302d40b78c1169b705c39f83a32756fb03897d1d02e3",
+    "fixture": "ec9ef10e/tools/libdeflate/Makefile",
+    "license": "GPL-2.0 (source file header)"
+  },
+  {
+    "repository": "https://github.com/padavanonly/immortalwrt-mt798x-6.6",
+    "commit": "ec9ef10efc65da1e6d1de4e2c043c0e13d08eed8",
+    "path": "include/unpack.mk",
+    "git_blob": "5959d55f4b1dc11f8a4a7f4d78ff6850f0506ba1",
+    "sha256": "db7793d199dfeb964de422736c89b210bb4d637f02889fb9b5e2440e1a3fc3f6",
+    "fixture": "ec9ef10e/include/unpack.mk",
+    "license": "GPL-2.0 (source file header)"
+  },
+  {
+    "repository": "https://github.com/padavanonly/immortalwrt-mt798x-6.6",
+    "commit": "ec9ef10efc65da1e6d1de4e2c043c0e13d08eed8",
+    "path": "include/prereq-build.mk",
+    "git_blob": "8b138cfc44e98a919d939c1f664e10d91cab38a9",
+    "sha256": "da7dc4dcf652a2d2c1d0bddb8bdabf88840454772028242827ee0e8512cddadf",
+    "fixture": "ec9ef10e/include/prereq-build.mk",
+    "license": "GPL-2.0 (source file header)"
+  }
+]

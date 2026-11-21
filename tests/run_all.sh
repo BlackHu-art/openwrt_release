@@ -24,6 +24,7 @@ python tests/test_kconfig_compat.py
 python tests/test_istorex_selection.py
 bash tests/test_kconfig_linux.sh
 python tests/test_download_compat.py
+python tests/test_host_unpack_tools.py
 python tests/test_quickfile_source.py
 python tests/test_quickstart_runtime.py
 python tests/test_oaf_compat.py
