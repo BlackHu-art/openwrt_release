@@ -186,7 +186,9 @@ update_diskman() {
         cd "$BUILD_DIR/feeds/luci/applications" || return
         \rm -rf "luci-app-diskman"
 
-        if ! git_retry clone --filter=blob:none --no-checkout "$repo_url" diskman; then
+        # A sparse checkout can start background maintenance during a lazy
+        # fetch. This clone is removed immediately after copying the package.
+        if ! git_retry clone --config maintenance.auto=false --filter=blob:none --no-checkout "$repo_url" diskman; then
             echo "错误：从 $repo_url 克隆 diskman 仓库失败" >&2
             exit 1
         fi
@@ -217,7 +219,7 @@ _sync_luci_lib_docker() {
         mkdir -p "$BUILD_DIR/feeds/luci/libs" || return
         cd "$BUILD_DIR/feeds/luci/libs" || return
 
-        if ! git_retry clone --filter=blob:none --no-checkout "$repo_url" luci-lib-docker-tmp; then
+        if ! git_retry clone --config maintenance.auto=false --filter=blob:none --no-checkout "$repo_url" luci-lib-docker-tmp; then
             echo "错误：从 $repo_url 克隆 luci-lib-docker 仓库失败" >&2
             exit 1
         fi
@@ -253,7 +255,7 @@ update_dockerman() {
         cd "$BUILD_DIR/feeds/luci/applications" || return
         \rm -rf "luci-app-dockerman"
 
-        if ! git_retry clone --filter=blob:none --no-checkout "$repo_url" dockerman; then
+        if ! git_retry clone --config maintenance.auto=false --filter=blob:none --no-checkout "$repo_url" dockerman; then
             echo "错误：从 $repo_url 克隆 dockerman 仓库失败" >&2
             exit 1
         fi
