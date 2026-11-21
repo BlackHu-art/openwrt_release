@@ -125,7 +125,10 @@ codeload 的模式使用 Git archive 默认 `tar.umask=0002`，普通文件为 0
 原 WebUI 选择 / 固定提交 / 真下载检查继续执行。原始维护文件不修改，完整配方漂移检查仍生效。
 
 本地 macOS 实际 HTTP 下载与完整内容核对已通过；使用原生编译的文件锁辅助程序进行这一额外实验，
-不代表 Linux 门禁已通过。最终 Linux CI 和完整固件构建结果需要分别确认。
+随后 Linux 必需入口和京东云两套完整构建均通过。编译日志确认每套固件都使用该归档并应用了四份新增补丁。
+[Linux 回归](https://github.com/BlackHu-art/openwrt_release/actions/runs/44875408697)、
+[ImmortalWrt 完整构建](https://github.com/BlackHu-art/openwrt_release/actions/runs/44875416674)、
+[LiBwrt 完整构建](https://github.com/BlackHu-art/openwrt_release/actions/runs/44875419031)。
 
 同一核心提交也接入三项运行修复。退出时先完成服务端清理再释放客户端资源。
 反复设置主 DNS 时，已有的同一 DHCP 选项不再追加。停止时只删除 SmartDNS 自己添加并记录的选项，

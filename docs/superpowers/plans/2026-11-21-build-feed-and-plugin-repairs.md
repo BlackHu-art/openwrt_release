@@ -65,5 +65,5 @@ The feed adapter consumes a local Git build tree plus the checked-in lock, write
 - [x] Run focused tests, complete regression, production source integrity, all-profile config preview, document links and diff checks.
 - [x] Obtain fresh whole-change review and resolve actionable findings.
 - [x] Run Linux required CI on the exact final revision; inspect failed checks and fix confirmed issues.
-- [ ] Validate representative ImmortalWrt/LiBwrt builds without publishing firmware releases; report run IDs and actual outcomes.
-- [ ] Report changed behavior, included upstream fixes, source identities and unverified real-device behavior.
+- [x] Validate representative ImmortalWrt/LiBwrt builds without publishing firmware releases; report run IDs and actual outcomes.
+- [x] Record changed behavior, upstream fixes, exact source identities and verification boundaries in the maintenance report.

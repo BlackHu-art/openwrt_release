@@ -97,8 +97,8 @@ core/feed 所有的插件随对应已锁定的核心/LuCI/软件包来源更新�
 源码身份、受管 30 单元校验、固定输入行为回归与各修复先失败后通过的证据已分别记录。
 本机 macOS 无 Linux `/proc`、网络命名空间或目标交叉工具链，Linux 专属检查由精确提交 CI 验证。
 
-- `229ee8b` 的 [Linux 全量回归 44871821569](https://github.com/BlackHu-art/openwrt_release/actions/runs/44871821569)
-  通过：55 组 Python 测试共 787 项（786 通过、1 项 Windows 专属测试跳过），以及全部 shell 检查。
+- `3c57c3c` 的 Linux 全量回归通过。57 组 Python 测试共 803 项，802 通过，1 项 Windows 专属测试跳过，
+  shell 检查也全部通过。[Linux 回归 44875408697](https://github.com/BlackHu-art/openwrt_release/actions/runs/44875408697)
   包括真实 Xray/Mihomo、原生 Kconfig，以及网络命名空间内实际 dnsmasq/nft、9 种 IPv6 模式检查。
 - 独立整分支审查及后续复审完成。发现的本地设备切换、静默索引漏报、SSR 写入回滚、
   配置产物隐藏文件、配置检查缓存和 NPU 下载范围问题均已补回归；清理失败会在重置源码前退出。
@@ -114,7 +114,7 @@ core/feed 所有的插件随对应已锁定的核心/LuCI/软件包来源更新�
 | W1701K / master | [44870602436](https://github.com/BlackHu-art/openwrt_release/actions/runs/44870602436) | 19 |
 | S20M / 24.10 | [44870605379](https://github.com/BlackHu-art/openwrt_release/actions/runs/44870605379) | 15 |
 
-随后仅补稀疏导入中断恢复及 Netcontrol 旧配置保护，`229ee8b` 的最终 Linux 回归已通过；
+随后补上稀疏导入中断恢复及 Netcontrol 旧配置保护，`229ee8b` 的 Linux 回归已通过。
 [S20M 配置复核 44871847853](https://github.com/BlackHu-art/openwrt_release/actions/runs/44871847853)
 也已通过，下载产物确认 15 个应用保留、Netcontrol 选中且来源锁不变，日志确认独立首次启动适配已执行。
 两个京东云代表目标的首次完整流程均在 SmartDNS 核心归档下载处失败：
@@ -122,4 +122,15 @@ core/feed 所有的插件随对应已锁定的核心/LuCI/软件包来源更新�
 [LiBwrt 44871845589](https://github.com/BlackHu-art/openwrt_release/actions/runs/44871845589)。
 两者均为同一固定提交重新打包后的校验值与旧配方不符。新方案已通过真实下载和内容核对，
 原因、固定归档身份及验证方式见[下载兼容说明](../source-download-compat.md)。
-实机未验证，不将来源/配置检查等同于固件编译成功。
+
+`3c57c3c` 的两个完整构建均成功，日志确认 SmartDNS 的固定归档下载、四份新增补丁应用及软件包编译通过。
+两边各上传 9 个固件产物文件。
+
+| 京东云 IPQ60xx 底座 | 完整构建 | 固件归档 SHA-256 |
+| --- | --- | --- |
+| ImmortalWrt | [44875416674](https://github.com/BlackHu-art/openwrt_release/actions/runs/44875416674) | `18a7555c868ed1ff2dccf4d3173be765417a3964af4b4935a3363c7c72b70655` |
+| LiBwrt | [44875419031](https://github.com/BlackHu-art/openwrt_release/actions/runs/44875419031) | `567a6934e9c722bee175335b9b2b82d1d45806fac5a126ae3057b5b950d778a4` |
+
+两个归档已下载核对，实际 SHA-256 与表中 GitHub 记录一致。各自包含 RE-SS-01、RE-CS-02、
+RE-CS-07 和 Redmi AX5 JD 版四个升级镜像。每个镜像均含内核与根文件系统，包清单包含
+SmartDNS 核心和 LuCI 界面。实机刷写与运行未纳入本轮验证。
