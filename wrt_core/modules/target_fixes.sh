@@ -18,6 +18,24 @@ ensure_libffi_source() {
 }
 
 
+fix_fortify_stdio() {
+    # Backport OpenWrt eddb6342cd4a4470b489a9c9c39893be37440511 to the
+    # reviewed S20M core, whose fortify wrapper warnings stop libxcrypt.
+    [[ ${COMMIT_HASH:-} == ec9ef10efc65da1e6d1de4e2c043c0e13d08eed8 ]] || return 0
+    local name="003-stdio.h-ignore-Wformat-nonliteral-in-snprintf-and-sp.patch"
+    local source="$BASE_PATH/patches/$name"
+    local destination="$BUILD_DIR/toolchain/fortify-headers/patches/$name"
+    if [[ -e "$destination" || -L "$destination" ]]; then
+        if [[ -f "$destination" && ! -L "$destination" ]] && cmp -s "$source" "$destination"; then
+            return 0
+        fi
+        echo "ERROR: unexpected fortify-headers patch at $destination" >&2
+        return 1
+    fi
+    install -m 0644 "$source" "$destination"
+}
+
+
 fix_default_set() {
     # 注入默认主题、系统设置和目标平台通用补丁。
     if [ -d "$BUILD_DIR/feeds/luci/collections/" ]; then

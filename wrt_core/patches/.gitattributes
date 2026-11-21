@@ -3,6 +3,7 @@ homeproxy-fadaa676-sing-box-1.14.patch text eol=lf
 homeproxy-1a32fca-acl-domains.patch text eol=lf
 homeproxy-10f4244-feature-cache.patch text eol=lf
 # Unified diff context prefixes are required data, including blank context lines.
+003-stdio.h-ignore-Wformat-nonliteral-in-snprintf-and-sp.patch text eol=lf whitespace=-blank-at-eol,-space-before-tab
 adguardhome-update-safety.patch text eol=lf whitespace=-blank-at-eol,-space-before-tab
 adguardhome-noop-update.patch text eol=lf whitespace=-blank-at-eol,-blank-at-eof,-space-before-tab
 homeproxy-routing-cleanup.patch text eol=lf whitespace=-blank-at-eol,-space-before-tab

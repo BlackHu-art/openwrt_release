@@ -10,6 +10,8 @@ import unittest
 ROOT = Path(__file__).resolve().parents[1]
 BASH = os.environ.get("BASH") or shutil.which("bash")
 NETCONTROL_FIXTURE = ROOT / "tests/fixtures/netcontrol/61364846"
+S20M_CORE = "ec9ef10efc65da1e6d1de4e2c043c0e13d08eed8"
+FORTIFY_PATCH = "003-stdio.h-ignore-Wformat-nonliteral-in-snprintf-and-sp.patch"
 
 
 class UpstreamBuildFixes(unittest.TestCase):
@@ -23,6 +25,33 @@ class UpstreamBuildFixes(unittest.TestCase):
                            BASE_PATH=(ROOT / "wrt_core").as_posix(), LC_ALL="C")
         return subprocess.run([BASH, "--noprofile", "--norc", "-c", source, "upstream-fix", *map(str, arguments)],
                               cwd=ROOT, env=environment, capture_output=True, text=True, timeout=30)
+
+    def test_s20m_fortify_backport_preserves_existing_toolchain_patches(self):
+        patches = self.build / "toolchain/fortify-headers/patches"
+        patches.mkdir(parents=True)
+        existing = patches / "001-upstream.patch"
+        existing.write_bytes(b"existing toolchain patch\n")
+        installed = patches / FORTIFY_PATCH
+        script = 'source "$BASE_PATH/modules/target_fixes.sh"; COMMIT_HASH=$1; fix_fortify_stdio'
+
+        result = self.shell(script, "0" * 40)
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertFalse(installed.exists())
+
+        result = self.shell(script, S20M_CORE)
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertEqual(installed.read_bytes(), (ROOT / "wrt_core/patches" / FORTIFY_PATCH).read_bytes())
+        self.assertEqual(existing.read_bytes(), b"existing toolchain patch\n")
+
+        original_stat = installed.stat()
+        result = self.shell(script, S20M_CORE)
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertEqual(installed.stat().st_mtime_ns, original_stat.st_mtime_ns)
+
+        installed.write_bytes(b"a different patch at the same path\n")
+        result = self.shell(script, S20M_CORE)
+        self.assertNotEqual(result.returncode, 0)
+        self.assertEqual(installed.read_bytes(), b"a different patch at the same path\n")
 
     def netcontrol_donor(self, *, with_second_package=False):
         """Create a real Git donor whose default branch has newer, wrong bytes."""
