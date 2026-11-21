@@ -24,12 +24,17 @@ router shutdown test. It also checks patch application, drift rejection and raw
 fixture identities. The source-download tests separately verify the complete
 canonical archive against the pinned Git tree.
 
-The additional `103-smartdns-serve-expired-no.patch` backports only
+The additional `103-smartdns-serve-expired-no.patch` starts with
 [1006f640d50f1e2951e13d3e740813cc76a6739e](https://github.com/pymumu/smartdns/commit/1006f640d50f1e2951e13d3e740813cc76a6739e).
+The reviewed downstream follow-up also applies the stale-cache policy before
+the early dualstack SOA shortcut: stale primary entries are rejected and stale
+alternates fall back to a fresh primary instead of forcing a SOA response.
 The cache contract compiles the complete real `_dns_server_process_cache` and
 `_dns_server_get_reply_ttl` functions, stubbing surrounding cache/network APIs.
 It tests stale/fresh cache, explicit global no, per-request no and default yes;
 it also checks reply TTL behavior and catches omission of the second condition.
-The core group default remains yes, and this patch changes only the two C
+For both A and AAAA primary queries, a faster alternate exercises the real early
+SOA branch with stale primary/alternate, both fresh, and policy yes/no cases.
+The core group default remains yes, and this patch changes only cache/reply C
 conditions; it does not change configuration generation or stored user settings.
 This focused C test does not run a complete SmartDNS daemon or DNS transport.

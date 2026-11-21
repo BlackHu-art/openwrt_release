@@ -27,25 +27,37 @@ class SmartdnsInit(unittest.TestCase):
             source.write_bytes(data)
             if PATCH.exists():
                 subprocess.run(["git", "apply", str(PATCH)], cwd=work, check=True)
-            function = re.search(r"^set_main_dns\(\)\n\{.*?^\}", source.read_text(),
-                                 re.MULTILINE | re.DOTALL)
-            self.assertIsNotNone(function)
-            # Keep the actual setup function and isolate UCI and service reloads.
-            setup = function.group().replace("/etc/init.d/dnsmasq reload", "reload_dnsmasq")
+            setup = []
+            for name in ("set_main_dns", "stop_main_dns"):
+                function = re.search(rf"^{name}\(\)\n\{{.*?^\}}", source.read_text(),
+                                     re.MULTILINE | re.DOTALL)
+                self.assertIsNotNone(function)
+                setup.append(function.group().replace("/etc/init.d/dnsmasq reload", "reload_dnsmasq"))
             script = r'''
 reload_dnsmasq() { :; }
 uci() {
     case "$*" in
-        '-q get network.lan.ipaddr') echo '10.0.0.1/24' ;;
+        '-q get network.lan.ipaddr') cat lan-address ;;
         '-q get dhcp.@dnsmasq[0].port') cat port ;;
         '-q get dhcp.lan.dhcp_option') paste -s -d ' ' options ;;
+        '-q get dhcp.lan.smartdns_dhcp_option') cat ownership ;;
         '-q get dhcp.@dnsmasq[0].dns_redirect') echo 0 ;;
+        '-q get dhcp.@dnsmasq[0].old_dns_redirect') echo 0 ;;
         'commit dhcp') : ;;
         'batch -q -')
             while read -r op value; do
                 case "$op:$value" in
                     'set:dhcp.@dnsmasq[0].port=0') echo 0 > port ;;
                     'add_list:dhcp.lan.dhcp_option="6,10.0.0.1"') echo '6,10.0.0.1' >> options ;;
+                    'set:dhcp.lan.smartdns_dhcp_option="6,10.0.0.1"') echo '6,10.0.0.1' > ownership ;;
+                    'delete:dhcp.@dnsmasq[0].port') : > port ;;
+                    'delete:dhcp.lan.smartdns_dhcp_option') : > ownership ;;
+                    del_list:dhcp.lan.dhcp_option=*)
+                        option=${value#*=}
+                        option=${option#\"}
+                        option=${option%\"}
+                        awk -v remove="$option" '$0 != remove' options > next-options
+                        mv next-options options ;;
                     :) ;;
                     *) echo "Unexpected UCI command: $op $value" >&2; return 2 ;;
                 esac
@@ -54,7 +66,7 @@ uci() {
     esac
 }
 '''
-            script += setup + r'''
+            script += "\n".join(setup) + r'''
 
 # Restore the ordinary dnsmasq port between calls, as a service reconfigure can.
 echo 53 > port
@@ -62,15 +74,25 @@ set_main_dns
 echo 53 > port
 set_main_dns
 cat options
+cp port started-port
+echo "$1" > lan-address
+stop_main_dns 0
 '''
-            (work / "options").write_text("6,10.0.0.10\n3,10.0.0.254\n", newline="\n")
-            result = subprocess.run([bash_executable(), "-c", script], cwd=work,
-                                    text=True, capture_output=True, timeout=10)
-            self.assertEqual(result.returncode, 0, result.stderr)
-            self.assertEqual(result.stdout.splitlines(), [
-                "6,10.0.0.10", "3,10.0.0.254", "6,10.0.0.1",
-            ])
-            self.assertEqual((work / "port").read_text().strip(), "0")
+            base = ["6,10.0.0.10", "3,10.0.0.254"]
+            for preexisting, address in ((True, "10.0.0.1"), (False, "10.0.0.1/24"),
+                                         (False, "10.0.0.12/24")):
+                with self.subTest(preexisting=preexisting, stop_address=address):
+                    before = [*base, "6,10.0.0.1"] if preexisting else base
+                    (work / "options").write_text("\n".join(before) + "\n", newline="\n")
+                    (work / "ownership").write_text("")
+                    (work / "lan-address").write_text("10.0.0.1/24\n", newline="\n")
+                    result = subprocess.run([bash_executable(), "-c", script, "smartdns-uci", address],
+                                            cwd=work, text=True, capture_output=True, timeout=10)
+                    self.assertEqual(result.returncode, 0, result.stderr)
+                    self.assertEqual(result.stdout.splitlines(), [*base, "6,10.0.0.1"])
+                    self.assertEqual((work / "started-port").read_text().strip(), "0")
+                    self.assertEqual((work / "options").read_text().splitlines(), before)
+                    self.assertEqual((work / "ownership").read_text(), "")
 
     def test_expired_cache_checkbox_emits_explicit_policy_and_retains_unset_default(self):
         with tempfile.TemporaryDirectory(prefix="smartdns-cache-config-") as temporary:

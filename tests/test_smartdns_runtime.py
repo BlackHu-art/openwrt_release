@@ -143,7 +143,7 @@ int main(void) {
             self.assertEqual(hashlib.sha1(blob).hexdigest(), expected['git_blob'])
             self.assertEqual(hashlib.sha256(data).hexdigest(), expected['sha256'])
 
-    def run_cache_contract(self):
+    def run_cache_contract(self, *, dualstack=False):
         def function(relative, name):
             data = (self.directory / relative).read_bytes()
             match = re.search(rb'int ' + name.encode() + rb'\([^\n]*\)\n\{.*?\n\}', data, re.S)
@@ -181,13 +181,15 @@ struct dns_cache_key { char *dns_group_name, *domain; int qtype, query_flag; };
 struct dns_server_query_option { int server_flags, ecs_enable_flag, ecs_dns; char *dns_group_name; };
 static struct { int cachesize; } dns_conf = { 1 };
 static struct dns_cache cached = { { DNS_T_A, 1 } };
-static int cached_ttl, served, released, refreshed, updated;
+static struct dns_cache alternate = { { DNS_T_AAAA, 1 } };
+static int primary_qtype = DNS_T_A;
+static int cached_ttl, alternate_ttl, served, soa_replies, released, refreshed, updated;
 static int _dns_server_has_bind_flag(struct dns_request *r, int flag) { (void)r; (void)flag; return 1; }
-static struct dns_cache *dns_cache_lookup(struct dns_cache_key *key) { (void)key; return &cached; }
+static struct dns_cache *dns_cache_lookup(struct dns_cache_key *key) { return key->qtype == primary_qtype ? &cached : &alternate; }
 static int _dns_server_is_dns64_request(struct dns_request *r) { (void)r; return 0; }
 static int _dns_server_get_expired_ttl_reply(struct dns_request *r, struct dns_cache *c) { (void)r; (void)c; return 5; }
-static int _dns_server_reply_SOA(int code, struct dns_request *r) { (void)code; (void)r; return 0; }
-static int dns_cache_get_ttl(struct dns_cache *c) { (void)c; return cached_ttl; }
+static int _dns_server_reply_SOA(int code, struct dns_request *r) { (void)code; (void)r; soa_replies++; return 0; }
+static int dns_cache_get_ttl(struct dns_cache *c) { return c == &alternate ? alternate_ttl : cached_ttl; }
 static int _dns_server_process_cache_data(struct dns_request *r, struct dns_cache *c) { (void)r; (void)c; served++; return 0; }
 static int dns_cache_get_query_flag(struct dns_cache *c) { (void)c; return 0; }
 static char *dns_cache_get_dns_group_name(struct dns_cache *c) { (void)c; return "default"; }
@@ -219,7 +221,7 @@ static int check_case(int global, int per_request, int ttl, int expect_cache, in
     }
     return 0;
 }
-int main(void) {
+int check_regular_cases(void) {
     int ret;
     /* Default yes remains usable; explicit no must reject stale cache. */
     if ((ret = check_case(1, 0, 0, 1, 5))) return ret;
@@ -230,7 +232,48 @@ int main(void) {
     if ((ret = check_case(1, 0, 60, 1, 5))) return ret;
     return 0;
 }
+static int check_dual_case(int qtype, int global, int per_request, int ttl, int alt_ttl,
+                          int expect_success, int expect_soa, int expect_data) {
+    struct dns_conf_group group = { global, 5, 1, 10 };
+    struct check_orders orders = { { { 1 } } };
+    struct dns_request r = {0};
+    r.conf = &group; r.check_order_list = &orders;
+    r.domain = "example.test"; r.dns_group_name = "default";
+    r.qtype = primary_qtype = cached.info.qtype = qtype;
+    alternate.info.qtype = qtype == DNS_T_A ? DNS_T_AAAA : DNS_T_A;
+    /* Faster alternate enters the real early dualstack SOA branch. */
+    cached.info.speed = 200; alternate.info.speed = 1;
+    r.dualstack_selection = 1; r.no_serve_expired = per_request;
+    cached_ttl = ttl; alternate_ttl = alt_ttl;
+    served = soa_replies = released = refreshed = updated = 0;
+    int ret = _dns_server_process_cache(&r);
+    if ((ret == 0) != expect_success || soa_replies != expect_soa ||
+        served != expect_data || released != 2) {
+        fprintf(stderr, "dualstack policy mismatch qtype=%d global=%d request=%d ttl=%d alternate_ttl=%d soa=%d served=%d ret=%d\n",
+                qtype, global, per_request, ttl, alt_ttl, soa_replies, served, ret);
+        return 54;
+    }
+    if (refreshed != (expect_success && ttl == 0) || updated != (expect_success && ttl != 0)) return 55;
+    return 0;
+}
+int check_dual_cases(void) {
+    int ret;
+    int qtypes[] = { DNS_T_A, DNS_T_AAAA };
+    for (int i = 0; i < 2; i++) {
+        int q = qtypes[i];
+        if ((ret = check_dual_case(q, 0, 0, 0, 60, 0, 0, 0))) return ret;
+        if ((ret = check_dual_case(q, 0, 0, 60, 0, 1, 0, 1))) return ret;
+        if ((ret = check_dual_case(q, 0, 0, 60, -1, 1, 0, 1))) return ret;
+        if ((ret = check_dual_case(q, 0, 0, 60, 60, 1, 1, 0))) return ret;
+        if ((ret = check_dual_case(q, 1, 0, 0, 0, 1, 1, 0))) return ret;
+        if ((ret = check_dual_case(q, 1, 1, 0, 60, 0, 0, 0))) return ret;
+        if ((ret = check_dual_case(q, 1, 1, 60, 0, 1, 0, 1))) return ret;
+    }
+    return 0;
+}
 '''
+        harness += ('int main(void) { return check_dual_cases(); }\n' if dualstack else
+                    'int main(void) { return check_regular_cases(); }\n')
         program = self.directory / 'cache-contract.c'
         program.write_text(harness, encoding='ascii')
         executable = self.directory / ('cache-contract.exe' if os.name == 'nt' else 'cache-contract')
@@ -246,6 +289,11 @@ int main(void) {
         if EXPIRED_PATCH.exists():
             self.apply_patch(EXPIRED_PATCH)
         result = self.run_cache_contract()
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+
+    def test_dualstack_early_soa_honors_primary_and_alternate_cache_lifetimes(self):
+        self.apply_patch(EXPIRED_PATCH)
+        result = self.run_cache_contract(dualstack=True)
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
 
     def test_ttl_contract_catches_missing_second_upstream_condition(self):

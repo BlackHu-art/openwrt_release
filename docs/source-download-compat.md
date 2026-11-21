@@ -128,8 +128,9 @@ codeload 的模式使用 Git archive 默认 `tar.umask=0002`，普通文件为 0
 不代表 Linux 门禁已通过。最终 Linux CI 和完整固件构建结果需要分别确认。
 
 同一核心提交也接入三项运行修复。退出时先完成服务端清理再释放客户端资源。
-反复设置主 DNS 时，已有的同一 DHCP 选项不再追加。界面显式关闭过期缓存时，启动脚本生成
-`serve-expired no`，核心按该设置处理缓存和响应有效时间。未配置该选项时沿用核心默认值。
+反复设置主 DNS 时，已有的同一 DHCP 选项不再追加。停止时只删除 SmartDNS 自己添加并记录的选项，
+旧版本没有记录的条目会保留。界面显式关闭过期缓存时，启动脚本生成 `serve-expired no`，
+核心按该设置处理缓存、响应有效时间和 IPv4／IPv6 择优。未配置该选项时沿用核心默认值。
 回归运行生产函数及初始化脚本中的相关逻辑，通过受控边界复现旧问题并核实修复后的行为。
 [退出顺序](https://github.com/pymumu/smartdns/commit/b6139a199232140447aff6c4ec111c222ac84993)、
 [DHCP 选项](https://github.com/pymumu/smartdns/commit/21c940edc65520849ba03544c5cf8d9cf326e680)、

@@ -6,9 +6,25 @@ Respect the global/group policy when serving stale cache and selecting the
 reply TTL. Keep existing defaults and configuration generation unchanged.
 Backported to pinned core 136c0c2690138d6dedd8b520281aafe49112643f.
 
+Downstream review follow-up: before a dualstack SOA shortcut, fall back
+to the ordinary cache path if stale serving is forbidden and either cache
+entry is expired. This prevents bypassing the upstream policy check.
+
 --- a/src/dns_server/cache.c
 +++ b/src/dns_server/cache.c
-@@ -537,7 +537,8 @@
+@@ -526,6 +526,11 @@
+ 			if ((dualstack_dns_cache->info.speed + (request->conf->dns_dualstack_ip_selection_threshold * 10)) <
+ 					dns_cache->info.speed ||
+ 				dns_cache->info.speed < 0) {
++				if ((request->no_serve_expired == 1 || request->conf->dns_serve_expired == 0) &&
++					(dns_cache_get_ttl(dns_cache) <= 0 || dns_cache_get_ttl(dualstack_dns_cache) <= 0)) {
++					goto reply_cache;
++				}
++
+ 				tlog(TLOG_DEBUG, "cache result: %s, qtype: %d, force %s preferred, id: %d, time1: %d, time2: %d",
+ 					 request->domain, request->qtype, request->qtype == DNS_T_AAAA ? "IPv4" : "IPv6", request->id,
+ 					 dns_cache->info.speed, dualstack_dns_cache->info.speed);
+@@ -537,7 +542,8 @@
  	}
  
  reply_cache:
