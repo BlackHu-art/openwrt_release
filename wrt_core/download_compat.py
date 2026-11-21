@@ -21,6 +21,15 @@ download: .config FORCE $(if $(wildcard $(STAGING_DIR_HOST)/bin/flock),,tools/fl
 \t@+$(foreach dir,$(DOWNLOAD_DIRS),$(SUBMAKE) $(dir);)
 '''
 REPAIRED = ORIGINAL.replace(b"$(SUBMAKE) $(dir);", b"$(SUBMAKE) $(dir) || exit $$?;")
+# padavanonly/immortalwrt-mt798x-6.6 at the reviewed 24.10 core
+# ec9ef10efc65da1e6d1de4e2c043c0e13d08eed8 has the same block with only
+# flock as a host prerequisite. Preserve that complete, separately reviewed
+# form rather than adding a host tool or accepting arbitrary prerequisites.
+ORIGINAL_24_10 = ORIGINAL.replace(
+    b" $(if $(wildcard $(STAGING_DIR_HOST)/bin/zstd),,tools/zstd/compile)", b""
+)
+REPAIRED_24_10 = ORIGINAL_24_10.replace(b"$(SUBMAKE) $(dir);", b"$(SUBMAKE) $(dir) || exit $$?;")
+REVIEWED_BLOCKS = ((ORIGINAL, REPAIRED), (ORIGINAL_24_10, REPAIRED_24_10))
 
 
 def prepare_download(build_root):
@@ -30,13 +39,15 @@ def prepare_download(build_root):
         raise ValueError("download recipe is missing or redirected: " + str(target))
     current = target.read_bytes()
     rules = re.findall(rb"(?m)^download[ \t]*::?[^\n]*\n(?:[ \t]*\n|\t[^\n]*\n)*", current)
-    known_rules = {block[block.index(b"download:"):].rstrip(b"\n") for block in (ORIGINAL, REPAIRED)}
-    if (current.count(ORIGINAL) + current.count(REPAIRED) != 1
+    blocks = [block for pair in REVIEWED_BLOCKS for block in pair]
+    known_rules = {block[block.index(b"download:"):].rstrip(b"\n") for block in blocks}
+    if (sum(current.count(block) for block in blocks) != 1
             or len(rules) != 1 or rules[0].rstrip(b"\n") not in known_rules):
         raise ValueError("unreviewed or duplicate download recipe in " + str(target))
-    if REPAIRED in current:
+    original, repaired = next(pair for pair in REVIEWED_BLOCKS if any(block in current for block in pair))
+    if repaired in current:
         return
-    prepared = current.replace(ORIGINAL, REPAIRED, 1)
+    prepared = current.replace(original, repaired, 1)
     descriptor, staged = tempfile.mkstemp(prefix=".download-compat-", dir=target.parent)
     try:
         with os.fdopen(descriptor, "wb") as output:

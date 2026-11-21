@@ -1,0 +1,62 @@
+[
+  {
+    "repository": "https://github.com/VIKINGYFY/immortalwrt",
+    "commit": "3fd1e27a511851b41cf082b067b60099e8e026c4",
+    "path": "include/toplevel.mk",
+    "git_blob": "c55c92077f6863dd81e47bdcd3081b933f951605",
+    "source_sha256": "256788f3059518b42c35826589c78bf2ef337cc2b8582c7c1a57c01c064509c2",
+    "fixture": "3fd1e27a/download.mk",
+    "fixture_sha256": "c2a0d2c2a061ebb84a5599ce742e7aa86dabe6857af3a84ab83fce84d3644e89",
+    "license": "GPL-2.0-only (source SPDX header; excerpt is unmodified)"
+  },
+  {
+    "repository": "https://github.com/VIKINGYFY/immortalwrt",
+    "commit": "f9b0ce7650fdcc7f4793256a3ae43c1132e2bc49",
+    "path": "include/toplevel.mk",
+    "git_blob": "de286d7e39ec7854e34eb474533e9a2badfce034",
+    "source_sha256": "24bafff2b2bf2e755788d185cf4b49370fe1d50414130c1929157a8c552d3dd9",
+    "fixture": "3fd1e27a/download.mk",
+    "fixture_sha256": "c2a0d2c2a061ebb84a5599ce742e7aa86dabe6857af3a84ab83fce84d3644e89",
+    "license": "GPL-2.0-only (source SPDX header; excerpt is unmodified)"
+  },
+  {
+    "repository": "https://github.com/LiBwrt/openwrt-6.x",
+    "commit": "000a4e74b17edfdc296f9eaa674344fc0adaaf95",
+    "path": "include/toplevel.mk",
+    "git_blob": "c55c92077f6863dd81e47bdcd3081b933f951605",
+    "source_sha256": "256788f3059518b42c35826589c78bf2ef337cc2b8582c7c1a57c01c064509c2",
+    "fixture": "3fd1e27a/download.mk",
+    "fixture_sha256": "c2a0d2c2a061ebb84a5599ce742e7aa86dabe6857af3a84ab83fce84d3644e89",
+    "license": "GPL-2.0-only (source SPDX header; excerpt is unmodified)"
+  },
+  {
+    "repository": "https://github.com/immortalwrt/immortalwrt",
+    "commit": "6003f6b8c3278a27712f4fdaaa8d1e5faa2b1f54",
+    "path": "include/toplevel.mk",
+    "git_blob": "a8a57647f9a91e7ecd2c27103d14b96beec44a28",
+    "source_sha256": "f8bf19900b7406e9d1c8a4fb72a85e57922963c4e37351552430fce91b9080b3",
+    "fixture": "3fd1e27a/download.mk",
+    "fixture_sha256": "c2a0d2c2a061ebb84a5599ce742e7aa86dabe6857af3a84ab83fce84d3644e89",
+    "license": "GPL-2.0-only (source SPDX header; excerpt is unmodified)"
+  },
+  {
+    "repository": "https://github.com/ZqinKing/immortalwrt",
+    "commit": "796897b5417537c0b10ee9ec31166ac5901bc33b",
+    "path": "include/toplevel.mk",
+    "git_blob": "a8a57647f9a91e7ecd2c27103d14b96beec44a28",
+    "source_sha256": "f8bf19900b7406e9d1c8a4fb72a85e57922963c4e37351552430fce91b9080b3",
+    "fixture": "3fd1e27a/download.mk",
+    "fixture_sha256": "c2a0d2c2a061ebb84a5599ce742e7aa86dabe6857af3a84ab83fce84d3644e89",
+    "license": "GPL-2.0-only (source SPDX header; excerpt is unmodified)"
+  },
+  {
+    "repository": "https://github.com/padavanonly/immortalwrt-mt798x-6.6",
+    "commit": "ec9ef10efc65da1e6d1de4e2c043c0e13d08eed8",
+    "path": "include/toplevel.mk",
+    "git_blob": "092dff786c99226b8a2ef419f6982a1acceaa588",
+    "source_sha256": "3d2de2ee9b1caf70e312ccd1b0f5340b6855eb027134a71918320ebfdef5795e",
+    "fixture": "ec9ef10e/download.mk",
+    "fixture_sha256": "dfee593358463e1183f9e1c9bcb16087d2242fc96c788597c18e9d68ac81bc11",
+    "license": "GPL-2.0-only (source SPDX header; excerpt is unmodified)"
+  }
+]

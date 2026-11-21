@@ -24,7 +24,21 @@
 
 固定固件源码 `VIKINGYFY/immortalwrt@3fd1e27a511851b41cf082b067b60099e8e026c4` 的 `include/toplevel.mk` 使用分号串联四组下载，前面的失败可能被最后成功的命令覆盖。本次 `package/download` 失败后仍执行 `target/download`，最终 `make download` 返回 0，进入完整编译。
 
-[`download_compat.py`](../wrt_core/download_compat.py) 在下载前精确识别该上游块，给每个递归 Make 命令追加 `|| exit $$?;`。下载顺序、并发数、SDK 分支及 flock/zstd 前置依赖保留；未知、重复或额外下载 recipe 会被拒绝。真实失败退出码经 [`build_steps.sh`](../wrt_core/modules/build_steps.sh) 传播，不进入后续 prepare/compile。镜像尝试失败后成功恢复不会被错误判为总失败。
+[`download_compat.py`](../wrt_core/download_compat.py) 在下载前精确识别该上游块，给每个递归 Make 命令追加 `|| exit $$?;`。下载顺序、并发数、SDK 分支及各底座原有的主机工具前置依赖保留；未知、重复或额外下载 recipe 会被拒绝。真实失败退出码经 [`build_steps.sh`](../wrt_core/modules/build_steps.sh) 传播，不进入后续 prepare/compile。镜像尝试失败后成功恢复不会被错误判为总失败。
+
+2026-11-21 的 18 目标批量构建中，
+[S20M 流程 44893271663](https://github.com/BlackHu-art/openwrt_release/actions/runs/44893271663/job/136814410973)
+通过配置生成后，在下载前被严格适配器拒绝。该目标固定的
+`padavanonly/immortalwrt-mt798x-6.6@ec9ef10efc65da1e6d1de4e2c043c0e13d08eed8`
+使用另一份完整下载块：只有 flock 前置依赖，没有 zstd。原适配器只审查过 flock+zstd 形式，
+因此主动拒绝了这份已知底座的合法输入，还没有执行实际下载。
+
+现补充这一精确审查的 24.10 原始及修复后形式，同样仅为递归命令追加失败退出。
+不向 24.10 添加 zstd、不放宽对任意前置依赖的接受；未知、重复、混合原始/已修复规则仍在写入和 Make 执行前失败。
+两份真实夹具均通过 GNU Make 验证四阶段失败立即停止、SDK 仅下载 package、镜像恢复成功、
+原有工具依赖及顺序、配置不变和重复不重写。
+完整块与六个固定底座的来源校验记录见
+[下载夹具说明](../tests/fixtures/download-toplevel/README.md)；其余四个固定新底座的下载块均与既有 flock+zstd 形式逐字节一致。
 
 本次环境准备约 5 分 31 秒，下载阶段 76 秒但错误返回 0，编译阶段 8058 秒后失败。Rust host 本身成功完成，用时约 7610 秒；长时间等待来自已启动的并行编译任务，并不是 Rust 编译错误。
 

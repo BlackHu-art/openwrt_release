@@ -15,13 +15,16 @@ STAGES = ["tools/download", "toolchain/download", "package/download", "target/do
 
 
 class DownloadFailurePropagation(unittest.TestCase):
+    fixture = FIXTURE
+    prerequisites = {"tools/flock/compile", "tools/zstd/compile"}
+
     def setUp(self):
         self.temporary = tempfile.TemporaryDirectory(prefix="download-gate-")
         self.addCleanup(self.temporary.cleanup)
         self.root = Path(self.temporary.name)
         (self.root / "include").mkdir()
         self.toplevel = self.root / "include/toplevel.mk"
-        self.toplevel.write_bytes(FIXTURE.read_bytes())
+        self.toplevel.write_bytes(self.fixture.read_bytes())
         (self.root / ".config").write_text("# CONFIG_PACKAGE_miniupnpd-nftables is not set\n", encoding="utf-8")
         (self.root / "Makefile").write_text('''.DEFAULT_GOAL := world
 STAGING_DIR_HOST := staging
@@ -88,12 +91,12 @@ include include/toplevel.mk
         original_config = (self.root / ".config").read_bytes()
         prefix = b"# Unrelated upstream settings must remain byte-identical.\nUNCHANGED := retained\n"
         suffix = b"\nuntouched:\n\t@printf 'unrelated recipe\\n'\n"
-        self.toplevel.write_bytes(prefix + FIXTURE.read_bytes() + suffix)
+        self.toplevel.write_bytes(prefix + self.fixture.read_bytes() + suffix)
         result = self.build()
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
         calls = self.calls()
-        self.assertEqual(set(calls[:2]), {"tools/flock/compile", "tools/zstd/compile"})
-        self.assertEqual(calls[2:], STAGES + ["compile"])
+        self.assertEqual(set(calls[:len(self.prerequisites)]), self.prerequisites)
+        self.assertEqual(calls[len(self.prerequisites):], STAGES + ["compile"])
         self.assertEqual((self.root / ".config").read_bytes(), original_config)
         patched = self.toplevel.read_bytes()
         self.assertTrue(patched.startswith(prefix))
@@ -113,17 +116,36 @@ include include/toplevel.mk
         self.assertEqual(self.calls()[-1], "compile")
         self.assertNotIn("Failure details", result.stdout + result.stderr)
 
+    def test_sdk_keeps_package_only_download_and_propagates_failure(self):
+        result = self.build(SDK="1", FAIL_STAGE="package/download")
+        self.assertEqual(result.returncode, 2, result.stdout + result.stderr)
+        self.assertEqual(set(self.calls()[:-1]), self.prerequisites)
+        self.assertEqual(self.calls()[-1:], ["package/download"])
+        self.assertNotIn("compile", self.calls())
+        (self.root / "calls").unlink()
+        result = self.build(SDK="1")
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertEqual(self.calls(), ["package/download", "compile"])
+
     def test_unknown_or_duplicate_recipe_is_rejected_before_make_without_writes(self):
-        original = FIXTURE.read_bytes()
+        original = self.fixture.read_bytes()
+        other = (ROOT / "tests/fixtures/download-toplevel/ec9ef10e/download.mk"
+                 if self.fixture == FIXTURE else FIXTURE).read_bytes()
         for contents in (original.replace(b"$(SUBMAKE) $(dir);", b"$(SUBMAKE) $(dir) || true;"),
                          original + b"\ndownload:\n\t@true\n", original + b"\t@true\n",
-                         b"download:\n\t@true\n"):
+                         b"download:\n\t@true\n", original + b"\n" + other,
+                         original.replace(b"tools/flock/compile", b"tools/other/compile")):
             with self.subTest(contents=contents):
                 self.toplevel.write_bytes(contents)
                 result = self.build()
                 self.assertNotEqual(result.returncode, 0, result.stdout + result.stderr)
                 self.assertEqual(self.calls(), [])
                 self.assertEqual(self.toplevel.read_bytes(), contents)
+
+
+class DownloadFailurePropagation2410(DownloadFailurePropagation):
+    fixture = ROOT / "tests/fixtures/download-toplevel/ec9ef10e/download.mk"
+    prerequisites = {"tools/flock/compile"}
 
 
 if __name__ == "__main__":
