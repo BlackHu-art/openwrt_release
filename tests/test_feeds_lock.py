@@ -378,6 +378,28 @@ stage_repo_checkout
         self.assertEqual((self.tree / 'revision').read_text(), 'second reviewed core')
         self.assertEqual((self.root / 'clean-events').read_text().splitlines(), ['clean'])
 
+    def test_reused_tree_failed_native_cleanup_aborts_before_reset(self):
+        scripts = self.tree / 'scripts'
+        scripts.mkdir()
+        feeds = scripts / 'feeds'
+        feeds.write_text('#!/usr/bin/env bash\necho "native clean failure" >&2\nexit 42\n')
+        feeds.chmod(0o755)
+        (self.tree / 'feeds').mkdir()
+        (self.tree / 'revision').write_text('local customization before failed clean')
+        base = self.root / 'wrt_core'
+        base.mkdir()
+        shutil.copy(ADAPTER, base / ADAPTER.name)
+        shutil.copy(self.lock, base / LOCK.name)
+        result = subprocess.run(['bash', '-c', 'set -e; source "$UPDATE_SCRIPT"; stage_repo_checkout'],
+            capture_output=True, text=True, env={**os.environ,
+                'UPDATE_SCRIPT': str(ROOT / 'wrt_core/update.sh'), 'BASE_PATH': str(base),
+                'BUILD_DIR': str(self.tree), 'REPO_URL': self.core_url, 'COMMIT_HASH': self.core,
+                'NETWORK_RETRY_MAX': '1'})
+        self.assertNotEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertIn('native clean failure', result.stderr)
+        self.assertEqual((self.tree / 'revision').read_text(), 'local customization before failed clean')
+        self.assertFalse((self.tree / 'tmp/.build').exists())
+
     def test_shell_unknown_source_does_not_mutate_configuration_or_run_feeds(self):
         self.conf.write_text('src-git packages https://example.invalid/drift.git\n')
         before = self.conf.read_bytes()

@@ -230,6 +230,7 @@ install_custom_feed() {
     local repo_packages
     local repo_package_array=()
 
+    core_url=${core_url%/}
     if [[ ${core_url%.git} == https://github.com/ZqinKing/immortalwrt &&
           ${COMMIT_HASH:-} == 796897b5417537c0b10ee9ec31166ac5901bc33b ]]; then
         airoha_npu_required=1

@@ -62,24 +62,24 @@ checkout_repo_ref() {
 
 clean_up() {
     if [[ ! -d "$BUILD_DIR" ]]; then
-        echo "Build directory $BUILD_DIR does not exist"
-        return
+        echo "Build directory $BUILD_DIR does not exist" >&2
+        return 1
     fi
-    cd "$BUILD_DIR"
+    cd "$BUILD_DIR" || return 1
     if [[ -f ".config" ]]; then
-        \rm -f ".config"
+        \rm -f ".config" || return 1
     fi
     if [[ -d "tmp" ]]; then
-        \rm -rf "tmp"
+        \rm -rf "tmp" || return 1
     fi
     if [[ -d "logs" ]]; then
-        find "$BUILD_DIR/logs" -type f -delete
+        find "$BUILD_DIR/logs" -type f -delete || return 1
     fi
     if [[ -d "feeds" ]]; then
-        TOPDIR="$BUILD_DIR" ./scripts/feeds clean
+        TOPDIR="$BUILD_DIR" ./scripts/feeds clean || return 1
     fi
-    mkdir -p "tmp"
-    echo "1" >"tmp/.build"
+    mkdir -p "tmp" || return 1
+    echo "1" >"tmp/.build" || return 1
 }
 
 

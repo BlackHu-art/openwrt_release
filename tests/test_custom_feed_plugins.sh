@@ -94,8 +94,10 @@ if install_custom_feed; then
     exit 1
 fi
 AIROHA_FETCH_FAIL=0
-install_custom_feed
-[[ -s "$BUILD_DIR/custom_feed/luci-app-airoha-npu/Makefile" ]]
+for REPO_URL in https://github.com/ZqinKing/immortalwrt.git https://github.com/ZqinKing/immortalwrt.git/ https://github.com/ZqinKing/immortalwrt/; do
+    install_custom_feed
+    [[ -s "$BUILD_DIR/custom_feed/luci-app-airoha-npu/Makefile" ]]
+done
 echo "custom feed Airoha source selection: PASS"
 
 # Exercise an unmanaged sparse import locally. Managed fw876 packages are
