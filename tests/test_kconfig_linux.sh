@@ -25,5 +25,6 @@ make --no-print-directory -s -C "$WORK/config" CC=gcc conf
 export KCONFIG_CONF="$WORK/config/conf"
 export PYTHONDONTWRITEBYTECODE=1
 python3 "$ROOT/tests/test_kconfig_compat.py"
+python3 "$ROOT/tests/test_istorex_selection.py"
 
 PYTHONPATH="$ROOT/tests${PYTHONPATH:+:$PYTHONPATH}" python3 -m unittest test_ssrplus_v198.RuntimeDependencySelection

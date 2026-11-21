@@ -21,6 +21,7 @@ python tests/test_smartdns_runtime.py
 python tests/test_smartdns_init.py
 python tests/test_smartdns_download.py
 python tests/test_kconfig_compat.py
+python tests/test_istorex_selection.py
 bash tests/test_kconfig_linux.sh
 python tests/test_download_compat.py
 python tests/test_quickfile_source.py

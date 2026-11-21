@@ -1,0 +1,60 @@
+{
+  "files": {
+    "core/scripts/package-metadata.pl": {
+      "repository": "https://github.com/immortalwrt/immortalwrt",
+      "commit": "6003f6b8c3278a27712f4fdaaa8d1e5faa2b1f54",
+      "path": "scripts/package-metadata.pl",
+      "sha256": "24e00b9ae71c84e6899214c0498a0206361db9eec9c227081702282590f8f2aa",
+      "git_blob": "f25a85b36f9695ed85c6200cb41b4e673183a2d6"
+    },
+    "core/scripts/metadata.pm": {
+      "repository": "https://github.com/immortalwrt/immortalwrt",
+      "commit": "6003f6b8c3278a27712f4fdaaa8d1e5faa2b1f54",
+      "path": "scripts/metadata.pm",
+      "sha256": "95cdaf78b6bf1f47d4c8cd97ee4822d42d3cfc94a03aee987856ea1cffc98d10",
+      "git_blob": "7c76bc001ba6831560e54ef43d2fe6bc6049a790"
+    },
+    "core/include/package-dumpinfo.mk": {
+      "repository": "https://github.com/immortalwrt/immortalwrt",
+      "commit": "6003f6b8c3278a27712f4fdaaa8d1e5faa2b1f54",
+      "path": "include/package-dumpinfo.mk",
+      "sha256": "31f986d1587b8a24a06af928f594ec53fec1254a56b932c3ac0a53bc7e8b18db",
+      "git_blob": "55e9b0289f4def9e5378976eceb733b7ab54121f"
+    },
+    "packages/utils/tar/Makefile": {
+      "repository": "https://github.com/immortalwrt/packages",
+      "commit": "decf94639ffd6ddd26591c190b547c6b7eea150b",
+      "path": "utils/tar/Makefile",
+      "sha256": "dc42130dd6f2c2433b2cea248d1dac966ee019c21711c2e8339943f90ba79c4b",
+      "git_blob": "6c4e604ac9fd82ad5e6e476fbffa6c5627effe6a"
+    },
+    "packages/utils/xz/Makefile": {
+      "repository": "https://github.com/immortalwrt/packages",
+      "commit": "decf94639ffd6ddd26591c190b547c6b7eea150b",
+      "path": "utils/xz/Makefile",
+      "sha256": "b2d1cdde4a2342a88c7660a2d078050907c11919bbf7786c6e8e4df4e0f7d3cf",
+      "git_blob": "419774afe9990086bc8f98a5a431f86ee129c9c0"
+    },
+    "packages/LICENSE": {
+      "repository": "https://github.com/immortalwrt/packages",
+      "commit": "decf94639ffd6ddd26591c190b547c6b7eea150b",
+      "path": "LICENSE",
+      "sha256": "32b1062f7da84967e7019d01ab805935caa7ab7321a7ced0e30ebe75e5df1670",
+      "git_blob": "d60c31a97a544b53039088d14fe9114583c0efc3"
+    },
+    "../kconfig-compat/immortalwrt/include/package-defaults.mk": {
+      "repository": "https://github.com/immortalwrt/immortalwrt",
+      "commit": "6003f6b8c3278a27712f4fdaaa8d1e5faa2b1f54",
+      "path": "include/package-defaults.mk",
+      "sha256": "cdb9a02ff1f3fe6e867fb9dcdc109ee93632b72be92e02e7b70f542e400ff710",
+      "git_blob": "43521044d92f564d139184437d7de6403c0427ef"
+    },
+    "../kconfig-compat/variants/fwknop/master/luci/luci.mk": {
+      "repository": "https://github.com/immortalwrt/luci",
+      "commit": "8724b54de3a760294aedeb10a29ffba7e44cca2f",
+      "path": "luci.mk",
+      "sha256": "10a7c934adc95a724bb9ba28e929509247247f6dec79f8637665d467fda5a82f",
+      "git_blob": "e95d73e38de1494017ed233cbf2b6ab18e211003"
+    }
+  }
+}

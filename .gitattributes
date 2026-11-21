@@ -79,6 +79,8 @@
 /tests/test_smartdns_*.py text eol=lf
 /tests/test_kconfig_*.py text eol=lf
 /tests/test_kconfig_*.sh text eol=lf
+/tests/test_istorex_selection.py text eol=lf
+/tests/fixtures/istorex-selection/** text eol=lf whitespace=-blank-at-eol,-blank-at-eof,-space-before-tab
 /tests/fixtures/smartdns-download/** text eol=lf whitespace=-blank-at-eol,-space-before-tab
 /tests/fixtures/smartdns-runtime/** text eol=lf whitespace=-blank-at-eol,-blank-at-eof,-space-before-tab
 /wrt_core/patches/*-smartdns-*.patch text eol=lf whitespace=-blank-at-eol,-space-before-tab
