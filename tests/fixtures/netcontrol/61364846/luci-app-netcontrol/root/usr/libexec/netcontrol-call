@@ -1,0 +1,34 @@
+#!/bin/sh
+#
+# Copyright (C) 2026 rule2c <rule2c@gmail.com>
+#
+
+logfile="/var/log/netcontrol.log"
+
+case "$1" in
+    clear_log)
+        : > "${logfile}"
+        ;;
+    reset_duration)
+        shift
+        target="$1"
+        # 仅允许合法的地址字符：数字、字母、冒号、点、斜线、短横线
+        if printf '%s' "$target" | grep -qE '^[0-9A-Fa-f:./][0-9A-Fa-f:./_-]{0,60}$'; then
+            netcontrol reset-duration "$target"
+        else
+            echo "目标地址格式无效" >&2
+            exit 1
+        fi
+        ;;
+    holiday_info)
+        netcontrol holiday-info
+        ;;
+    holiday_update)
+        netcontrol holiday-update >/dev/null 2>&1
+        netcontrol holiday-info
+        ;;
+    *)
+        echo "错误：未知命令 '$1'" >&2
+        exit 1
+        ;;
+esac

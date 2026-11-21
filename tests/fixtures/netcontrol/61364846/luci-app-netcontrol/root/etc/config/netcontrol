@@ -1,0 +1,7 @@
+# 只保留总开关段，设备规则由用户在 LuCI 里自行添加
+config netcontrol
+	option enabled '0'
+	option chain 'forward'
+	option rand_mac_block '0'
+	option holiday_update '1'
+

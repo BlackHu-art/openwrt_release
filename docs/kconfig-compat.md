@@ -1,4 +1,4 @@
-# Qt5 与 squeezelite 循环依赖兼容
+# Qt5、squeezelite 与 fwknop/GnuPG2 循环依赖兼容
 
 [构建 40076155141](https://github.com/BlackHu-art/openwrt_release/actions/runs/40076155141) 在 `make defconfig` 报告两个循环。该次流程继续到下载阶段，最终失败点是 SmartDNS WebUI；循环依赖同样需要修复，不能将它当作正常配置结果。
 
@@ -32,3 +32,29 @@ REQUIRE_KCONFIG_CONF=1 bash tests/test_kconfig_linux.sh
 新增精确审查 master、openwrt-25.12、openwrt-24.10 的 squeezelite 配方，以及 video `6a3b5fd6` 的 Qt5 依赖/打包修复。保留各版本下载身份、依赖和冲突声明；完整原始输入见 `tests/fixtures/kconfig-compat/variants/` 与来源记录。
 
 新版 Qt5 的 linuxfb 对 libdrm 增加条件依赖，会经元数据传递引入 DRM 与父包的新循环。本地先用真实配方复现，再仅对此已审查配方去除 DRM 功能的父包 guard；其 libdrm 条件依赖和开关语义保留。旧配方仍只应用原 OpenGL 修复。新增分支样本均验证未选择包、功能库依赖、默认值、重复执行和未知变化拒绝，Linux 原生 conf 同样执行这些案例。
+
+## 2026-11-21 fwknop / GnuPG2 兼容修复
+
+实际 Linux 配置验证在
+[京东云 ImmortalWrt 流程 44868990580](https://github.com/BlackHu-art/openwrt_release/actions/runs/44868990580)
+报告新的环：`fwknopd` 被 LuCI 页面选中，LuCI 经传递依赖受 `FWKNOPD_GPG` 限制，
+GPG 选项又处于 fwknop 父包菜单内。流程当时仍以成功结束，因此退出码不能替代日志中循环诊断的检查。
+
+锁定的 LuCI `8724b54d` 配方仅声明 `+fwknopd`，没有直接增加 GPG 限制。
+真正来源是 packages 的 GnuPG2 配方：`gnupg2-utils` 使用 `DEPENDS:=gnupg2 +libcurl`，
+要求主程序预先启用，却没有自动选中它；元数据生成器因而把父包的条件依赖向 LuCI 传播。
+这与 [上游问题 31215](https://github.com/openwrt/packages/issues/31215) 相同。
+[上游作者建议](https://github.com/openwrt/packages/issues/31215#issuecomment-6808924386)
+将该依赖改为 `+gnupg2`，让工具包自动携带必需的主程序。该建议尚未以合并提交提供；
+本项目按精确来源实现这一兼容修复，不将其描述为已合并的上游补丁。
+
+适配器仅对已审查的完整 GnuPG2 配方增加这一处 `+`，不修改 fwknop 或 LuCI 配方、
+GPG / NFQ 捕获的父包 guard、默认 n、条件库、版本或编译参数。
+旧/新 master 的配方相同，25.12 / 24.10 的另一份配方也经过完整校验。
+维护分支的 fwknop 尚使用 GnuPG 1，未重现本次环；其 GnuPG2 工具包同样修复必需运行时的自动选择。
+所有原样配方与 blob / SHA-256 见 [fixture 记录](../tests/fixtures/kconfig-compat/sources.json)。
+
+新增回归通过真实 `luci.mk`、fwknop、gnupg2、gpgme 配方生成元数据，使用两种配置求值器：
+先重现原始三节点循环，再验证修复后父包未选择时选项及库保持未选中；父包选为 y / m 时，
+可选 GPG、NFQ 捕获及 libpcap 切换仍保留；四个锁定分支的 GnuPG2 工具包会携带同级 y / m 运行时。
+同时检查重复运行不重写、未知/缺失配方在任何写入前被拒绝。测试不代表 fwknop 目标架构编译或设备运行验证。

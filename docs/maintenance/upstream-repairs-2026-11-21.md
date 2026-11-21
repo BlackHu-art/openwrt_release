@@ -16,13 +16,15 @@
 | --- | --- | --- |
 | 旧 VIKINGYFY / packages | [ffbc2408](https://github.com/immortalwrt/packages/commit/ffbc2408fccfb5c579363365a8971862a9718fb0) | 固定为 Rust 接口迁移前的兼容 feed，其他底座按原维护分支配套；获取精确提交后才索引。 |
 | Qt5 | [6a3b5fd6](https://github.com/openwrt/video/commit/6a3b5fd6e963f41caa73ef4f691e156d467e2894) | 保留新的依赖/安装修复，并处理新引入的 linuxfb/DRM 父包循环；同时支持维护分支的真实 squeezelite 配方。 |
+| fwknop / GnuPG2 | [上游问题 31215 的作者建议](https://github.com/openwrt/packages/issues/31215#issuecomment-6808924386) | 对精确审查的配方补上 `gnupg2-utils` 的必需运行时自动选择，消除传递依赖环，保留 fwknop 功能开关。建议尚未合并，本项目作为兼容修复采用。 |
 | SSR Plus | [67449c65](https://github.com/fw876/helloworld/commit/67449c659329e92d683075962555d602c98978b3)、[e825742c](https://github.com/fw876/helloworld/commit/e825742c1e9267906d5208f080fb3b65d8b300e7)、[6fbc9f56](https://github.com/fw876/helloworld/commit/6fbc9f563c9e7cd3b65061fba13ffc62666066aa) | 外部 runtime selects 仅随父包启用；所有核心获得 coreutils/timeout；保持原核心默认选择，派生 198-r3。 |
 | Xray | [fa29e877](https://github.com/fw876/helloworld/commit/fa29e87710fef1c2eeb7c38bcca62996f0798ef2) | 只在 Naive 启用时精确允许 Cronet 静态库链接标志；保留 26.10.21、十份私有补丁、UPX 复用及 Go 门槛，派生 r4。 |
 | OpenClash 缓存 | [2faa4fab](https://github.com/vernesong/OpenClash/commit/2faa4fabfe1c12899feb1ddc060adda3fa7f2343) | 核心退出后按原运行配置名备份最终 cache.db；超过十秒仍存活时保留旧备份，防止复制半写缓存。 |
 | OpenClash DNS | [73f3abdb](https://github.com/vernesong/OpenClash/commit/73f3abdb8d4ef46ea939b1b9c730f13d3e800d5b) | 仅回移 scalar 列表、域名树匹配和 CN 分类三项修复；保持订阅/ETag 失败处理及现有防火墙行为。 |
 | Argon | [稳定 v3.1.4 / c5c0873e](https://github.com/jerrykuku/luci-theme-argon/tree/c5c0873e122dc767c7ab0198c8bffc6e952b5cfb) | 完整刷新 249 个原始文件：菜单加载、CSS 缓存/下拉层级、壁纸 TLS/超时、翻译更新等；保留已有配置。 |
 | Aurora | [298dbcc7](https://github.com/eamonxg/luci-theme-aurora/commit/298dbcc74ddf820923a51285fb0826d429e5d7ca) | 固定三个已合并修复后的 218 个原始文件：通知关闭、导航加载/会话缓存、登录令牌与新 LuCI 兼容。配方为 1.4.3，**并非已发布稳定 release**；配置包仍为 1.2.5。 |
-| W1701K NPU | [原项目 e16d7ace](https://github.com/ZqinKing/wrt_release/commit/e16d7ace545f4795155247c8b8a6f9cdbb6ad4a9)、[devmem fe48c218](https://github.com/ZqinKing/wrt_release/commit/fe48c218) | 补齐已选插件的缺失来源及运行工具；不引入该提交中的 Passwall/CUPS/其他软件包。 |
+| W1701K NPU | [原项目 e16d7ace](https://github.com/ZqinKing/wrt_release/commit/e16d7ace545f4795155247c8b8a6f9cdbb6ad4a9)、[devmem fe48c218](https://github.com/ZqinKing/wrt_release/commit/fe48c218) | 仅 W1701K 获取必选插件的固定来源及运行工具；其他设备不依赖该下载。不引入该提交中的 Passwall/CUPS/其他软件包。 |
+| S20M Netcontrol | [rule2c / 61364846](https://github.com/rule2c/luci-app-netcontrol/commit/61364846e1188d87801f778749efc4f2a4deac43) | 固定完整提交补齐已选但缺失的插件，仅 S20M 获取；精确检出成功后才复制，保留源码的默认关闭状态。 |
 | netfilter | [d567052b](https://github.com/ZqinKing/wrt_release/commit/d567052b09b26e5e30f2981008e1cd5e577aed8d) | 覆盖无条件 `+kmod-iptables` 配方，保留 Linux 6.12/6.18 的互斥修复。 |
 | CI 环境 | [b3074c60](https://github.com/ZqinKing/wrt_release/commit/b3074c60870242df523cd171c31a5167a8e79d14) | 先 checkout 再运行受管 setup；下载失败明确退出，避免完整系统升级和 APT recommends，并检查工具。 |
 
@@ -62,7 +64,7 @@ core/feed 所有的插件随对应已锁定的核心/LuCI/软件包来源更新�
 | luci-app-eqos-mtk | 仅S20M；padavanonly固定核心/24.10 feed，避免混入主线不同实现。 |
 | luci-app-turboacc-mtk | 仅S20M；同上，设备平台功能。 |
 | luci-app-wrtbwmon | 仅S20M；同上，保留配置。 |
-| luci-app-netcontrol | 仅S20M；同上，保留配置。 |
+| luci-app-netcontrol | S20M 原来已选择，但实际固定核心、24.10 LuCI 与 small-package 都没有配方。现从 canonical rule2c/luci-app-netcontrol 固定 `61364846e1188d87801f778749efc4f2a4deac43` 获取 1.0.0-r1；运行依赖 nftables/conntrack，保留默认关闭，原配置选择不变。 |
 | luci-app-airoha-flowsense | W1701K core `ZqinKing/immortalwrt@796897b5417537c0b10ee9ec31166ac5901bc33b`，package/luci-app-airoha-flowsense/Makefile blobac9a10a1b6b59923c6e8758605a88b240d2cff9e，已验证完整tree存在。 |
 | luci-app-mlo | 同一W1701K core package/luci-app-mlo/Makefile blob0536311214025c1c6e6328ba4ae054e44b8e5b74，已存在。 |
 | luci-app-w1700k-fancontrol | 同一core package/luci-app-w1700k-fancontrol/Makefile blob4f9cf7ae8157d7a7c99018f554d0e6690c0742bf，已存在。 |
@@ -88,4 +90,12 @@ core/feed 所有的插件随对应已锁定的核心/LuCI/软件包来源更新�
 
 源码身份、受管 30 单元校验、固定输入行为回归与各修复先失败后通过的证据已分别记录。
 本机 macOS 无 Linux `/proc`、网络命名空间或目标交叉工具链，Linux 专属检查由精确提交 CI 验证。
-后续在此记录实际回归、来源准备/defconfig、完整固件及实机边界，不将主机测试等同于固件成功。
+
+- `9260829` 的 [Linux 全量回归 44868964550](https://github.com/BlackHu-art/openwrt_release/actions/runs/44868964550)
+  通过：54 组 Python 测试共 766 项（765 通过、1 项 Windows 专属测试跳过），以及全部 shell 检查。
+  包括真实 Xray/Mihomo、原生 Kconfig，以及网络命名空间内实际 dnsmasq/nft、9 种 IPv6 模式检查。
+- 独立整分支审查及后续复审完成。发现的本地设备切换、静默索引漏报、SSR 写入回滚、
+  配置产物隐藏文件、配置检查缓存和 NPU 下载范围问题均已补回归；清理失败会在重置源码前退出。
+- 六种核心身份的来源准备/defconfig 暴露了 fwknopd 依赖环和 S20M 的 netcontrol 丢选，已补修复待重跑；
+  两个代表目标的完整固件编译待配置验证通过后执行，实机未验证。
+  后续在此补充实际结果，不将主机测试等同于固件成功。

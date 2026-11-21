@@ -358,5 +358,158 @@
     "sha256": "67525c5f8b5ee6dbcba1bb4f42bcea6cdc34346d2bc6072db77bf21a2e792c5f",
     "git_blob": "ae1f5271adaea8b1279dd57d5cf0e133ba8652b0",
     "license": "GPL-2.0 (recipe header)"
+  },
+  {
+    "repository": "https://github.com/immortalwrt/packages",
+    "commit": "ffbc2408fccfb5c579363365a8971862a9718fb0",
+    "path": "net/fwknop/Makefile",
+    "fixture": "variants/fwknop/master/packages/net/fwknop/Makefile",
+    "git_blob": "803dc0ea8c61321fc92f61355a2c4f6890bff861",
+    "sha256": "b4eeaff4d13eb9eb37ef8c2f58b0b2aff5ddbc6d5352340197f72d16681e4b3c",
+    "license": "GPL-2.0 (recipe header; accompanying Config.in)"
+  },
+  {
+    "repository": "https://github.com/immortalwrt/packages",
+    "commit": "ffbc2408fccfb5c579363365a8971862a9718fb0",
+    "path": "net/fwknop/Config.in",
+    "fixture": "variants/fwknop/master/packages/net/fwknop/Config.in",
+    "git_blob": "a2c14278106885faf7eef64d2796835776cfd0ad",
+    "sha256": "f88fb391d6df3d3be8d60b59d70acf6f4db4ef67266405fa823c7d3da6fa4e56",
+    "license": "GPL-2.0 (recipe header; accompanying Config.in)"
+  },
+  {
+    "repository": "https://github.com/immortalwrt/packages",
+    "commit": "ffbc2408fccfb5c579363365a8971862a9718fb0",
+    "path": "utils/gnupg2/Makefile",
+    "fixture": "variants/fwknop/master/packages/utils/gnupg2/Makefile",
+    "git_blob": "80538dcef8a082f98a351e566c66529def2d7bfb",
+    "sha256": "d8738125146f448507f317fab0bb6e1673e355c3a4a1e5d5c1f132dd3ebae6e6",
+    "license": "GPL-2.0 (recipe header; accompanying Config.in)"
+  },
+  {
+    "repository": "https://github.com/immortalwrt/packages",
+    "commit": "ffbc2408fccfb5c579363365a8971862a9718fb0",
+    "path": "libs/gpgme/Makefile",
+    "fixture": "variants/fwknop/master/packages/libs/gpgme/Makefile",
+    "git_blob": "fed509486661128900357855f42b7d3ffe23d07f",
+    "sha256": "bec883de99f4ff32161787b7b49fa16e26adc44e2f1eda89bf744a0680bf281d",
+    "license": "No recipe license header; PKG_LICENSE=LGPL-2.1-or-later describes the GPGME payload"
+  },
+  {
+    "repository": "https://github.com/immortalwrt/packages",
+    "commit": "decf94639ffd6ddd26591c190b547c6b7eea150b",
+    "path": "net/fwknop/Makefile",
+    "fixture": "variants/fwknop/current-master/packages/net/fwknop/Makefile",
+    "git_blob": "803dc0ea8c61321fc92f61355a2c4f6890bff861",
+    "sha256": "b4eeaff4d13eb9eb37ef8c2f58b0b2aff5ddbc6d5352340197f72d16681e4b3c",
+    "license": "GPL-2.0 (recipe header; accompanying Config.in)"
+  },
+  {
+    "repository": "https://github.com/immortalwrt/packages",
+    "commit": "decf94639ffd6ddd26591c190b547c6b7eea150b",
+    "path": "net/fwknop/Config.in",
+    "fixture": "variants/fwknop/current-master/packages/net/fwknop/Config.in",
+    "git_blob": "a2c14278106885faf7eef64d2796835776cfd0ad",
+    "sha256": "f88fb391d6df3d3be8d60b59d70acf6f4db4ef67266405fa823c7d3da6fa4e56",
+    "license": "GPL-2.0 (recipe header; accompanying Config.in)"
+  },
+  {
+    "repository": "https://github.com/immortalwrt/packages",
+    "commit": "fa25995d74a720c1c98bf6265d3dd8b4eb620d1f",
+    "path": "net/fwknop/Makefile",
+    "fixture": "variants/fwknop/openwrt-25.12/packages/net/fwknop/Makefile",
+    "git_blob": "c60e57d6b96243eac635acabff3b9d2fd03741f8",
+    "sha256": "c2cbf6749e12cf28fe6b45528ff1421ae80afed57a0b2afb43c7aa487374ce15",
+    "license": "GPL-2.0 (recipe header; accompanying Config.in)"
+  },
+  {
+    "repository": "https://github.com/immortalwrt/packages",
+    "commit": "fa25995d74a720c1c98bf6265d3dd8b4eb620d1f",
+    "path": "net/fwknop/Config.in",
+    "fixture": "variants/fwknop/openwrt-25.12/packages/net/fwknop/Config.in",
+    "git_blob": "8de7e4715663d3fc68e2e8d1bfd18823640e20f9",
+    "sha256": "2c98d86f4e2142cded42d95e351ec8439c41fae27ad2f02fff126a66295c07ce",
+    "license": "GPL-2.0 (recipe header; accompanying Config.in)"
+  },
+  {
+    "repository": "https://github.com/immortalwrt/packages",
+    "commit": "fa25995d74a720c1c98bf6265d3dd8b4eb620d1f",
+    "path": "utils/gnupg/Makefile",
+    "fixture": "variants/fwknop/openwrt-25.12/packages/utils/gnupg/Makefile",
+    "git_blob": "ce7db535dcf4c048d511d86a1fa396a2a8b06c9f",
+    "sha256": "f5e2228885cc8738ae89eaf04a9114e884513e0fe52724c48994622c2b056d78",
+    "license": "GPL-2.0 (recipe header; accompanying Config.in)"
+  },
+  {
+    "repository": "https://github.com/immortalwrt/packages",
+    "commit": "fa25995d74a720c1c98bf6265d3dd8b4eb620d1f",
+    "path": "libs/gpgme/Makefile",
+    "fixture": "variants/fwknop/openwrt-25.12/packages/libs/gpgme/Makefile",
+    "git_blob": "44bc374f796eb9c2958f82d5225830d8f0be7705",
+    "sha256": "c5e1ccb7d0882b5eb3f1ce109cb6fd97947c20101766833aefcabd7afb07a818",
+    "license": "No recipe license header; PKG_LICENSE=LGPL-2.1-or-later describes the GPGME payload"
+  },
+  {
+    "repository": "https://github.com/immortalwrt/packages",
+    "commit": "171d5f9203379f77693807d7283515a873f95df9",
+    "path": "net/fwknop/Makefile",
+    "fixture": "variants/fwknop/openwrt-24.10/packages/net/fwknop/Makefile",
+    "git_blob": "c60e57d6b96243eac635acabff3b9d2fd03741f8",
+    "sha256": "c2cbf6749e12cf28fe6b45528ff1421ae80afed57a0b2afb43c7aa487374ce15",
+    "license": "GPL-2.0 (recipe header; accompanying Config.in)"
+  },
+  {
+    "repository": "https://github.com/immortalwrt/packages",
+    "commit": "171d5f9203379f77693807d7283515a873f95df9",
+    "path": "net/fwknop/Config.in",
+    "fixture": "variants/fwknop/openwrt-24.10/packages/net/fwknop/Config.in",
+    "git_blob": "8de7e4715663d3fc68e2e8d1bfd18823640e20f9",
+    "sha256": "2c98d86f4e2142cded42d95e351ec8439c41fae27ad2f02fff126a66295c07ce",
+    "license": "GPL-2.0 (recipe header; accompanying Config.in)"
+  },
+  {
+    "repository": "https://github.com/immortalwrt/luci",
+    "commit": "8724b54de3a760294aedeb10a29ffba7e44cca2f",
+    "path": "applications/luci-app-fwknopd/Makefile",
+    "fixture": "variants/fwknop/master/luci/applications/luci-app-fwknopd/Makefile",
+    "git_blob": "4832fb958545b94e62ea59019f0c782721208f17",
+    "sha256": "dadb59d73abbb6dda2091925fcbd4d722abc02708ea65d6d250f9b0d459abe21",
+    "license": "GPL-2.0 (recipe header; accompanying Config.in)"
+  },
+  {
+    "repository": "https://github.com/immortalwrt/luci",
+    "commit": "8724b54de3a760294aedeb10a29ffba7e44cca2f",
+    "path": "luci.mk",
+    "fixture": "variants/fwknop/master/luci/luci.mk",
+    "git_blob": "e95d73e38de1494017ed233cbf2b6ab18e211003",
+    "sha256": "10a7c934adc95a724bb9ba28e929509247247f6dec79f8637665d467fda5a82f",
+    "license": "Apache-2.0 (luci.mk header)"
+  },
+  {
+    "repository": "https://github.com/immortalwrt/packages",
+    "commit": "decf94639ffd6ddd26591c190b547c6b7eea150b",
+    "path": "utils/gnupg2/Makefile",
+    "fixture": "variants/fwknop/current-master/packages/utils/gnupg2/Makefile",
+    "git_blob": "80538dcef8a082f98a351e566c66529def2d7bfb",
+    "sha256": "d8738125146f448507f317fab0bb6e1673e355c3a4a1e5d5c1f132dd3ebae6e6",
+    "license": "GPL-2.0 (recipe header)"
+  },
+  {
+    "repository": "https://github.com/immortalwrt/packages",
+    "commit": "fa25995d74a720c1c98bf6265d3dd8b4eb620d1f",
+    "path": "utils/gnupg2/Makefile",
+    "fixture": "variants/fwknop/openwrt-25.12/packages/utils/gnupg2/Makefile",
+    "git_blob": "0da0dd3a490e9c2510bc5ef7d60fd67fe4d5e546",
+    "sha256": "0987f5dfd1f26e4505f1cd0796de32f19d1e88ef5237c71a15b9a5e71f4239c2",
+    "license": "GPL-2.0 (recipe header)"
+  },
+  {
+    "repository": "https://github.com/immortalwrt/packages",
+    "commit": "171d5f9203379f77693807d7283515a873f95df9",
+    "path": "utils/gnupg2/Makefile",
+    "fixture": "variants/fwknop/openwrt-24.10/packages/utils/gnupg2/Makefile",
+    "git_blob": "0da0dd3a490e9c2510bc5ef7d60fd67fe4d5e546",
+    "sha256": "0987f5dfd1f26e4505f1cd0796de32f19d1e88ef5237c71a15b9a5e71f4239c2",
+    "license": "GPL-2.0 (recipe header)"
   }
 ]

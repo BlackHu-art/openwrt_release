@@ -73,6 +73,27 @@ run_build_step() {
     return "$status"
 }
 
+prepare_defconfig() {
+    local -a statuses
+    mkdir -p logs || return $?
+    # Command-line variables override toplevel.mk's pipe/TTY detection, keeping
+    # scan.mk's zero-exit package dump diagnostics visible in this log.
+    if make defconfig IS_TTY=1 NO_COLOR=1 2>&1 | tee logs/defconfig.log; then
+        statuses=("${PIPESTATUS[@]}")
+    else
+        statuses=("${PIPESTATUS[@]}")
+    fi
+    [[ ${statuses[0]} == 0 ]] || return "${statuses[0]}"
+    [[ ${statuses[1]} == 0 ]] || return "${statuses[1]}"
+    # Some upstream conf versions emit a fatal-looking diagnostic but return
+    # success. Do not accept that configuration or hide it behind plugin checks.
+    if LC_ALL=C grep -qE '(^|[[:space:]:])error:|recursive dependency detected!|(^|[[:space:]])ERROR: please fix' logs/defconfig.log; then
+        echo 'ERROR: defconfig reported configuration errors; see logs/defconfig.log.' >&2
+        return 1
+    fi
+    return 0
+}
+
 build_firmware() {
     local jobs=$(($(nproc) + 1))
     python "$BUILD_STEPS_CORE_PATH/download_compat.py" . || return $?

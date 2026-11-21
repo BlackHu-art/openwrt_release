@@ -1,0 +1,972 @@
+#!/bin/sh
+
+# Copyright (C) 2006 OpenWrt.org
+# Copyright (C) 2026 rule2c <rule2c@gmail.com>
+
+NAME=netcontrol
+LOG_FILE="/var/log/netcontrol.log"
+DEBUG=0
+
+# RAM 运行目录（频繁读写）
+DURATION_DIR="/var/lib/netcontrol"
+# 持久化目录（重启后保留）
+PERSIST_DIR="/etc/netcontrol"
+
+DURATION_DB="$DURATION_DIR/duration.db"
+CONNECTION_LOG="$DURATION_DIR/connections.log"
+STATUS_FILE="$DURATION_DIR/device_status.tsv"
+
+IDLIST="/var/$NAME.idlist"
+TARGETLIST="/var/$NAME.targets"
+# 计数快照：目标,累计包数,最后一次见到它发包的时刻。每个 tick 由 accrue_all 重写，
+# 在线判定与记账共用这一份。
+ACCT_SNAP="/var/$NAME.acct"
+# 已经点过名的随机 MAC，避免每轮重复记日志。/var 是 tmpfs，重启即清。
+RANDMAC_SEEN="/var/$NAME.randseen"
+# 与 netcontrol reset-duration 共用的 duration.db 写锁
+DB_LOCK="/var/lock/netcontrol-db.lock"
+
+# 法定节假日判定（holiday_day_type / holiday_update）。文件缺失时不能直接 source：
+# 非交互 ash 会当场退出，procd 跟着无限重启。退化为无数据，法定选项按周一至周五处理。
+if [ -f /usr/share/netcontrol/holiday.sh ]; then
+    . /usr/share/netcontrol/holiday.sh
+else
+    HOLIDAY_NEXT="/var/netcontrol.holiday_next"
+    holiday_day_type() { [ "$2" -le 5 ] && echo "work weekday" || echo "off weekday"; }
+fi
+
+# ─── 日志 ────────────────────────────────────────────────────────────────────
+
+dbg() {
+    [ "$DEBUG" -eq 1 ] && {
+        local d; d="$(date '+%Y-%m-%d %H:%M:%S')"
+        echo "[$d] CTRL-DEBUG: $*" >> "$LOG_FILE"
+    }
+}
+
+info() {
+    local d; d="$(date '+%Y-%m-%d %H:%M:%S')"
+    echo "[$d] CTRL-INFO: $*" >> "$LOG_FILE"
+}
+
+# ─── 配置读取 ─────────────────────────────────────────────────────────────────
+
+# device 段的标量字段读每轮刷新的缓存（见 refresh_device_cache）。comment 含空格，
+# 会破坏缓存的记录格式，故不入缓存，与 netcontrol 段一同回落到 uci。
+config_t_get() {
+    local index="${3:-0}" ret="" rec n=""
+    if [ "$1" = "device" ]; then
+        case "$2" in
+            target)     n=2 ;;
+            enable)     n=3 ;;
+            time_mode)  n=4 ;;
+            week)       n=5 ;;
+            timestart)  n=6 ;;
+            timeend)    n=7 ;;
+            duration)   n=8 ;;
+            reset_cycle) n=9 ;;
+        esac
+        if [ -n "$n" ]; then
+            for rec in $DEVICE_CACHE; do
+                [ "${rec%%|*}" = "$index" ] || continue
+                ret="$rec"
+                while [ "$n" -gt 1 ]; do ret="${ret#*|}"; n=$((n - 1)); done
+                ret="${ret%%|*}"
+                # 命中即返回：字段为空代表没配，直接给默认值，不再回落到 uci
+                echo "${ret:-$4}"
+                return
+            done
+        fi
+    fi
+    ret="$(uci -q get "${NAME}.@${1}[${index}].${2}")"
+    echo "${ret:-$4}"
+}
+
+# ─── 工具函数 ─────────────────────────────────────────────────────────────────
+
+target_key() { printf '%s' "$1" | sed 's/[^A-Za-z0-9_.-]/_/g'; }
+
+# 总开关是否开启
+master_enabled() { [ "$(config_t_get netcontrol enabled 0 0)" = "1" ]; }
+
+# 拆除整张 nftables 表（总开关关闭时调用，幂等）
+teardown_firewall() {
+    command -v nft >/dev/null 2>&1 || return 0
+    nft list table inet netcontrol >/dev/null 2>&1 || return 0
+    nft delete table inet netcontrol 2>/dev/null
+}
+
+# ─── Duration DB ─────────────────────────────────────────────────────────────
+
+db_delete_target() {
+    local tmp="$DURATION_DB.$$"
+    [ -f "$DURATION_DB" ] || return 0
+    awk -F, -v t="$1" '$1!=t' "$DURATION_DB" > "$tmp" && mv "$tmp" "$DURATION_DB"
+    rm -f "$tmp"
+}
+
+# ─── Connection Log ───────────────────────────────────────────────────────────
+
+last_connection_action() {
+    awk -F, -v t="$1" '$2==t{action=$3} END{print action}' "$CONNECTION_LOG" 2>/dev/null
+}
+
+# 按行数截断日志：超过 max 行时只保留最新 keep 行。
+# 用 tail+mv 换文件而非原地截断：两个脚本都是 >> 追加，没有长期持有的 fd。
+_rotate_log_file() {
+    local file="$1" max="$2" keep="$3" count tmp
+    count=$(wc -l < "$file" 2>/dev/null) || return
+    if [ "$count" -gt "$max" ]; then
+        tmp="${file}.$$"
+        tail -n "$keep" "$file" > "$tmp" && mv "$tmp" "$file"
+        rm -f "$tmp"
+        dbg "日志已轮转：$file ${count} 行 → ${keep} 行"
+    fi
+}
+
+_rotate_connection_log() { _rotate_log_file "$CONNECTION_LOG" 2000 1000; }
+
+# 主日志在 tmpfs 上，不封顶会吃内存
+_rotate_main_log() { _rotate_log_file "$LOG_FILE" 2000 1000; }
+
+# ─── 持久化 ───────────────────────────────────────────────────────────────────
+
+# 内容没变就不写：PERSIST_DIR 在 /etc（overlay，落在闪存上），避免无谓磨损
+sync_persist() {
+    mkdir -p "$PERSIST_DIR" || return
+    {
+        flock 9 2>/dev/null
+        cmp -s "$DURATION_DB" "$PERSIST_DIR/duration.db" 2>/dev/null || \
+            cp "$DURATION_DB" "$PERSIST_DIR/duration.db" 2>/dev/null
+    } 9>"$DB_LOCK"
+    for f in "$DURATION_DIR"/last_reset_*; do
+        [ -f "$f" ] || continue
+        cmp -s "$f" "$PERSIST_DIR/${f##*/}" 2>/dev/null || cp "$f" "$PERSIST_DIR/" 2>/dev/null
+    done
+    dbg "上网时长数据已同步至持久化存储"
+}
+
+# ─── 目录初始化 ───────────────────────────────────────────────────────────────
+
+init_dirs() {
+    mkdir -p "$DURATION_DIR" "$PERSIST_DIR" /var/lock
+    touch "$DURATION_DB" "$CONNECTION_LOG" "$STATUS_FILE" "$IDLIST" "$TARGETLIST" 2>/dev/null
+
+    # 只在运行时账本不存在或为空时才从持久化恢复：那才是真正重启过路由器
+    # （/var 是 tmpfs，重启必空）。无条件覆盖会让重启一次服务就把账本回滚。
+    if [ ! -s "$DURATION_DB" ] && [ -s "$PERSIST_DIR/duration.db" ]; then
+        cp "$PERSIST_DIR/duration.db" "$DURATION_DB"
+        dbg "运行时账本为空（应为重启后），已从持久化存储恢复上网时长数据"
+    fi
+    for f in "$PERSIST_DIR"/last_reset_*; do
+        [ -f "$f" ] && cp "$f" "$DURATION_DIR/" 2>/dev/null
+    done
+}
+
+reset_runtime_state() {
+    rm -f "$IDLIST" "$TARGETLIST" "$ACCT_SNAP" "$RANDMAC_SEEN"
+    touch "$IDLIST" "$TARGETLIST" 2>/dev/null
+}
+
+# ─── SIGTERM 优雅退出 ─────────────────────────────────────────────────────────
+
+_on_sigterm() {
+    info "收到终止信号，正在保存数据，请稍候..."
+    sync_persist
+    exit 0
+}
+trap '_on_sigterm' TERM INT
+
+# ─── 设备规则查询 ─────────────────────────────────────────────────────────────
+
+# 设备规则缓存，每轮刷新一次，之后所有规则查询纯靠 shell 变量展开，零进程派生。
+#
+# 记录格式（字段顺序必须与 config_t_get 的字段号映射一致）：
+#     id|target|enable|time_mode|week|timestart|timeend|duration|reset_cycle
+# 记录之间用空格分隔。comment 是自由文本、可能含空格，故不入缓存。
+DEVICE_CACHE=""
+
+refresh_device_cache() {
+    DEVICE_CACHE="$(uci -q show "$NAME" 2>/dev/null | awk -v q="'" '
+        /\.@device\[[0-9]+\]/ {
+            idx = $0; sub(/^[^[]*\[/, "", idx); sub(/\].*$/, "", idx)
+            if (!(idx in seen)) { seen[idx] = 1; order[++n] = idx }
+            if ($0 !~ /\]\./) next                 # 段头行 xxx.@device[N]=device
+            key = $0; sub(/^[^]]*\]\./, "", key); sub(/=.*$/, "", key)
+            val = $0; sub(/^[^=]*=/, "", val)
+            if (substr(val, 1, 1) == q) val = substr(val, 2, length(val) - 2)
+            # 含空格或 | 的值一律丢弃：会破坏记录/字段分隔，让后续字段整体错位
+            if (val ~ /[ |]/) next
+            f[idx, key] = val
+        }
+        END {
+            split("target enable time_mode week timestart timeend duration reset_cycle", cols, " ")
+            for (i = 1; i <= n; i++) {
+                id = order[i]
+                rec = id
+                for (c = 1; c <= 8; c++) rec = rec "|" ((id, cols[c]) in f ? f[id, cols[c]] : "")
+                printf "%s ", rec
+            }
+        }')"
+}
+
+get_all_devices() {
+    local rec
+    for rec in $DEVICE_CACHE; do echo "${rec%%|*}"; done
+}
+
+get_rules_for_target() {
+    local target="$1" enabled_only="${2:-0}"
+    local rec rest rule_target enabled
+
+    for rec in $DEVICE_CACHE; do
+        rest="${rec#*|}"                 # target|enable|...
+        rule_target="${rest%%|*}"
+        [ "$rule_target" = "$target" ] || continue
+        if [ "$enabled_only" = "1" ]; then
+            rest="${rest#*|}"            # enable|...
+            enabled="${rest%%|*}"
+            [ "$enabled" = "1" ] || continue
+        fi
+        echo "${rec%%|*}"
+    done
+}
+
+get_enabled_rules_for_target() { get_rules_for_target "$1" 1; }
+
+get_all_targets() {
+    local rec rest target
+    for rec in $DEVICE_CACHE; do
+        rest="${rec#*|}"; target="${rest%%|*}"
+        [ -n "$target" ] && echo "$target"
+    done
+    [ -f "$TARGETLIST" ] && awk -F'\t' 'NF>=3{print $3}' "$TARGETLIST"
+}
+
+get_blocked_id_for_target() {
+    [ -f "$TARGETLIST" ] || return 0
+    awk -F'\t' -v t="$1" '$3==t{print $2;exit}' "$TARGETLIST"
+}
+
+delete_blocked_target_state() {
+    local tmp="$TARGETLIST.$$"
+    [ -f "$TARGETLIST" ] || return 0
+    awk -F'\t' -v t="$1" '$3!=t' "$TARGETLIST" > "$tmp" && mv "$tmp" "$TARGETLIST"
+    rm -f "$tmp"
+}
+
+set_blocked_target_state() {
+    local key; key="$(target_key "$1")"
+    delete_blocked_target_state "$1"
+    printf '%s\t%s\t%s\n' "$key" "$2" "$1" >> "$TARGETLIST"
+}
+
+clear_idlist_for_target() {
+    local target="$1" id blocked_id
+    [ -f "$IDLIST" ] || return 0
+    blocked_id="$(get_blocked_id_for_target "$target")"
+    [ -n "$blocked_id" ] && sed -i "/!${blocked_id}!/d" "$IDLIST" 2>/dev/null
+    for id in $(get_rules_for_target "$target" 0); do
+        sed -i "/!${id}!/d" "$IDLIST" 2>/dev/null
+    done
+}
+
+# ─── 防火墙状态查询 ───────────────────────────────────────────────────────────
+
+ensure_firewall_ready() {
+    command -v nft >/dev/null 2>&1 || return 1
+    nft list table inet netcontrol >/dev/null 2>&1 && return 0
+    # 表缺失才重建。重建前再确认总开关仍开启，避免与关闭流程竞争产生孤儿表。
+    [ "$(config_t_get netcontrol enabled 0 0)" = "1" ] || return 1
+    netcontrol start >/dev/null 2>&1
+}
+
+# MAC 正则必须大小写兼容：BusyBox 的 tr 可能未编译字符类支持，[:upper:] 会失效
+target_type() {
+    if printf '%s' "$1" | grep -qE '^([0-9A-Fa-f]{2}:){5}[0-9A-Fa-f]{2}$'; then
+        echo "mac"
+    elif printf '%s' "$1" | grep -q ':'; then
+        echo "ipv6"
+    else
+        echo "ipv4"
+    fi
+}
+
+# ─── 在线状态 ────────────────────────────────────────────────────────────────
+
+# 设备静默多久之后就不再认为它开着。要大于设备后台流量（DHCP 续租、mDNS、NTP、
+# 云端保活）的最长间隔。记账是事后追认的，这个值不会造成关机后多记（见 accrue_all）。
+PRESENCE_GRACE=300
+
+# 设备是否开机在线。判据是最近一次收到它的包距今多久，包数由 nftables 计数器给出
+# （见 accrue_all）。拿不到计数样本时回落到邻居表 / conntrack 的存在性判定。
+target_online() {
+    local target="$1" la now lc
+    la="$(awk -F, -v t="$target" '$1==t{print $3+0; f=1; exit} END{if(!f) print -1}' \
+        "$ACCT_SNAP" 2>/dev/null)"
+    case "$la" in ''|*[!0-9-]*) la=-1 ;; esac
+    if [ "$la" -ge 0 ]; then
+        now="$(date +%s)"
+        [ "$la" -gt 0 ] && [ $((now - la)) -le "$PRESENCE_GRACE" ]
+        return $?
+    fi
+    case "$(target_type "$target")" in
+        mac)
+            lc="$(printf '%s' "$target" | tr 'A-Z' 'a-z')"
+            awk -v m="$lc" 'NR>1 && tolower($4)==m && $3!="0x0"{f=1} END{exit(f?0:1)}' /proc/net/arp 2>/dev/null && return 0
+            ip neigh show 2>/dev/null | grep -Fi "lladdr $lc" | grep -qv FAILED
+            ;;
+        ipv6)
+            case "$target" in */*) return 0 ;; esac
+            ip -6 neigh show 2>/dev/null | awk -v t="$target" '$1==t && $0!~/FAILED/{f=1} END{exit(f?0:1)}' && return 0
+            grep -qF "src=$target " /proc/net/nf_conntrack 2>/dev/null
+            ;;
+        *)
+            case "$target" in */*|*-*) return 0 ;; esac
+            awk -v t="$target" 'NR>1 && $1==t && $3!="0x0"{f=1} END{exit(f?0:1)}' /proc/net/arp 2>/dev/null && return 0
+            grep -qF "src=$target " /proc/net/nf_conntrack 2>/dev/null
+            ;;
+    esac
+}
+
+# ─── 计时 ────────────────────────────────────────────────────────────────────
+#
+# 口径是在线时长：设备开着就计时，关着就不计。
+#
+# 信号取自 accounting 链上每个目标一条的 counter 规则（见 sync_accounting_rules）。
+# 每个 tick 读一次链，与上一 tick 的包数相减，只看有没有包，不看字节数。
+#
+# 记账是事后追认的：本 tick 有包就把“上次计入到现在”整段补记；没包则锚点不动，
+# 那段留给下一个包。设备关机后没有下一个包，最后那段静默永远不会被计入。
+# 静默超过 PRESENCE_GRACE 才来包则只记一个 tick（关机后再开机、服务重启、
+# 系统卡顿都落在这一支）。
+ACCRUE_TICK=10
+
+# 目标地址 → accounting 链里的匹配表达式。只计上行：下行在 prerouting 看不全。
+_acct_match() {
+    case "$(target_type "$1")" in
+        mac)  printf 'ether saddr %s' "$(printf '%s' "$1" | tr 'A-Z' 'a-z')" ;;
+        ipv6) printf 'ip6 saddr %s'   "$1" ;;
+        *)    printf 'ip saddr %s'    "$1" ;;
+    esac
+}
+
+# 上一次尝试过的目标组，用于防止“某个地址永远加不进去 → 每轮 flush 重来”的空转
+ACCT_WANT=""
+
+# 让 accounting 链里的规则集合与当前需要计时的目标一致。集合有出入就整链重建。
+sync_accounting_rules() {
+    local list="$1" have want t
+    command -v nft >/dev/null 2>&1 || return 0
+    nft list chain inet netcontrol accounting >/dev/null 2>&1 || return 0
+    have="$(nft list chain inet netcontrol accounting 2>/dev/null | \
+        sed -n 's/.*comment "t=\([^"]*\)".*/\1/p' | sort -u)"
+    want="$(printf '%s\n' "$list" | sed '/^$/d' | sort -u)"
+    [ "$have" = "$want" ] && return 0
+    # 目标组与上次相同且链非空：差异来自加不进去的地址，不再重来。链空则一律重建。
+    [ "$want" = "$ACCT_WANT" ] && [ -n "$have" ] && return 0
+    ACCT_WANT="$want"
+
+    nft flush chain inet netcontrol accounting 2>/dev/null
+    # 被拦截的设备不计时。用链首的 return 显式跳过，不依赖 -349/-350 的优先级
+    # 次序——降级形态（nopre）里拦截落在 forward，排不到 prerouting 前面。
+    for t in 'ip saddr @blacklist' 'ip6 saddr @blacklist6' 'ether saddr @blacklist_mac'; do
+        printf 'add rule inet netcontrol accounting %s return\n' "$t" | nft -f - 2>/dev/null
+    done
+    # 逐条 add，不用一次 nft -f 批量提交：批量是原子的，一个地址不合法会整笔回滚
+    printf '%s\n' "$want" | while IFS= read -r t; do
+        [ -n "$t" ] || continue
+        printf 'add rule inet netcontrol accounting %s counter comment "t=%s"\n' \
+            "$(_acct_match "$t")" "$t" | nft -f - 2>/dev/null || \
+            info "地址 $t 无法建立计时规则，这台设备不会计入上网时长"
+    done
+    dbg "已重建流量计数规则"
+}
+
+# ─── 随机 MAC 放行名单 ────────────────────────────────────────────────────────
+#
+# 拦截规则本身无状态（防火墙层按“本地管理位”一刀切），这里只把用户配的例外同步进
+# randmac_allow 集合。集合不存在说明该功能没开。
+#
+# want 侧先用正则筛一遍，保证每一项都加得进去；have 直接从集合内容里抓 MAC 形状的
+# 串，不按行解析——nft 打印元素时会按宽度折行。
+sync_randmac_allow() {
+    local have want t
+    command -v nft >/dev/null 2>&1 || return 0
+    nft list set inet netcontrol randmac_allow >/dev/null 2>&1 || return 0
+    have="$(nft list set inet netcontrol randmac_allow 2>/dev/null | tr -d ' \t' | tr ',' '\n' | \
+        grep -E '^([0-9a-f]{2}:){5}[0-9a-f]{2}$' | sort -u)"
+    want="$(uci -q get "$NAME.@netcontrol[0].rand_mac_allow" 2>/dev/null | tr ' ' '\n' | \
+        tr 'A-Z' 'a-z' | grep -E '^([0-9a-f]{2}:){5}[0-9a-f]{2}$' | sort -u)"
+    [ "$have" = "$want" ] && return 0
+    nft flush set inet netcontrol randmac_allow 2>/dev/null
+    for t in $want; do
+        nft add element inet netcontrol randmac_allow "{ $t }" 2>/dev/null
+    done
+    info "随机 MAC 放行名单已更新（$(printf '%s' "$want" | grep -c . ) 台）"
+}
+
+# 局域网在场设备：mac<TAB>ip<TAB>主机名。
+# DHCP 租约有主机名但漏掉静态 IP 的设备，ARP 表反之，两边合并后按 MAC 去重。
+_lan_hosts() {
+    {
+        awk '{ print tolower($2) "\t" $3 "\t" ($4 == "*" ? "" : $4) }' /tmp/dhcp.leases 2>/dev/null
+        awk 'NR > 1 && $3 != "0x0" { print tolower($4) "\t" $1 "\t" }' /proc/net/arp 2>/dev/null
+    } | awk -F'\t' '$1 != "" && !seen[$1]++'
+}
+
+# 随机 MAC 拦截对被拦的设备是静默的：突然没网，日志里一个字都没有，一家子设备排查
+# 起来无从下手。这里把在场、且不在放行名单里的随机 MAC 设备点名记一次。
+#
+# 判定用 glob 而非位运算：本地管理位是第一个字节的 0x02，组播位是 0x01，两者都落在
+# 第二个十六进制位上，所以“单播 + 本地管理”等价于第二位是 2/6/a/e。
+report_random_macs() {
+    local allow mac ip name
+    if [ "$(config_t_get netcontrol rand_mac_block 0 "0")" != "1" ]; then
+        rm -f "$RANDMAC_SEEN"
+        return 0
+    fi
+    [ -f "$RANDMAC_SEEN" ] || : > "$RANDMAC_SEEN"
+    allow=" $(uci -q get "$NAME.@netcontrol[0].rand_mac_allow" 2>/dev/null | \
+        tr 'A-Z' 'a-z' | tr -s ' ') "
+    _lan_hosts | while IFS="$(printf '\t')" read -r mac ip name; do
+        case "$mac" in ?[26ae]:*) ;; *) continue ;; esac
+        case "$allow" in *" $mac "*) continue ;; esac
+        grep -qxF "$mac" "$RANDMAC_SEEN" 2>/dev/null && continue
+        printf '%s\n' "$mac" >> "$RANDMAC_SEEN"
+        info "随机 MAC 设备已被拦截：${name:-未知设备}（$mac${ip:+，$ip}）"
+    done
+}
+
+# duration.db 第 2 列是“上次计入到的时刻”，只在真的记了账的 tick 才前推，
+# total 因此永远是已确认的在线秒数。
+accrue_all() {
+    local list="$1" now cur new tmp
+    [ -n "$list" ] || return 0
+    command -v nft >/dev/null 2>&1 || return 0
+    now="$(date +%s)"
+    cur="$ACCT_SNAP.cur.$$"
+    new="$ACCT_SNAP.new.$$"
+
+    # 一次 nft 调用取回所有目标的计数，规则打印出来形如：
+    #   ether saddr xx:xx:xx:xx:xx:xx counter packets 12 bytes 3456 comment "t=XX:.."
+    # 取包数而非字节数：判的是“开着没有”，一个包和一兆字节等价。
+    nft list chain inet netcontrol accounting 2>/dev/null | awk '
+        /counter packets/ {
+            p = ""; t = ""
+            for (i = 1; i < NF; i++) {
+                if ($i == "packets") p = $(i + 1) + 0
+                if ($i == "comment") { t = $(i + 1); gsub(/"/, "", t) }
+            }
+            if (p != "" && t ~ /^t=/) { sub(/^t=/, "", t); sum[t] += p }
+        }
+        END { for (t in sum) print t "," sum[t] }' > "$cur" 2>/dev/null
+
+    # 链空或表不在，多半是防火墙刚被重建过：补一次规则同步，本轮不记账。
+    if [ ! -s "$cur" ]; then
+        rm -f "$cur"
+        sync_accounting_rules "$list"
+        return 0
+    fi
+
+    [ -f "$ACCT_SNAP" ] || : > "$ACCT_SNAP"
+    tmp="$DURATION_DB.$$"
+    {
+        flock 9 2>/dev/null
+        awk -F, -v pf="$ACCT_SNAP" -v cf="$cur" -v sf="$new" -v now="$now" \
+                -v grace="$PRESENCE_GRACE" -v tick="$ACCRUE_TICK" '
+            # 上一 tick 的快照：目标,累计包数,最后一次见到它发包的时刻
+            FILENAME == pf { pp[$1] = $2 + 0; ps[$1] = $3 + 0; next }
+            # 本 tick 的计数：顺手判在线，并写出新快照
+            FILENAME == cf {
+                cp[$1] = $2 + 0
+                ls = ($1 in ps) ? ps[$1] : 0
+                # 没有上一 tick 的基线（首轮 / 计数器刚归零）就只建基线，增量为负同理
+                if ($1 in pp && cp[$1] - pp[$1] > 0) ls = now
+                lseen[$1] = ls
+                print $1 "," cp[$1] "," ls > sf
+                next
+            }
+            # duration.db：目标,上次计入到的时刻,已用秒数,上次重置时刻
+            {
+                t = $1
+                if (!(t in cp)) { print; next }
+                lc = ($2 == "" ? now : $2 + 0)
+                tc = ($3 == "" ? 0  : $3 + 0)
+                lr = ($4 == "" ? 0  : $4)
+                add = 0
+                # 本 tick 有包，才把“上次计入到现在”这一段追认为在线
+                if (lseen[t] == now) {
+                    d = now - lc
+                    # 静默太久：这段不能算它一直开着，只记本 tick
+                    if (d < 0 || d > grace) d = tick
+                    add = d
+                    lc  = now
+                }
+                print t "," lc "," (tc + add) "," lr
+                seen[t] = 1
+            }
+            END { for (t in cp) if (!(t in seen)) print t "," now ",0,0" }
+        ' "$ACCT_SNAP" "$cur" "$DURATION_DB" > "$tmp" 2>/dev/null \
+            && mv "$tmp" "$DURATION_DB" && mv "$new" "$ACCT_SNAP"
+        rm -f "$tmp" "$new" "$cur"
+    } 9>"$DB_LOCK"
+}
+
+# 需要计时的目标：启用且时间控制方式为 duration/combined 的规则所指向的地址
+get_duration_targets() {
+    local id target mode
+    for id in $(get_all_devices); do
+        [ "$(config_t_get device enable "$id" "0")" = "1" ] || continue
+        mode="$(config_t_get device time_mode "$id" "period")"
+        [ "$mode" = "duration" ] || [ "$mode" = "combined" ] || continue
+        target="$(config_t_get device target "$id")"
+        [ -n "$target" ] && printf '%s\n' "$target"
+    done | sort -u
+}
+
+# 把一次长 sleep 切成 ACCRUE_TICK 秒的小段，每段结束采样记账一次。
+# 控制逻辑仍按 calc_sleep_seconds 的节奏跑，记账粒度就是这个 tick。
+sleep_with_accrual() {
+    local total="$1" list="$2" slept=0 step
+    [ -n "$list" ] || { sleep "$total"; return; }
+    while [ "$slept" -lt "$total" ]; do
+        step=$((total - slept))
+        [ "$step" -gt "$ACCRUE_TICK" ] && step="$ACCRUE_TICK"
+        sleep "$step"
+        slept=$((slept + step))
+        accrue_all "$list"
+    done
+}
+
+# 记录在线状态翻转，只管日志与在线态，不管记账（记账见 accrue_all）
+track_online_state() {
+    local target="$1" last
+    last="$(last_connection_action "$target")"
+    # 走 info 而非 dbg：只在状态翻转时打印，量可控
+    if target_online "$target"; then
+        [ "$last" != "connect" ] && {
+            record_connection_time "$target" "connect"
+            info "$target 已在线，开始累计上网时长"
+        }
+    else
+        [ "$last" = "connect" ] && {
+            record_connection_time "$target" "disconnect"
+            info "$target 已离线，暂停累计上网时长"
+        }
+    fi
+}
+
+# 用 nft get element 精确查询而非 grep 文本输出：nft 存储时会规范化地址
+# （192.168.10.10/24 → 192.168.10.0/24），grep 原始输入匹配不到。
+# 地址落在已拦截网段内也算命中；表或集合不存在时直接失败，无需另做预检。
+target_in_firewall() {
+    local target="$1" lc
+    command -v nft >/dev/null 2>&1 || return 1
+    case "$(target_type "$target")" in
+        mac)
+            lc="$(printf '%s' "$target" | tr 'A-Z' 'a-z')"
+            nft get element inet netcontrol blacklist_mac "{ $lc }" >/dev/null 2>&1
+            ;;
+        ipv6) nft get element inet netcontrol blacklist6 "{ $target }" >/dev/null 2>&1 ;;
+        *)    nft get element inet netcontrol blacklist  "{ $target }" >/dev/null 2>&1 ;;
+    esac
+}
+
+delete_target_from_firewall() {
+    local target="$1" type lc
+    command -v nft >/dev/null 2>&1 || return 0
+    nft list table inet netcontrol >/dev/null 2>&1 || return 0
+    type="$(target_type "$target")"
+    case "$type" in
+        mac)
+            lc="$(printf '%s' "$target" | tr 'A-Z' 'a-z')"
+            nft delete element inet netcontrol blacklist_mac "{ $lc }" 2>/dev/null
+            ;;
+        ipv6) nft delete element inet netcontrol blacklist6  "{ $target }" 2>/dev/null ;;
+        *)    nft delete element inet netcontrol blacklist   "{ $target }" 2>/dev/null ;;
+    esac
+}
+
+# ─── 时间检查 ─────────────────────────────────────────────────────────────────
+
+is_time_in_range() {
+    local start="$1" end="$2" cur; cur="$(date +%H:%M)"
+    if [ "$start" = "$end" ]; then
+        return 0
+    elif [ "$start" \< "$end" ]; then
+        { [ "$cur" = "$start" ] || [ "$cur" = "$end" ] || \
+          { [ "$cur" \> "$start" ] && [ "$cur" \< "$end" ]; }; } && return 0
+    else
+        { [ "$cur" = "$start" ] || [ "$cur" = "$end" ] || \
+          [ "$cur" \> "$start" ] || [ "$cur" \< "$end" ]; } && return 0
+    fi
+    return 1
+}
+
+# 今天的法定日类型（work/off），由 refresh_day_type 在主 shell 里算好。目标检查跑在
+# 管道子 shell 中，在那边算的缓存带不回来，所以必须在进管道前刷新。
+DAYTYPE=""
+DAYTYPE_DATE=""
+
+refresh_day_type() {
+    local force="$1" today r
+    today="$(date +%Y-%m-%d)"
+    [ "$force" != "1" ] && [ "$today" = "$DAYTYPE_DATE" ] && return 0
+    r="$(holiday_day_type "$today" "$(date +%u)")"
+    DAYTYPE="${r%% *}"
+    # 一天只提示一次，避免刷屏
+    [ "$today" != "$DAYTYPE_DATE" ] && [ "${r#* }" = "weekday" ] && rules_use_holiday && \
+        info "没有 ${today%%-*} 年的法定节假日数据，暂按周一至周五为工作日处理"
+    DAYTYPE_DATE="$today"
+    dbg "今天（$today）的法定日类型：$r"
+}
+
+# 是否有已启用的规则用到了法定节假日选项
+rules_use_holiday() {
+    local rec rest
+    for rec in $DEVICE_CACHE; do
+        rest="${rec#*|}"; rest="${rest#*|}"          # enable|time_mode|week|...
+        [ "${rest%%|*}" = "1" ] || continue
+        rest="${rest#*|}"; rest="${rest#*|}"          # week|...
+        case "${rest%%|*}" in cn_work|cn_off) return 0 ;; esac
+    done
+    return 1
+}
+
+# 节假日数据自动在线更新：只在有规则用到时才联网。成功后一天一次，失败一小时后重试。
+# 在后台跑，不拖慢主循环；DAYTYPE 由主循环每 10 轮强制刷新一次，届时用上新数据。
+maybe_update_holidays() {
+    local now next
+    [ "$(config_t_get netcontrol holiday_update 0 1)" = "1" ] || return 0
+    rules_use_holiday || return 0
+    now="$(date +%s)"
+    next="$(cat "$HOLIDAY_NEXT" 2>/dev/null)"
+    case "$next" in ''|*[!0-9]*) next=0 ;; esac
+    [ "$now" -lt "$next" ] && return 0
+    echo $((now + 3600)) > "$HOLIDAY_NEXT"
+    ( netcontrol holiday-update >/dev/null 2>&1 & )
+}
+
+is_weekday_in_range() {
+    local wdays="$1" cur
+    case "$wdays" in
+        0)       return 0 ;;
+        cn_work) [ "$DAYTYPE" = "work" ]; return $? ;;
+        cn_off)  [ "$DAYTYPE" = "off" ];  return $? ;;
+    esac
+    cur="$(date +%u)"
+    # 前后补逗号后用 case 子串匹配，省掉 tr 与子 shell（wdays 形如 "1,2,3,4,5"）
+    case ",$wdays," in *",$cur,"*) return 0 ;; esac
+    return 1
+}
+
+# ─── 时长管理 ─────────────────────────────────────────────────────────────────
+
+# 只记录在线状态翻转事件，供 last_connection_action / calc_sleep_seconds 使用。
+# 不参与记账：已用时长由 accrue_all 每个 tick 累加。
+record_connection_time() {
+    local target="$1" action="$2"
+    case "$action" in
+        connect)    ;;
+        disconnect) [ "$(last_connection_action "$target")" = "connect" ] || return 0 ;;
+        *)          return 0 ;;
+    esac
+    printf '%s,%s,%s\n' "$(date +%s)" "$target" "$action" >> "$CONNECTION_LOG"
+}
+
+# 已用秒数直接读 duration.db 的 total：accrue_all 每个 tick 就把增量落进去了
+get_connection_time() {
+    local target="$1" r
+    r="$(awk -F, -v t="$target" '
+        $1 == t { print ($3 == "" ? 0 : $3 + 0); found = 1; exit }
+        END     { if (!found) print 0 }' "$DURATION_DB" 2>/dev/null)"
+    echo "${r:-0}"
+}
+
+# epoch → 格式化日期，兼容 GNU date 和 BusyBox date
+_epoch_fmt() {
+    local ts="$1" fmt="$2" r
+    r="$(date -d "@$ts" "$fmt" 2>/dev/null)"
+    [ -n "$r" ] && { echo "$r"; return; }
+    r="$(date -D "%s" -d "$ts" "$fmt" 2>/dev/null)"
+    [ -n "$r" ] && { echo "$r"; return; }
+    awk -v ts="$ts" -v f="${fmt#+}" 'BEGIN{print strftime(f,ts+0)}' 2>/dev/null || echo "0"
+}
+
+should_reset_duration() {
+    local target="$1" cycle="$2"
+    local rf="$DURATION_DIR/last_reset_$(target_key "$target")"
+    [ ! -f "$rf" ] && return 0
+    local lr; lr="$(cat "$rf" 2>/dev/null)"
+    case "$cycle" in
+        daily)   [ "$(_epoch_fmt "$lr" +%Y%m%d)" != "$(date +%Y%m%d)" ] ;;
+        weekly)  [ "$(_epoch_fmt "$lr" +%Y%W)"   != "$(date +%Y%W)"   ] ;;
+        monthly) [ "$(_epoch_fmt "$lr" +%Y%m)"   != "$(date +%Y%m)"   ] ;;
+        *)       false ;;
+    esac
+}
+
+reset_duration_counter() {
+    local target="$1" cycle="$2"
+    local now key
+    now="$(date +%s)"
+    key="$(target_key "$target")"
+
+    # 重置时立刻持久化（重置周期长，写盘次数极少）
+    mkdir -p "$PERSIST_DIR"
+    {
+        flock 9 2>/dev/null
+        db_delete_target "$target"
+        printf '%s,%s,0,%s\n' "$target" "$now" "$now" >> "$DURATION_DB"
+        echo "$now" > "$DURATION_DIR/last_reset_$key"
+        cp "$DURATION_DB" "$PERSIST_DIR/duration.db" 2>/dev/null
+        cp "$DURATION_DIR/last_reset_$key" "$PERSIST_DIR/" 2>/dev/null
+    } 9>"$DB_LOCK"
+
+    info "已重置 $target 的上网时长（重置周期：$cycle）"
+}
+
+# ─── 动态 sleep 计算 ──────────────────────────────────────────────────────────
+# 找出最快触达时长上限的设备，以其剩余秒数作为唤醒间隔（范围：10 ~ 60 秒）
+
+calc_sleep_seconds() {
+    local min=60 id target time_mode duration used_sec remaining
+    for id in $(get_all_devices); do
+        [ "$(config_t_get device enable "$id" "0")" = "1" ] || continue
+        time_mode="$(config_t_get device time_mode "$id" "period")"
+        [ "$time_mode" = "duration" ] || [ "$time_mode" = "combined" ] || continue
+        target="$(config_t_get device target "$id")"
+        [ "$(last_connection_action "$target")" = "connect" ] || continue
+        duration="$(config_t_get device duration "$id" "60")"
+        used_sec="$(get_connection_time "$target")"
+        remaining=$(( duration * 60 - used_sec ))
+        [ "$remaining" -gt 5 ] && [ "$remaining" -lt "$min" ] && min=$remaining
+    done
+    [ "$min" -lt 10 ] && min=10
+    echo "$min"
+}
+
+# ─── 设备状态文件 ─────────────────────────────────────────────────────────────
+# 格式：target\tblocked\tused_min\tmax_min\tcomment\tenabled\ttime_mode
+
+write_status_file() {
+    local tmp="$STATUS_FILE.$$"
+    local id target comment enabled blocked used_min max_min time_mode used_sec
+    : > "$tmp"
+    for id in $(get_all_devices); do
+        target="$(config_t_get device target    "$id")"
+        [ -n "$target" ] || continue
+        comment="$(config_t_get device comment "$id" "")"
+        # 去除可能破坏 TSV 列对齐的制表符/换行符
+        comment="$(printf '%s' "$comment" | tr -d '\t\n\r')"
+        enabled="$(config_t_get device enable  "$id" "0")"
+        time_mode="$(config_t_get device time_mode "$id" "period")"
+
+        if target_in_firewall "$target" 2>/dev/null; then blocked=1; else blocked=0; fi
+
+        # 时间段模式没有时长维度，输出 "-" 而非 0/上限
+        used_min="-"; max_min="-"
+        if [ "$time_mode" = "duration" ] || [ "$time_mode" = "combined" ]; then
+            used_sec="$(get_connection_time "$target")"
+            used_min=$((used_sec / 60))
+            max_min="$(config_t_get device duration "$id" "60")"
+        fi
+
+        printf '%s\t%s\t%s\t%s\t%s\t%s\t%s\n' \
+            "$target" "$blocked" "$used_min" "$max_min" "$comment" "$enabled" "$time_mode" \
+            >> "$tmp"
+    done
+    mv "$tmp" "$STATUS_FILE"
+}
+
+# ─── 控制逻辑 ─────────────────────────────────────────────────────────────────
+
+check_device_control() {
+    local id="$1" target time_mode weekdays start end duration cycle used_sec used_min max_min
+
+    target="$(config_t_get device target       "$id")"
+    time_mode="$(config_t_get device time_mode "$id" "period")"
+    weekdays="$(config_t_get device week    "$id" "0")"
+
+    # 周期重置必须先于星期/时段判断：放在后面的话，像 09:00-23:59 这种窗口在
+    # 00:00~09:00 之间走不到重置，跨天不归零。同一目标配多条规则时幂等。
+    case "$time_mode" in
+        duration|combined)
+            cycle="$(config_t_get device reset_cycle "$id" "daily")"
+            should_reset_duration "$target" "$cycle" && reset_duration_counter "$target" "$cycle"
+            ;;
+    esac
+
+    is_weekday_in_range "$weekdays" || { dbg "当前星期不在允许范围，拒绝 $target 上网"; return 1; }
+
+    case "$time_mode" in
+        period)
+            start="$(config_t_get device timestart "$id" "00:00")"
+            end="$(config_t_get device timeend   "$id" "00:00")"
+            is_time_in_range "$start" "$end" || { dbg "当前时间不在允许时段（$start-$end），拒绝 $target 上网"; return 1; }
+            dbg "当前时间在允许时段内，放行 $target"; return 0
+            ;;
+        duration)
+            duration="$(config_t_get device duration "$id" "60")"
+            used_sec="$(get_connection_time "$target")"
+            used_min=$((used_sec / 60)); max_min="$duration"
+            dbg "时长检查：$target 已用 ${used_min} 分钟，上限 ${max_min} 分钟"
+            [ "$used_min" -ge "$max_min" ] && { dbg "$target 已超出上网时长限制"; return 1; }
+            track_online_state "$target"
+            dbg "$target 时长未超出，允许上网"; return 0
+            ;;
+        combined)
+            start="$(config_t_get device timestart "$id" "00:00")"
+            end="$(config_t_get device timeend   "$id" "00:00")"
+            is_time_in_range "$start" "$end" || { dbg "当前时间不在允许时段，拒绝 $target 上网"; return 1; }
+            # 组合模式一律叠加时长限制，不设单独开关：关掉就与“时间段控制”等价
+            duration="$(config_t_get device duration "$id" "60")"
+            used_sec="$(get_connection_time "$target")"
+            used_min=$((used_sec / 60)); max_min="$duration"
+            [ "$used_min" -ge "$max_min" ] && { dbg "$target 虽在允许时段内，但已超出时长上限"; return 1; }
+            track_online_state "$target"
+            dbg "$target 在允许时段内，放行上网"; return 0
+            ;;
+        *)
+            start="$(config_t_get device timestart "$id" "00:00")"
+            end="$(config_t_get device timeend   "$id" "00:00")"
+            is_time_in_range "$start" "$end"; return $?
+            ;;
+    esac
+}
+
+target_allowed_by_any_rule() {
+    local target="$1" id
+    for id in $(get_enabled_rules_for_target "$target"); do
+        if check_device_control "$id"; then
+            dbg "$target 命中放行规则（规则 ID=$id）"; return 0
+        fi
+    done
+    dbg "$target 未命中任何放行规则，执行拦截"; return 1
+}
+
+target_really_blocked() {
+    local blocked_id; blocked_id="$(get_blocked_id_for_target "$1")"
+    [ -n "$blocked_id" ] || return 1
+    [ -f "$IDLIST" ] || return 1
+    grep -q "!${blocked_id}!" "$IDLIST" 2>/dev/null || return 1
+    target_in_firewall "$1"; return $?
+}
+
+allow_target() {
+    local target="$1" id blocked_id had=0
+    blocked_id="$(get_blocked_id_for_target "$target")"
+    [ -n "$blocked_id" ] && had=1
+    target_in_firewall "$target" && had=1
+    if [ -f "$IDLIST" ]; then
+        for id in $(get_rules_for_target "$target" 0); do
+            grep -q "!${id}!" "$IDLIST" 2>/dev/null && { had=1; break; }
+        done
+    fi
+    if [ "$had" -eq 0 ]; then
+        clear_idlist_for_target "$target"
+        delete_blocked_target_state "$target"
+        return 0
+    fi
+    [ -n "$blocked_id" ] && netcontrol del "$blocked_id" >/dev/null 2>&1
+    delete_target_from_firewall "$target"
+    clear_idlist_for_target "$target"
+    delete_blocked_target_state "$target"
+    info "已恢复 $target 的上网权限"
+}
+
+block_target() {
+    local target="$1" id
+    id="$(get_enabled_rules_for_target "$target" | sed -n '1p')"
+    [ -n "$id" ] || { dbg "$target 应被拦截但无已启用规则，自动放行"; allow_target "$target"; return 0; }
+    target_really_blocked "$target" && { dbg "$target 已在防火墙中拦截，无需重复操作"; return 0; }
+    ensure_firewall_ready
+    if ! target_in_firewall "$target"; then
+        dbg "将 $target 加入防火墙拦截（规则 ID=$id）"
+        netcontrol add "$id" >/dev/null 2>&1
+    else
+        dbg "$target 已在防火墙中，同步更新状态记录（规则 ID=$id）"
+    fi
+    grep -q "!${id}!" "$IDLIST" 2>/dev/null || echo "!${id}!" >> "$IDLIST"
+    set_blocked_target_state "$target" "$id"
+    info "已限制 $target 的上网权限"
+    record_connection_time "$target" "disconnect"
+}
+
+update_target_status() {
+    local target="$1" ids
+    ids="$(get_enabled_rules_for_target "$target")"
+    if [ -z "$ids" ]; then
+        dbg "$target 无已启用规则，放行上网"
+        allow_target "$target"; return 0
+    fi
+    if target_allowed_by_any_rule "$target"; then allow_target "$target"
+    else block_target "$target"
+    fi
+}
+
+# ─── 主循环 ───────────────────────────────────────────────────────────────────
+
+main_loop() {
+    local loop_count=0 targets target duration_targets
+
+    info "时间控制守护进程已启动"
+    init_dirs
+    reset_runtime_state
+
+    while :; do
+        # 每轮开头刷新一次设备缓存。必须放在总开关分支之前：关闭态下也要遍历设备。
+        refresh_device_cache
+
+        # 总开关：关闭时清除所有拦截规则与运行时状态后空转，不依赖 procd 停掉本进程
+        if ! master_enabled; then
+            dbg "总开关已关闭：清除所有拦截规则，空转等待"
+            teardown_firewall
+            reset_runtime_state
+            write_status_file
+            sleep 10
+            continue
+        fi
+
+        dbg "开始检查各设备的上网控制规则"
+        # 每 10 轮强制重算一次，让新下载的数据和刚保存的自定义日期及时生效
+        # 在线更新的检查也放在这里，避免每轮多派生几个进程
+        if [ $((loop_count % 10)) -eq 0 ]; then
+            refresh_day_type 1
+            maybe_update_holidays
+        else
+            refresh_day_type
+        fi
+        targets="$(get_all_targets)"
+
+        if [ -z "$targets" ]; then
+            dbg "暂无上网控制目标，等待配置"
+            write_status_file
+            sleep 60
+            continue
+        fi
+
+        echo "$targets" | sort -u | while IFS= read -r target; do
+            [ -n "$target" ] || continue
+            update_target_status "$target"
+        done
+
+        loop_count=$((loop_count + 1))
+        if [ $((loop_count % 10)) -eq 0 ]; then
+            _rotate_connection_log
+            _rotate_main_log
+            sync_persist
+        fi
+
+        write_status_file
+        # 计时目标每轮算一次：先同步计数规则，再进 sleep 采样
+        duration_targets="$(get_duration_targets)"
+        sync_accounting_rules "$duration_targets"
+        sync_randmac_allow
+        report_random_macs
+        sleep_with_accrual "$(calc_sleep_seconds)" "$duration_targets"
+    done
+}
+
+main_loop

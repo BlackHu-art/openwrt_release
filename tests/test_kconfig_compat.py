@@ -18,6 +18,9 @@ FIXTURE = ROOT / "tests/fixtures/kconfig-compat"
 ADAPTER = ROOT / "wrt_core/kconfig_compat.py"
 QT = "feeds/video/frameworks/qt5/qt5base"
 SQUEEZE = "feeds/packages/sound/squeezelite"
+FWKNOP = "feeds/packages/net/fwknop"
+GNUPG2 = "feeds/packages/utils/gnupg2"
+LUCIFWKNOP = "feeds/luci/applications/luci-app-fwknopd"
 
 
 def write(path, text):
@@ -52,6 +55,15 @@ FORCE:
     write(build / "package/base/image-config.in", "")
 
 
+def stage_fwknop(build, branch="master"):
+    source = FIXTURE / "variants/fwknop/master"
+    shutil.copytree(source / "packages", build / "feeds/packages", dirs_exist_ok=True)
+    shutil.copytree(source / "luci", build / "feeds/luci", dirs_exist_ok=True)
+    if branch != "master":
+        variant = FIXTURE / "variants/fwknop" / branch / "packages"
+        shutil.copytree(variant, build / "feeds/packages", dirs_exist_ok=True)
+
+
 def command(argv, cwd, timeout=30):
     return subprocess.run([str(x) for x in argv], cwd=cwd, capture_output=True,
                           text=True, encoding="utf-8", errors="replace", timeout=timeout)
@@ -72,6 +84,10 @@ def generate(build, group="both", legacy=True):
         packages += [QT, "feeds/video/libs/mesa", "feeds/packages/libs/libdrm"]
     if group in ("squeeze", "both"):
         packages += [SQUEEZE, "feeds/packages/multimedia/ffmpeg", "feeds/packages/libs/libx264"]
+    if group == "fwknop":
+        packages += [FWKNOP, GNUPG2, "feeds/packages/libs/gpgme", LUCIFWKNOP]
+    if group == "gnupg2":
+        packages += [GNUPG2]
     dumps = []
     for package in packages:
         relative = os.path.relpath(build, build / package).replace("\\", "/")
@@ -311,6 +327,86 @@ class KconfigCompatibility(unittest.TestCase):
                 with self.assertRaisesRegex(ValueError, "unreviewed Kconfig feed input"):
                     self.prepare()
                 self.assertEqual(before, self.snapshot())
+
+    def test_real_fwknop_luci_gnupg2_metadata_reproduces_original_cycle(self):
+        stage_fwknop(self.build)
+        generate(self.build, "fwknop")
+        with self.assertRaises(Exception) as error:
+            evaluate(self.build)
+        self.assertRegex(str(error.exception), "[Dd]ependency loop|recursive dependency")
+        for symbol in ("FWKNOPD_GPG", "PACKAGE_fwknopd", "PACKAGE_luci-app-fwknopd"):
+            self.assertIn(symbol, str(error.exception))
+
+    def test_fwknop_fix_keeps_parent_guards_and_optional_gpg_capture_libraries(self):
+        stage_fwknop(self.build)
+        unchanged = {p: p.read_bytes() for p in (
+            self.build / FWKNOP / "Makefile", self.build / FWKNOP / "Config.in",
+            self.build / LUCIFWKNOP / "Makefile", self.build / "feeds/luci/luci.mk")}
+        self.prepare()
+        self.assertEqual(unchanged, {p: p.read_bytes() for p in unchanged})
+        generate(self.build, "fwknop")
+        for selections in ({}, {"FWKNOPD_GPG": "y", "FWKNOPD_NFQ_CAPTURE": "y"}):
+            values = evaluate(self.build, selections)
+            self.assertFalse({k: v for k, v in values.items() if k.startswith("PACKAGE_") and v in ("y", "m")})
+            self.assertEqual(values.get("FWKNOPD_GPG", "n"), "n")
+            self.assertEqual(values.get("FWKNOPD_NFQ_CAPTURE", "n"), "n")
+        defaults = evaluate(self.build, {"PACKAGE_luci-app-fwknopd": "y"})
+        self.assertEqual(defaults.get("FWKNOPD_GPG", "n"), "n")
+        self.assertEqual(defaults.get("FWKNOPD_NFQ_CAPTURE", "n"), "n")
+        for parent in ("fwknopd", "luci-app-fwknopd"):
+            for gpg in ("n", "y"):
+                for capture in ("n", "y"):
+                    with self.subTest(parent=parent, gpg=gpg, capture=capture):
+                        values = evaluate(self.build, {"PACKAGE_" + parent: "y",
+                            "FWKNOPD_GPG": gpg, "FWKNOPD_NFQ_CAPTURE": capture})
+                        self.assertEqual(values.get("PACKAGE_" + parent), "y")
+                        self.assertEqual(values.get("PACKAGE_fwknopd"), "y")
+                        self.assertEqual(values.get("FWKNOPD_GPG", "n"), gpg)
+                        self.assertEqual(values.get("FWKNOPD_NFQ_CAPTURE", "n"), capture)
+                        for library in ("gnupg2", "gnupg2-utils", "libgpgme"):
+                            self.assertEqual(values.get("PACKAGE_" + library, "n"), gpg, library)
+                        for library in ("iptables-mod-nfqueue", "libnetfilter-queue", "libnfnetlink"):
+                            self.assertEqual(values.get("PACKAGE_" + library, "n"), capture, library)
+                        self.assertEqual(values.get("PACKAGE_libpcap", "n"), "y" if capture == "n" else "n")
+        values = evaluate(self.build, {"PACKAGE_luci-app-fwknopd": "m", "FWKNOPD_GPG": "y"})
+        for package in ("luci-app-fwknopd", "fwknopd", "libfko", "gnupg2-utils", "libgpgme"):
+            self.assertEqual(values.get("PACKAGE_" + package), "m", package)
+        # The original option's menu guard caps its runtime selection at m.
+        self.assertEqual(values.get("PACKAGE_gnupg2"), "m")
+
+    def test_reviewed_gnupg2_branches_select_required_runtime_and_repeat_without_rewrite(self):
+        for branch in ("master", "current-master", "openwrt-25.12", "openwrt-24.10"):
+            with self.subTest(branch=branch):
+                stage_fwknop(self.build, branch)
+                self.prepare()
+                generate(self.build, "gnupg2")
+                values = evaluate(self.build)
+                self.assertFalse({k: v for k, v in values.items() if k.startswith("PACKAGE_") and v in ("y", "m")})
+                for selected in ("y", "m"):
+                    values = evaluate(self.build, {"PACKAGE_gnupg2-utils": selected})
+                    self.assertEqual(values.get("PACKAGE_gnupg2-utils"), selected)
+                    self.assertEqual(values.get("PACKAGE_gnupg2"), selected)
+                path = self.build / GNUPG2 / "Makefile"
+                before, mtime = path.read_bytes(), path.stat().st_mtime_ns
+                self.prepare()
+                self.assertEqual(path.read_bytes(), before)
+                self.assertEqual(path.stat().st_mtime_ns, mtime)
+
+    def test_unknown_or_missing_gnupg2_input_is_rejected_before_other_adaptations(self):
+        stage_fwknop(self.build)
+        path = self.build / GNUPG2 / "Makefile"
+        original = path.read_bytes()
+        for contents in (original + b"\n# unreviewed GnuPG2 drift\n", None):
+            with self.subTest(missing=contents is None):
+                if contents is None:
+                    path.unlink()
+                else:
+                    path.write_bytes(contents)
+                before = self.snapshot()
+                with self.assertRaisesRegex(ValueError, "Kconfig"):
+                    self.prepare()
+                self.assertEqual(before, self.snapshot())
+                path.write_bytes(original)
 
     def test_current_qt_linuxfb_drm_keeps_library_selection_without_parent_cycle(self):
         (self.build / QT / "Makefile").write_bytes((FIXTURE / "variants/master/video/frameworks/qt5/qt5base/Makefile").read_bytes())

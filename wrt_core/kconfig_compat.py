@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Remove two reviewed parent/feature dependency cycles in downloaded feeds."""
+"""Repair reviewed feed configuration dependency cycles in build copies."""
 import argparse
 import hashlib
 import os
@@ -10,21 +10,27 @@ import tempfile
 
 
 # Feed revisions document the reviewed inputs, not a replacement source pin.
-# Source URLs, package versions, defaults, DEPENDS and build flags stay intact.
+# Source URLs, package versions, defaults and build flags stay intact.
+# The reviewed GnuPG2 repair adds the missing runtime auto-selection only.
 # See tests/fixtures/kconfig-compat/sources.json for source commits and Git blobs.
 QT = "feeds/video/frameworks/qt5/qt5base"
 SQUEEZE = "feeds/packages/sound/squeezelite"
+GNUPG2 = "feeds/packages/utils/gnupg2"
 REVIEWED = {
     QT + "/Makefile": "a79b2c2c0b303531ca5dc83683fbb7a49a89519be828fe1b79ecc93a0be7de36",
     QT + "/Config.in": "1ad8695b21aa118824d514a0854f390b9e4859057e8b340942fe812d13be4f55",
     SQUEEZE + "/Makefile": "2502c1809fc6b32be93ee50e2eb8ec4d81cd9c2905387646352604d85719a22e",
+    GNUPG2 + "/Makefile": "d8738125146f448507f317fab0bb6e1673e355c3a4a1e5d5c1f132dd3ebae6e6",
 }
 # Exact additional recipes from the independently reviewed master, 25.12 and
 # 24.10 feed snapshots. These retain their own versions, source hashes,
-# dependency/conflict declarations and packaging fixes. Only the same two
-# parent/feature guards below are adapted; arbitrary feed drift still fails.
+# conflict declarations and packaging fixes. Only the reviewed parent/feature
+# guards and GnuPG2 runtime dependency below are adapted; other drift fails.
 # Full bytes and provenance are recorded under fixtures/kconfig-compat/variants.
 REVIEWED_VARIANTS = {
+    GNUPG2 + "/Makefile": (
+        "0987f5dfd1f26e4505f1cd0796de32f19d1e88ef5237c71a15b9a5e71f4239c2",
+    ),
     QT + "/Makefile": (
         "e615c8343db4695e0c9059f699d969f1d5c9c21e3931add4b6c026dc277e0bb4",
     ),
@@ -35,6 +41,14 @@ REVIEWED_VARIANTS = {
     ),
 }
 EDITS = {
+    GNUPG2 + "/Makefile": (
+        # Upstream issue 31215: a non-select runtime prerequisite propagates the
+        # optional fwknop GPG condition into LuCI and closes its parent loop.
+        # Let the utilities pull in their required runtime; preserve all fwknop
+        # feature guards/defaults and conditional libraries in the original form.
+        (b'define Package/gnupg2-utils\n  $(call Package/gnupg2/Default)\n  DEPENDS:=gnupg2 +libcurl\n',
+         b'define Package/gnupg2-utils\n  $(call Package/gnupg2/Default)\n  DEPENDS:=+gnupg2 +libcurl\n'),
+    ),
     QT + "/Config.in": (
         (b'    default BUILD_qt5base-gui_OPENGL_NONE\n    depends on PACKAGE_qt5base-gui\n',
          b'    default BUILD_qt5base-gui_OPENGL_NONE\n'),
@@ -60,6 +74,8 @@ def prepare(build_dir: Path) -> None:
     those features cannot depend on the parent as well (even via prompt/visible
     if). Unguarded options do not select the parent or its libraries. Qt still
     defaults to no OpenGL; every squeezelite feature still defaults to n.
+    GnuPG2 utilities select their required runtime, avoiding a propagated
+    fwknop feature prerequisite without changing fwknop's parent guards.
     """
     build_dir = Path(build_dir).resolve()
     if not build_dir.is_dir():
@@ -136,7 +152,7 @@ def main(argv=None):
     except (OSError, ValueError) as error:
         print(f"Kconfig compatibility error: {error}", file=sys.stderr)
         return 1
-    print("Qt5 and squeezelite Kconfig compatibility verified")
+    print("Qt5, squeezelite and fwknop/GnuPG2 Kconfig compatibility verified")
     return 0
 
 

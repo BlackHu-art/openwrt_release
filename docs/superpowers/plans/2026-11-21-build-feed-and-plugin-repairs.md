@@ -35,35 +35,35 @@
 **Interfaces:** Preserve `update.sh REPO_URL REPO_BRANCH BUILD_DIR COMMIT_HASH DOCKER_STACK_SELECTED`.
 The feed adapter consumes a local Git build tree plus the checked-in lock, writes the selected feeds configuration before update, and verifies fetched HEADs afterward.
 
-- [ ] Record immutable core/feed commits and provenance for every supported profile, preserving explicit pins.
-- [ ] Add failing behavior tests for exact locked fetches, unknown origins/cores, duplicate/missing entries, idempotence and stale checkout rejection.
-- [ ] Implement atomic configuration preparation and post-fetch verification, integrate before/after the existing feeds update.
-- [ ] Include lock identity in config preview/cache identity; preserve requested package selections.
+- [x] Record immutable core/feed commits and provenance for every supported profile, preserving explicit pins.
+- [x] Add failing behavior tests for exact locked fetches, unknown origins/cores, duplicate/missing entries, idempotence and stale checkout rejection.
+- [x] Implement atomic configuration preparation and post-fetch verification, integrate before/after the existing feeds update.
+- [x] Include lock identity in config preview/cache identity; preserve requested package selections.
 - [ ] Run focused tests and actual representative source preparation/defconfig under Linux.
 
 ### Task 2: Reviewed Qt5/squeezelite variants
 
 **Files:** `wrt_core/kconfig_compat.py`, `tests/fixtures/kconfig-compat/`, `tests/test_kconfig_compat.py`, `docs/kconfig-compat.md`.
 
-- [ ] Capture the actual master and maintenance-branch recipes with source commits/hashes.
-- [ ] Add failing tests using each real variant, preserving Kconfig feature semantics and package versions/dependencies.
-- [ ] Extend exact reviewed-input handling; preserve all-input validation before any writes.
-- [ ] Verify original/fixed loops, repeated application, unknown drift, partial input and failure propagation.
+- [x] Capture the actual master and maintenance-branch recipes with source commits/hashes.
+- [x] Add failing tests using each real variant, preserving Kconfig feature semantics and package versions/dependencies.
+- [x] Extend exact reviewed-input handling; preserve all-input validation before any writes.
+- [x] Verify original/fixed loops, repeated application, unknown drift, partial input and failure propagation.
 
 ### Task 3: Selective upstream fixes
 
 **Files:** Existing plugin adapters/patches and their tests; `wrt_core/modules/service_fixes.sh`; CI setup helper/workflows if the reviewed fix applies; `docs/maintenance/upstream-repairs-2026-11-21.md`.
 
-- [ ] Inventory selected plugin sources; review new commits, mark already integrated and incompatible changes.
-- [ ] For each accepted fix, first reproduce the affected behavior; implement the smallest backport with exact provenance and repeat/unknown-input tests.
-- [ ] Cover fw876 SSR runtime dependency selection, Xray Cronet linker allowance, OpenClash cache persistence, and direct netfilter dependency form when confirmed applicable.
-- [ ] Preserve source locks and selected functionality; do not take wholesale upstream theme/UI/device migrations.
-- [ ] Document each reviewed source and explicit validation boundaries.
+- [x] Inventory selected plugin sources; review new commits, mark already integrated and incompatible changes.
+- [x] For each accepted fix, first reproduce the affected behavior; implement the smallest backport with exact provenance and repeat/unknown-input tests.
+- [x] Cover fw876 SSR runtime dependency selection, Xray Cronet linker allowance, OpenClash cache persistence, and direct netfilter dependency form when confirmed applicable.
+- [x] Preserve source locks and selected functionality; refresh complete existing theme sources without importing new devices or incompatible UI migrations.
+- [x] Document each reviewed source and explicit validation boundaries.
 
 ### Task 4: Integrated verification and delivery
 
-- [ ] Run focused tests, complete regression, production source integrity, all-profile config preview, document links and diff checks.
-- [ ] Obtain fresh whole-change review and resolve actionable findings.
+- [x] Run focused tests, complete regression, production source integrity, all-profile config preview, document links and diff checks.
+- [x] Obtain fresh whole-change review and resolve actionable findings.
 - [ ] Run Linux required CI on the exact final revision; inspect failed checks and fix confirmed issues.
 - [ ] Validate representative ImmortalWrt/LiBwrt builds without publishing firmware releases; report run IDs and actual outcomes.
 - [ ] Report changed behavior, included upstream fixes, source identities and unverified real-device behavior.

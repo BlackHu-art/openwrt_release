@@ -1,0 +1,103 @@
+{
+  "repository": "https://github.com/rule2c/luci-app-netcontrol",
+  "commit": "61364846e1188d87801f778749efc4f2a4deac43",
+  "purpose": "Untouched source fixture for pinned sparse package publication tests; runtime scripts are not executed",
+  "files": [
+    {
+      "path": "LICENSE",
+      "mode": "100644",
+      "git_blob": "9efa6fbc962836e243e20f7f23db062e2c077d28",
+      "sha256": "edaef632cbb643e4e7a221717a6c441a4c1a7c918e6e4d56debc3d8739b233f6"
+    },
+    {
+      "path": "luci-app-netcontrol/Makefile",
+      "mode": "100644",
+      "git_blob": "92470027159400e9699474ed4a0876a0692a4cee",
+      "sha256": "8b62112ceeef81d9252255c358c29ee3f93e88bffa22d865559b41e943faf7ef"
+    },
+    {
+      "path": "luci-app-netcontrol/htdocs/luci-static/resources/view/netcontrol/basic.js",
+      "mode": "100644",
+      "git_blob": "3f0bfeba1dbd854e4366d1340a374a38da9e0764",
+      "sha256": "169ec4c707832dab3eee851c8ef0f06a90b831b359f4ec339bd1fc77f5811533"
+    },
+    {
+      "path": "luci-app-netcontrol/htdocs/luci-static/resources/view/netcontrol/log.js",
+      "mode": "100644",
+      "git_blob": "8bb03e63363906ddf04bfec550607de864141db4",
+      "sha256": "ffc184738c38da0e25634c02bbec5738bbb4269392e9ea239e910c5103737c59"
+    },
+    {
+      "path": "luci-app-netcontrol/po/zh_Hans/netcontrol.po",
+      "mode": "100644",
+      "git_blob": "f98069d61f5a7d16a3719ac5247b647844c43d14",
+      "sha256": "da2d1c54e5fc7168a73312ce64cd250915e3f022c7096a7988a332b24cbeab20"
+    },
+    {
+      "path": "luci-app-netcontrol/root/etc/config/netcontrol",
+      "mode": "100644",
+      "git_blob": "0615cd7e1e6636cde0640964f50b38af9bb322a3",
+      "sha256": "df563e889781e6b46139821867e4b5f76c63846087eddf3ed9517063818ce4bd"
+    },
+    {
+      "path": "luci-app-netcontrol/root/etc/init.d/netcontrol",
+      "mode": "100755",
+      "git_blob": "199ccc29ca096d92c2c377244cfc11bc75f26a55",
+      "sha256": "ae05518db14ed4768a3c6060ef590346b98344b01132776ce5d37a32f792c13d"
+    },
+    {
+      "path": "luci-app-netcontrol/root/etc/uci-defaults/luci-netcontrol",
+      "mode": "100644",
+      "git_blob": "ee93269d121bca73d74e0d3c76b019c4fa97d1be",
+      "sha256": "1b319a664589868b1daa65b5d980a3f5d486b96e4701fe178374ae44306d38cc"
+    },
+    {
+      "path": "luci-app-netcontrol/root/usr/bin/netcontrol",
+      "mode": "100755",
+      "git_blob": "c9331558d5afa78705d0e71cf1a4ea9f83b393dc",
+      "sha256": "0617d6bce5dda2ac6680e5b874ffc82352f8449020f7dee7488b712db619c732"
+    },
+    {
+      "path": "luci-app-netcontrol/root/usr/bin/netcontrol-log",
+      "mode": "100755",
+      "git_blob": "ef3cc4c836bb4c0dc181f070c829cffec3292e8a",
+      "sha256": "8da05a266d19b2126ae3e7ceee9310ef39703052b30225b57804af4401aef2fc"
+    },
+    {
+      "path": "luci-app-netcontrol/root/usr/bin/netcontrolctrl",
+      "mode": "100755",
+      "git_blob": "e6e23828c9a7405f59d1a36b5ca9965c579678fb",
+      "sha256": "f54f1c7a53db87cb5d053a9355f391b6d62ae0796aa459c33af91188d6b1b25c"
+    },
+    {
+      "path": "luci-app-netcontrol/root/usr/libexec/netcontrol-call",
+      "mode": "100755",
+      "git_blob": "eab3cd7961f566370eaf3613de2b8d5f314e8ce3",
+      "sha256": "c5103bda072011daf4487a9d267370f2822f638c7ad0d0291e6e264f1453f192"
+    },
+    {
+      "path": "luci-app-netcontrol/root/usr/share/luci/menu.d/luci-app-netcontrol.json",
+      "mode": "100644",
+      "git_blob": "366bfd4d5c1c2fe95458802eda7314e77bdc3eab",
+      "sha256": "f1866a50f5bf19c69e6be4ed71c2c04406054659c3e2b76a79b7ca3af2294e90"
+    },
+    {
+      "path": "luci-app-netcontrol/root/usr/share/netcontrol/holiday.sh",
+      "mode": "100644",
+      "git_blob": "b6dc38665edfe9fd07540599797884260bcf1831",
+      "sha256": "9846382e743e3fe9481d301487b4c2e58a060b6a99c51ff6f916f46aeac33f93"
+    },
+    {
+      "path": "luci-app-netcontrol/root/usr/share/netcontrol/holidays.txt",
+      "mode": "100644",
+      "git_blob": "3b32a1f03235d1e0cb5da843e6ee3ec25c8c7ad7",
+      "sha256": "2c1a296d1dd438575fc60f5abeaf0004d27209178a94ff69e1cb029ced31dad5"
+    },
+    {
+      "path": "luci-app-netcontrol/root/usr/share/rpcd/acl.d/luci-app-netcontrol.json",
+      "mode": "100644",
+      "git_blob": "65ef9c14cfe12f561ddf69f0ebc19e6a75294f87",
+      "sha256": "92fa5c51efe1a85b9bd9de904dbb9f73e5140ace5bee319611fb7cc4aeb45ca7"
+    }
+  ]
+}

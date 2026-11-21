@@ -12,8 +12,24 @@
 
 Qt5 的路径是 `qt5base-gui` 条件选择 `libmesa`，默认 provider `libmesa-softpipe` 依赖 `libdrm`，后者依赖 `video-support`。生成器将 `!(BUILD_qt5base-gui_OPENGL_OPENGLES2 && provider 条件) || PACKAGE_video-support` 加回 GUI 包，GUI 下的 OpenGL choice 再依赖 GUI 包，闭合循环。squeezelite 的 WMA/ALAC 条件选择 ffmpeg，ffmpeg 的 libdrm / libx264 前置条件被同样传播，WMA/ALAC 开关原先又处于父包 `if` 内。
 
-生产转换只删除 Qt5 OpenGL choice 的父包依赖，将 squeezelite 父包 `if` 改为无依赖的选项菜单。原默认值、条件库依赖、全部功能开关和编译参数不变。选项会在父包未选中时可见；测试确认单独打开选项不会自动选中父包或库。完整文件指纹确保新的上游改动必须重新审查，不能被宽泛替换静默接受。
+最初的生产转换删除 Qt5 OpenGL choice 的父包依赖，将 squeezelite 父包 `if` 改为无依赖的选项菜单。原默认值、条件库依赖、全部功能开关和编译参数不变。选项会在父包未选中时可见；测试确认单独打开选项不会自动选中父包或库。完整文件指纹确保新的上游改动必须重新审查，不能被宽泛替换静默接受。
 
 Windows 用 `kconfiglib==14.1.0` 作解析及符号求值检查。真实 Linux 门禁为 `bash tests/test_kconfig_linux.sh`：在临时目录以 GCC/Make 编译夹具内的真实上游 `conf`，以 `--fatalrecursive --defconfig` 重跑同一组语义测试。需要 `gcc make perl python3`；上游生成的 lexer/parser 已保留，无需 Flex/Bison。`REQUIRE_KCONFIG_CONF=1` 时非 Linux 也必须失败，Linux 缺任何工具始终失败；普通 Windows 只明确跳过该 Linux 门禁。两种解析器仅因上游语法演进在测试前置 MODULES 声明上分别使用 `modules` / `option modules`。
 
 这些测试覆盖 Kconfig 配置阶段，不代表 Qt5、Mesa、ffmpeg 或 squeezelite 已完成固件编译或设备运行验证。
+
+## fwknop / GnuPG2 实际循环夹具
+
+`variants/fwknop/` 保存锁定 packages 四个分支状态的原始 fwknop / GnuPG2 配方，
+以及复现循环所需的 GnuPG2、GPGME、LuCI 页面和真实 `luci.mk`。
+旧/新 master 的 fwknop / GnuPG2 文件相同；25.12 / 24.10 的对应文件分别相同。
+`sources.json` 保留每个锁定提交的来源，即使文件内容相同，也不能把分支当成可互换的滚动输入。
+GPGME 配方没有文件级许可证头；其 `PKG_LICENSE` 描述软件负载，清单中明确保留该区别。
+`luci.mk` 带 Apache-2.0 头，其余新增配方带 GPL-2.0 头或为相应包的 Config.in。
+
+真实元数据重现 `fwknopd → luci-app-fwknopd → FWKNOPD_GPG → fwknopd` 循环。
+生产适配不修改这些父包和功能开关，而对精确审查的 `gnupg2-utils` 依赖增加 `+gnupg2`，
+使其自动选中必需运行时；依据为
+[上游问题 31215 的作者建议](https://github.com/openwrt/packages/issues/31215#issuecomment-6808924386)，
+不是已经合并的上游补丁。两种求值器同时验证原始环、修复、未选中包、GPG/NFQ 条件库、模块、
+默认值和重复应用；未知或缺失 GnuPG2 文件仍在写入前失败。

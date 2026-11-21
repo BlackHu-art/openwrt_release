@@ -1,0 +1,35 @@
+{
+  "admin/services/netcontrol": {
+    "title": "Net Control",
+    "order": 90,
+    "action": {
+      "type": "firstchild"
+    },
+    "depends": {
+      "acl": [ "luci-app-netcontrol" ]
+    },
+    "recurse": true
+  },
+  "admin/services/netcontrol/basic": {
+    "title": "Net Control",
+    "order": 10,
+    "action": {
+      "type": "view",
+      "path": "netcontrol/basic"
+    },
+    "depends": {
+      "acl": [ "luci-app-netcontrol" ]
+    }
+  },
+  "admin/services/netcontrol/log": {
+    "title": "Log",
+    "order": 40,
+    "action": {
+      "type": "view",
+      "path": "netcontrol/log"
+    },
+    "depends": {
+      "acl": [ "luci-app-netcontrol" ]
+    }
+  }
+}

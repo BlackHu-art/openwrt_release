@@ -15,6 +15,15 @@ cd "$test_root"
 nproc() { echo 4; }
 make() {
     echo "$*" >> calls
+    if [[ $1 == defconfig ]]; then
+        # The native top-level makefile resets IS_TTY for a pipe unless it is
+        # supplied as a command-line make variable; that can hide DUMP errors.
+        if [[ ${defconfig_requires_tty:-0} == 1 && " $* " != *' IS_TTY=1 '* ]]; then
+            return 0
+        fi
+        printf '%s\n' "${defconfig_diagnostic:-configuration written}"
+        return "${defconfig_status:-0}"
+    fi
     printf "make[3]: Entering directory '%s/feeds/packages/net/example'\n" "$(pwd -P)"
     # Recursive make must not repeat the same package progress or expose internals.
     printf "make[4]: Entering directory '%s/feeds/packages/net/example'\n" "$(pwd -P)"
@@ -48,6 +57,38 @@ reset_case() {
     recovered_download_errors=0
     hash_check_commands=0
 }
+
+# The native conf can print a recursive-dependency error and still return zero.
+# Preserve its log, reject that result, and retain genuine make/tee failures.
+reset_case '# CONFIG_PACKAGE_miniupnpd-nftables is not set'
+defconfig_diagnostic='tmp/.config-package.in:7:error: recursive dependency detected!'
+status=0
+prepare_defconfig > console.log 2>&1 || status=$?
+[[ $status != 0 ]]
+grep -q 'recursive dependency detected' logs/defconfig.log
+grep -q 'recursive dependency detected' console.log
+defconfig_diagnostic='ERROR: please fix package/broken/Makefile - see dump.txt'
+defconfig_requires_tty=1
+status=0
+prepare_defconfig > console.log 2>&1 || status=$?
+[[ $status != 0 ]]
+grep -q 'please fix package/broken/Makefile' logs/defconfig.log
+defconfig_requires_tty=0
+defconfig_diagnostic='configuration written'
+defconfig_status=23
+status=0
+prepare_defconfig > console.log 2>&1 || status=$?
+[[ $status == 23 ]]
+defconfig_status=0
+prepare_defconfig > console.log 2>&1
+[[ $(wc -l < logs/defconfig.log) == 1 ]]
+! grep -q 'recursive dependency' logs/defconfig.log
+(
+    tee() { command tee "$@"; return 17; }
+    status=0
+    prepare_defconfig > console.log 2>&1 || status=$?
+    [[ $status == 17 ]]
+)
 
 reset_case 'CONFIG_PACKAGE_miniupnpd-nftables=y'
 build_firmware > console.log 2>&1

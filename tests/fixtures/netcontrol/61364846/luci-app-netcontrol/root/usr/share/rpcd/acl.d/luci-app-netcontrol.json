@@ -1,0 +1,29 @@
+{
+  "luci-app-netcontrol": {
+    "description": "Grant access for luci-app-netcontrol",
+    "read": {
+      "ubus": {
+        "file": [ "read", "stat", "exec" ],
+        "uci": [ "get", "show" ]
+      },
+      "uci": [ "netcontrol" ],
+      "file": {
+        "/var/log/netcontrol.log": [ "read" ],
+        "/var/lib/netcontrol/device_status.tsv": [ "read" ],
+        "/etc/init.d/netcontrol": [ "exec" ]
+      }
+    },
+    "write": {
+      "ubus": {
+        "file": [ "exec" ],
+        "uci": [ "add", "apply", "confirm", "delete", "order", "rename", "set" ]
+      },
+      "uci": [ "netcontrol" ],
+      "file": {
+        "/var/log/netcontrol.log": [ "write" ],
+        "/usr/libexec/netcontrol-call": [ "exec" ],
+        "/etc/init.d/netcontrol": [ "exec" ]
+      }
+    }
+  }
+}

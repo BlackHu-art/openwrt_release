@@ -35,12 +35,16 @@ sync_sparse_packages_to_feed_dir() {
     local tmp_dir
     local missing_packages=()
     local clone_args=(clone --depth 1 --filter=blob:none --sparse)
-    local pkg
+    local pkg commit_sha=""
 
     python3 "$BASE_PATH/managed_plugins.py" assert-external "${packages[@]}" || return 1
     tmp_dir=$(mktemp -d)
 
-    if [ -n "$repo_branch" ]; then
+    # A full commit in the ref position is immutable. Branch/empty callers
+    # keep their existing rolling behavior.
+    if [[ "$repo_branch" =~ ^[0-9a-f]{40}$ ]]; then
+        commit_sha="$repo_branch"
+    elif [ -n "$repo_branch" ]; then
         clone_args+=(-b "$repo_branch")
     fi
 
@@ -51,6 +55,17 @@ sync_sparse_packages_to_feed_dir() {
         echo "错误：从 $repo_url 拉取仓库骨架失败" >&2
         rm -rf "$tmp_dir"
         return 1
+    fi
+
+    # Never publish the cloned default HEAD if a reviewed pin is unavailable.
+    if [[ -n "$commit_sha" ]]; then
+        if ! git_retry -C "$tmp_dir" fetch --depth 1 origin "$commit_sha" ||
+           ! git_retry -C "$tmp_dir" checkout --detach "$commit_sha" ||
+           [[ $(git -C "$tmp_dir" rev-parse HEAD) != "$commit_sha" ]]; then
+            echo "错误：无法固定 $repo_label 到已审查提交 $commit_sha。" >&2
+            rm -rf "$tmp_dir"
+            return 1
+        fi
     fi
 
     if ! git_retry -C "$tmp_dir" sparse-checkout set "${packages[@]}"; then
@@ -201,7 +216,7 @@ install_custom_feed() {
     local custom_feed_dir
     local custom_feed_worktree_dir
     local custom_feed_name
-    local core_url="${REPO_URL:-}" airoha_npu_required=0
+    local core_url="${REPO_URL:-}" airoha_npu_required=0 netcontrol_required=0
 
     local base_custom_feed_packages=(
         xray-plugin haproxy hysteria \
@@ -230,11 +245,16 @@ install_custom_feed() {
     local repo_packages
     local repo_package_array=()
 
-    core_url=${core_url%/}
+    while [[ "$core_url" == */ ]]; do core_url=${core_url%/}; done
     if [[ ${core_url%.git} == https://github.com/ZqinKing/immortalwrt &&
           ${COMMIT_HASH:-} == 796897b5417537c0b10ee9ec31166ac5901bc33b ]]; then
         airoha_npu_required=1
         required_feed_dirs+=(luci-app-airoha-npu)
+    fi
+    if [[ ${core_url%.git} == https://github.com/padavanonly/immortalwrt-mt798x-6.6 &&
+          ${COMMIT_HASH:-} == ec9ef10efc65da1e6d1de4e2c043c0e13d08eed8 ]]; then
+        netcontrol_required=1
+        required_feed_dirs+=(luci-app-netcontrol)
     fi
 
     if [ ! -d "$fullconenat_nft_dir" ]; then
@@ -251,6 +271,14 @@ install_custom_feed() {
         "sirpdboy/luci-app-partexp|https://github.com/sirpdboy/luci-app-partexp.git|main|luci-app-partexp"
         "nikkinikki-org/OpenWrt-nikki|https://github.com/nikkinikki-org/OpenWrt-nikki.git|main|nikki luci-app-nikki mihomo-meta"
     )
+    # S20M already selects Netcontrol, but its pinned core and 24.10 LuCI feed
+    # do not contain that recipe. Keep the canonical source pinned and scoped
+    # to this core instead of silently losing the requested plugin at defconfig.
+    if [[ $netcontrol_required == 1 ]]; then
+        custom_feed_sources+=(
+            "rule2c/luci-app-netcontrol|https://github.com/rule2c/luci-app-netcontrol.git|61364846e1188d87801f778749efc4f2a4deac43|luci-app-netcontrol"
+        )
+    fi
 
     feeds_path=$(get_feeds_path)
     custom_feed_name=$(get_custom_feed_name)

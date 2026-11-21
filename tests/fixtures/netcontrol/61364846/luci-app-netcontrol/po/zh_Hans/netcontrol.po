@@ -1,0 +1,348 @@
+msgid ""
+msgstr ""
+"Content-Type: text/plain; charset=UTF-8\n"
+
+msgid "Net Control"
+msgstr "上网控制"
+
+msgid "Status check failed"
+msgstr "服务状态获取失败"
+
+msgid "RUNNING"
+msgstr "运行中"
+
+msgid "NOT RUNNING"
+msgstr "未运行"
+
+msgid "DISABLED"
+msgstr "已停用"
+
+msgid "NetControl Service"
+msgstr "上网控制服务"
+
+msgid "Enable Time Control"
+msgstr "启用时间控制"
+
+msgid "Master switch. Disabling will immediately stop all control rules and allow all devices to access the internet freely."
+msgstr "总开关。关闭后将立即清除所有拦截规则，所有设备恢复自由上网。"
+
+msgid "Control Intensity"
+msgstr "控制强度"
+
+msgid "Ordinary forward control"
+msgstr "普通模式（仅拦截转发流量）"
+
+msgid "Strong input control"
+msgstr "强力模式（同时拦截访问路由器的流量）"
+
+msgid "Device Status"
+msgstr "设备上网状态"
+
+msgid "Device"
+msgstr "设备"
+
+msgid "Status"
+msgstr "当前状态"
+
+msgid "Time Used"
+msgstr "已用时长"
+
+msgid "Time Limit"
+msgstr "时长上限"
+
+msgid "Action"
+msgstr "操作"
+
+msgid "Blocked"
+msgstr "已拦截"
+
+msgid "Allowed"
+msgstr "放行中"
+
+msgid "Reset"
+msgstr "重置时长"
+
+msgid "Resetting..."
+msgstr "重置中..."
+
+msgid "No device data available."
+msgstr "暂无设备数据。"
+
+msgid "No enabled devices."
+msgstr "没有已启用的设备规则。"
+
+msgid "Loading device status..."
+msgstr "正在加载设备状态..."
+
+msgid "Status unavailable (service may not be running)"
+msgstr "状态不可用（服务可能未启动）"
+
+msgid "min"
+msgstr "分钟"
+
+msgid "Device Rules"
+msgstr "设备规则"
+
+msgid "Comment"
+msgstr "备注名称"
+
+msgid "Description"
+msgstr "请填写备注"
+
+msgid "Enabled"
+msgstr "启用"
+
+msgid "IP/MAC Address"
+msgstr "IP / MAC 地址"
+
+msgid "IP/MAC address is required"
+msgstr "IP / MAC 地址不能为空"
+
+msgid "Invalid IP/MAC address format"
+msgstr "IP / MAC 地址格式无效"
+
+msgid "Invalid IPv4 address (octet exceeds 255)"
+msgstr "IPv4 地址无效（数值超过 255）"
+
+msgid "Invalid IPv4 prefix length (0-32)"
+msgstr "IPv4 前缀长度无效（应为 0-32）"
+
+msgid "Invalid IPv6 prefix length (0-128)"
+msgstr "IPv6 前缀长度无效（应为 0-128）"
+
+msgid "Invalid time, expected HH:MM (00:00-23:59)"
+msgstr "时间格式无效，应为 HH:MM（00:00-23:59）"
+
+msgid "Time Control Mode"
+msgstr "时间控制方式"
+
+msgid "Time Period Control (allow in period)"
+msgstr "时间段控制（仅在指定时段内允许上网）"
+
+msgid "Allow Duration Control (allow limited time)"
+msgstr "时长控制（每日上网时长不超过指定分钟数）"
+
+msgid "Combined Control (allow in period + limit duration)"
+msgstr "组合控制（在指定时段内限制上网总时长）"
+
+msgid "Allow Start Time"
+msgstr "允许上网开始时间"
+
+msgid "Allow End Time"
+msgstr "允许上网结束时间"
+
+msgid "Allowed Duration (minutes)"
+msgstr "允许上网时长（分钟）"
+
+msgid "Reset Cycle"
+msgstr "时长重置周期"
+
+msgid "Daily Reset"
+msgstr "每天重置"
+
+msgid "Weekly Reset"
+msgstr "每周重置"
+
+msgid "Monthly Reset"
+msgstr "每月重置"
+
+msgid "Never Reset (until manual reset)"
+msgstr "不自动重置（需手动点击重置）"
+
+msgid "Week Day (1~7)"
+msgstr "允许上网的星期（1~7）"
+
+msgid "Everyday"
+msgstr "每天"
+
+msgid "Monday"
+msgstr "周一"
+
+msgid "Tuesday"
+msgstr "周二"
+
+msgid "Wednesday"
+msgstr "周三"
+
+msgid "Thursday"
+msgstr "周四"
+
+msgid "Friday"
+msgstr "周五"
+
+msgid "Saturday"
+msgstr "周六"
+
+msgid "Sunday"
+msgstr "周日"
+
+msgid "Workday"
+msgstr "工作日（周一至周五）"
+
+msgid "Rest Day"
+msgstr "休息日（周六、周日）"
+
+msgid "Clear Logs"
+msgstr "清空日志"
+
+msgid "Loading..."
+msgstr "加载中..."
+
+msgid "Log file does not exist."
+msgstr "日志文件不存在。"
+
+
+msgid "Strong mode also blocks traffic addressed to the router itself, so a blocked device loses access to this web interface as well."
+msgstr "强控制模式会连发往路由器本身的流量一并拦截，被限制的设备将无法访问本管理界面。"
+
+msgid "Log is empty."
+msgstr "日志为空"
+
+msgid "Clearing..."
+msgstr "正在清空…"
+
+msgid "Failed to read log: %s"
+msgstr "读取日志失败：%s"
+
+msgid "%d entries"
+msgstr "共 %d 条"
+
+msgid "Auto-refreshes every 5 seconds. Newest entries first."
+msgstr "每 5 秒自动刷新，最新记录在最前"
+
+msgid "Block Randomized MAC Devices"
+msgstr "拦截随机 MAC 设备"
+
+msgid ""
+"When enabled, every device using a randomized MAC is denied internet access "
+"unless listed below."
+msgstr "启用后，凡是使用随机 MAC 的设备一律禁止上网，下方名单中的除外。"
+
+msgid "Currently detected:"
+msgstr "当前探测到："
+
+msgid "Randomized MAC Allowlist"
+msgstr "随机 MAC 放行名单"
+
+msgid ""
+"Devices here keep internet access even with a randomized MAC. A device "
+"dropping off the list whenever it re-randomizes is expected behaviour."
+msgstr ""
+"名单中的设备即使使用随机 MAC 也照常上网。设备重新随机化后会掉出名单，这是预期行为。"
+
+msgid "Invalid MAC address format"
+msgstr "MAC 地址格式无效"
+
+msgid "This is not a randomized MAC address; the allowlist has no effect on it."
+msgstr "这不是随机 MAC 地址，放行名单对它没有作用。"
+
+msgid "random MAC"
+msgstr "随机 MAC"
+
+msgid "Devices Using a Randomized MAC"
+msgstr "使用随机 MAC 的设备"
+
+msgid "MAC Address"
+msgstr "MAC 地址"
+
+msgid "IP Address"
+msgstr "IP 地址"
+
+msgid "Unknown device"
+msgstr "未知设备"
+
+msgid "Blocking disabled"
+msgstr "拦截未启用"
+
+msgid "Blocked devices can still reach the router but have no internet access."
+msgstr "被拦截的设备仍能访问路由器，只是无法上网。"
+
+msgid "Currently blocked:"
+msgstr "当前被拦截："
+
+msgid ""
+"These devices would be blocked if you enable the switch above. Fill the "
+"allowlist first."
+msgstr "开启上方开关后，这些设备将被拦截。请先填好放行名单。"
+
+msgid "Statutory workday"
+msgstr "法定工作日（含调休补班）"
+
+msgid "Statutory day off"
+msgstr "法定节假日及周末（不含补班）"
+
+msgid "Statutory Holidays"
+msgstr "法定节假日"
+
+msgid ""
+"Used by the \"Statutory workday\" and \"Statutory day off\" options of "
+"device rules. Holidays and make-up workdays follow the State Council "
+"schedule."
+msgstr "供设备规则中“法定工作日”“法定节假日及周末”两个选项使用，放假与调休补班按国务院办公厅公布的安排。"
+
+msgid "Holiday data status unavailable"
+msgstr "无法获取节假日数据状态"
+
+msgid "Today"
+msgstr "今天"
+
+msgid "Day off"
+msgstr "休息日"
+
+msgid "Workday (statutory)"
+msgstr "工作日"
+
+msgid "no holiday data for this year, Monday to Friday treated as workdays"
+msgstr "没有今年的节假日数据，按周一至周五为工作日处理"
+
+msgid "custom day"
+msgstr "自定义日期"
+
+msgid "online data"
+msgstr "在线数据"
+
+msgid "bundled data"
+msgstr "内置数据"
+
+msgid "Years with data:"
+msgstr "已有数据的年份："
+
+msgid "Updating..."
+msgstr "正在更新..."
+
+msgid "Update now"
+msgstr "立即更新"
+
+msgid "Auto-update Holiday Data"
+msgstr "自动更新节假日数据"
+
+msgid ""
+"Download the latest holiday schedule once a day, only while some rule uses "
+"the statutory options. Without network access the bundled data is used."
+msgstr "仅在有规则使用法定节假日选项时，每天联网下载一次最新安排；无法联网时使用插件内置的数据。"
+
+msgid "Holiday Data URL"
+msgstr "节假日数据地址"
+
+msgid "{year} is replaced by the year. Must serve the holiday-cn JSON format."
+msgstr "{year} 会被替换为年份。须为 holiday-cn 的 JSON 格式。"
+
+msgid "Must be an http(s) URL containing {year}"
+msgstr "须为包含 {year} 的 http(s) 地址"
+
+msgid "Custom Days"
+msgstr "自定义日期"
+
+msgid ""
+"Overrides the holiday data for single days, e.g. 2026-12-31:off for an "
+"extra day off or 2026-12-27:work for a working weekend."
+msgstr "按天覆盖节假日数据，例如 2026-12-31:off 表示当天放假，2026-12-27:work 表示当天上班。"
+
+msgid "Expected YYYY-MM-DD:off or YYYY-MM-DD:work"
+msgstr "格式应为 YYYY-MM-DD:off 或 YYYY-MM-DD:work"
+
+msgid "Invalid date"
+msgstr "日期无效"
+
+msgid "Holiday data update failed: %s"
+msgstr "节假日数据更新失败：%s"

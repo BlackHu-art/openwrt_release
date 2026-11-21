@@ -498,7 +498,7 @@ remove_uhttpd_dependency
 
 cd "$BASE_PATH/../$BUILD_DIR"
 cp .config .config.requested
-make defconfig
+prepare_defconfig
 verify_ssrplus_final_config .config
 python3 "$BASE_PATH/check_selected_plugins.py" .config.requested .config
 
