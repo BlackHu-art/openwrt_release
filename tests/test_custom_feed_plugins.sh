@@ -45,6 +45,10 @@ sync_sparse_packages_to_feed_dir() {
     done
 }
 sync_repo_root_package_to_feed_dir() {
+    if [[ $5 == luci-app-airoha-npu && ${AIROHA_FETCH_FAIL:-0} == 1 ]]; then
+        echo 'simulated Airoha donor outage' >&2
+        return 1
+    fi
     mkdir -p "$3/$5"
     printf 'DEPENDS:=+luci-js-deps +luci-base\n' > "$3/$5/Makefile"
 }
@@ -53,7 +57,11 @@ run_feed_index() {
     [[ -L "$BUILD_DIR/feeds/custom_feed" ]]
 }
 
+REPO_URL=https://github.com/VIKINGYFY/immortalwrt.git
+COMMIT_HASH=3fd1e27a511851b41cf082b067b60099e8e026c4
+AIROHA_FETCH_FAIL=1
 install_custom_feed
+[[ ! -e "$BUILD_DIR/custom_feed/luci-app-airoha-npu" ]]
 for package in luci-app-ssr-plus luci-app-partexp; do
     [[ -s "$BUILD_DIR/feeds/custom_feed/$package/Makefile" ]] || {
         echo "FAIL: requested plugin has no feed source: $package" >&2
@@ -76,6 +84,19 @@ for plugin in passwall passwall2; do
 done
 grep -Fq "src-link custom_feed $BUILD_DIR/custom_feed" "$BUILD_DIR/$FEEDS_CONF"
 echo "custom feed selected plugins: PASS"
+
+# W1701K must require the pinned NPU package, while unrelated targets must not
+# depend on that donor being available.
+REPO_URL=https://github.com/ZqinKing/immortalwrt.git
+COMMIT_HASH=796897b5417537c0b10ee9ec31166ac5901bc33b
+if install_custom_feed; then
+    echo 'FAIL: W1701K accepted a missing NPU package' >&2
+    exit 1
+fi
+AIROHA_FETCH_FAIL=0
+install_custom_feed
+[[ -s "$BUILD_DIR/custom_feed/luci-app-airoha-npu/Makefile" ]]
+echo "custom feed Airoha source selection: PASS"
 
 # Exercise an unmanaged sparse import locally. Managed fw876 packages are
 # covered by the production loader and the overwrite rejection Python tests.

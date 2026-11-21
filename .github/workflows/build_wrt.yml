@@ -95,6 +95,7 @@ jobs:
         run: ./wrt_core/pre_clone_action.sh ${{ inputs.model }}
 
       - name: Cache Dependencies
+        if: ${{ inputs.build_mode != 'config_only' }}
         uses: actions/cache@v6.1.0
         with:
           path: |
@@ -106,6 +107,7 @@ jobs:
             ${{ matrix.os }}-${{ inputs.model }}-${{ env.REPO_HASH }}-
 
       - name: Refresh the cache
+        if: ${{ inputs.build_mode != 'config_only' }}
         run: |
           if [ -d "./action_build/staging_dir" ]; then
             find "./action_build/staging_dir" -type d -name "stamp" -not -path "*target*" | while read -r dir; do
@@ -214,6 +216,7 @@ jobs:
         uses: actions/upload-artifact@v7.0.1
         with:
           name: prepared-config-${{ inputs.model }}-${{ github.run_id }}
+          include-hidden-files: true
           path: |
             ./action_build/.config
             ./action_build/.config.requested

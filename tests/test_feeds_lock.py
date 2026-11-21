@@ -280,7 +280,10 @@ if sys.argv[1:3] == ['update', '-i']:
                 subprocess.run(['git','-C',str(target),'fetch','-q','origin',os.environ['WRONG_HEAD']],check=True)
                 subprocess.run(['git','-C',str(target),'checkout','-q','--detach',os.environ['WRONG_HEAD']],check=True)
         (root / 'feeds' / (name + '.index')).write_text('')
-    if os.environ.get('INDEX_ERROR'): print('ERROR: please fix feeds/packages/broken/Makefile - see dump.txt')
+    # Match include/scan.mk: a noninteractive inherited setting can suppress
+    # diagnostics even though a partial index is published with exit status 0.
+    if os.environ.get('INDEX_ERROR') and os.environ.get('IS_TTY', os.environ.get('MAKE_TERMOUT', '1')) == '1':
+        print('ERROR: please fix feeds/packages/broken/Makefile - see dump.txt')
 ''')
         feeds.chmod(0o755)
         # Production currently touches bpf.mk; a real core has include/.
@@ -304,7 +307,8 @@ run_feed_index custom custom_feed
 install_feeds
 '''
         environment = {**os.environ, 'MODULE': str(ROOT / 'wrt_core/modules/feeds.sh'),
-                       'TEST_BASE': str(base), 'TEST_TREE': str(self.tree), 'TOPDIR': str(self.root / 'unrelated')}
+                       'TEST_BASE': str(base), 'TEST_TREE': str(self.tree), 'TOPDIR': str(self.root / 'unrelated'),
+                       'IS_TTY': '0', 'MAKE_TERMOUT': '/dev/pts/0'}
         if wrong_head:
             environment['WRONG_HEAD'] = wrong_head
         if index_error:
@@ -346,6 +350,33 @@ stage_repo_checkout
         self.expect_error(result, 'HEAD')
         self.assertFalse((self.tree / 'cleaned').exists())
         self.assertFalse((self.tree / 'cloned').exists())
+
+    def test_reused_tree_switch_cleans_known_core_before_changing_tracked_files(self):
+        scripts = self.tree / 'scripts'
+        scripts.mkdir()
+        feeds = scripts / 'feeds'
+        feeds.write_text('#!/usr/bin/env bash\nprintf "%s\\n" "$@" >> "$TOPDIR/../clean-events"\n')
+        feeds.chmod(0o755)
+        first = commit(self.tree, 'first reviewed core')
+        second = commit(self.tree, 'second reviewed core')
+        self.data['cores'] = [dict(url=self.core_url, commit=sha, feed_set='fixture') for sha in (first, second)]
+        self.write_lock()
+        git(self.tree, 'checkout', '-q', '--detach', first)
+        (self.tree / 'revision').write_text('local LAN customization')
+        (self.tree / 'feeds').mkdir()
+        base = self.root / 'wrt_core'
+        base.mkdir()
+        shutil.copy(ADAPTER, base / ADAPTER.name)
+        shutil.copy(self.lock, base / LOCK.name)
+        result = subprocess.run(['bash', '-c', 'set -e; source "$UPDATE_SCRIPT"; stage_repo_checkout'],
+            capture_output=True, text=True, env={**os.environ,
+                'UPDATE_SCRIPT': str(ROOT / 'wrt_core/update.sh'), 'BASE_PATH': str(base),
+                'BUILD_DIR': str(self.tree), 'REPO_URL': self.core_url, 'COMMIT_HASH': second,
+                'FEEDS_CONF': 'feeds.conf.default', 'NETWORK_RETRY_MAX': '1'})
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertEqual(git(self.tree, 'rev-parse', 'HEAD'), second)
+        self.assertEqual((self.tree / 'revision').read_text(), 'second reviewed core')
+        self.assertEqual((self.root / 'clean-events').read_text().splitlines(), ['clean'])
 
     def test_shell_unknown_source_does_not_mutate_configuration_or_run_feeds(self):
         self.conf.write_text('src-git packages https://example.invalid/drift.git\n')

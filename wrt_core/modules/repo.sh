@@ -85,7 +85,7 @@ clean_up() {
 
 reset_feeds_conf() {
     # 所有源码修正都基于远端分支或指定提交的干净状态。
-    git_retry -C "$BUILD_DIR" reset --hard
-    git_retry -C "$BUILD_DIR" clean -f -d
+    git_retry -C "$BUILD_DIR" reset --hard || return 1
+    git_retry -C "$BUILD_DIR" clean -f -d || return 1
     checkout_repo_ref
 }

@@ -30,7 +30,9 @@ run_feed_index() {
     local -a statuses options=()
     mkdir -p "$BUILD_DIR/logs" || return 1
     log_file="$BUILD_DIR/logs/feeds-index-$phase.log"
-    if TOPDIR="$BUILD_DIR" ./scripts/feeds update -i "$@" 2>&1 | tee "$log_file"; then
+    # scan.mk reports DUMP failures through its progress macro, even when the
+    # native command returns zero. Keep those diagnostics enabled in pipelines.
+    if TOPDIR="$BUILD_DIR" IS_TTY=1 NO_COLOR=1 ./scripts/feeds update -i "$@" 2>&1 | tee "$log_file"; then
         statuses=("${PIPESTATUS[@]}")
     else
         statuses=("${PIPESTATUS[@]}")

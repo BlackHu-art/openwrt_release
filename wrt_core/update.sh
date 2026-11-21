@@ -33,12 +33,19 @@ source "$SCRIPT_DIR/modules/xray_core_compat.sh"
 # 阶段顺序不可随意调整：feeds install 前后依赖的目录不同。
 stage_repo_checkout() {
     # 从干净的上游源码树开始，保证后续修正基线一致。
+    local reused_checkout=0
     if [[ -e "$BUILD_DIR" ]]; then
         python3 "$BASE_PATH/feeds_lock.py" preflight "$BUILD_DIR" --repo-url "$REPO_URL" --commit "$COMMIT_HASH" || return 1
+        reused_checkout=1
     fi
-    clone_repo
-    checkout_repo_ref || return 1
-    clean_up
+    clone_repo || return 1
+    # Existing reviewed trees contain generated LAN/package changes. Clean with
+    # their known core and reset those changes before switching device commits.
+    # Fresh clones must select their reviewed core before running native code.
+    if [[ $reused_checkout == 0 ]]; then
+        checkout_repo_ref || return 1
+    fi
+    clean_up || return 1
     reset_feeds_conf
 }
 

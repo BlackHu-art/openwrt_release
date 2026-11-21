@@ -42,6 +42,22 @@ class BuildModes(unittest.TestCase):
         self.assertNotEqual(result.returncode, 0)
         self.assertIsNone(arguments)
 
+    def test_prepared_configuration_upload_includes_dot_config_files(self):
+        workflow = yaml.safe_load((ROOT / ".github/workflows/build_wrt.yml").read_text())
+        upload = next(s for s in workflow["jobs"]["build"]["steps"] if s.get("name") == "Upload Prepared Configuration")
+        self.assertTrue(upload["with"].get("include-hidden-files", False),
+                        "The artifact action excludes .config unless hidden files are explicitly enabled")
+        paths = upload["with"]["path"].splitlines()
+        self.assertIn('./action_build/.config', paths)
+        self.assertIn('./action_build/.config.requested', paths)
+
+    def test_config_probe_does_not_publish_or_refresh_firmware_caches(self):
+        workflow = yaml.safe_load((ROOT / ".github/workflows/build_wrt.yml").read_text())
+        steps = workflow['jobs']['build']['steps']
+        for name in ('Cache Dependencies', 'Refresh the cache', 'Delete Old Cache'):
+            step = next(s for s in steps if s.get('name') == name)
+            self.assertEqual(step.get('if'), "${{ inputs.build_mode != 'config_only' }}", name)
+
 
 if __name__ == "__main__":
     unittest.main()

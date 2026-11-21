@@ -201,6 +201,7 @@ install_custom_feed() {
     local custom_feed_dir
     local custom_feed_worktree_dir
     local custom_feed_name
+    local core_url="${REPO_URL:-}" airoha_npu_required=0
 
     local base_custom_feed_packages=(
         xray-plugin haproxy hysteria \
@@ -218,7 +219,7 @@ install_custom_feed() {
         luci-app-ssr-plus luci-app-partexp
         nikki luci-app-nikki mihomo-meta
         open-app-filter luci-app-oaf lucky luci-app-lucky luci-app-easytier
-        luci-app-emmc-health luci-app-airoha-npu
+        luci-app-emmc-health
     )
     local custom_feed_sources=()
     local missing_feed_dirs=()
@@ -228,6 +229,12 @@ install_custom_feed() {
     local repo_branch
     local repo_packages
     local repo_package_array=()
+
+    if [[ ${core_url%.git} == https://github.com/ZqinKing/immortalwrt &&
+          ${COMMIT_HASH:-} == 796897b5417537c0b10ee9ec31166ac5901bc33b ]]; then
+        airoha_npu_required=1
+        required_feed_dirs+=(luci-app-airoha-npu)
+    fi
 
     if [ ! -d "$fullconenat_nft_dir" ]; then
         base_custom_feed_packages+=(fullconenat-nft)
@@ -277,11 +284,13 @@ install_custom_feed() {
     # Existing W1701K configuration selects this package, which neither its
     # pinned core nor the LuCI feed supplies. Backport upstream e16d7ace source
     # wiring while fixing the input to the reviewed package commit.
-    if ! sync_repo_root_package_to_feed_dir "https://github.com/rchen14b/luci-app-airoha-npu.git" "main" "$custom_feed_dir" "rchen14b/luci-app-airoha-npu" "luci-app-airoha-npu" "14521b8414da1e98517a295d8ec267087c7dde8e" ||
-       ! remove_nested_airoha_npu_package "$custom_feed_dir/luci-app-airoha-npu" ||
-       ! fix_airoha_npu_luci_mk "$custom_feed_dir/luci-app-airoha-npu"; then
-        rm -rf "$custom_feed_dir"
-        return 1
+    if [[ $airoha_npu_required == 1 ]]; then
+        if ! sync_repo_root_package_to_feed_dir "https://github.com/rchen14b/luci-app-airoha-npu.git" "main" "$custom_feed_dir" "rchen14b/luci-app-airoha-npu" "luci-app-airoha-npu" "14521b8414da1e98517a295d8ec267087c7dde8e" ||
+           ! remove_nested_airoha_npu_package "$custom_feed_dir/luci-app-airoha-npu" ||
+           ! fix_airoha_npu_luci_mk "$custom_feed_dir/luci-app-airoha-npu"; then
+            rm -rf "$custom_feed_dir"
+            return 1
+        fi
     fi
 
     if ! fix_emmc_health_luci_js_deps "$custom_feed_dir/luci-app-emmc-health"; then

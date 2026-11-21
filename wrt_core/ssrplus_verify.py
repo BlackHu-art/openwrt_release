@@ -320,6 +320,66 @@ def verify_source_link(package, relative, target, expected_blob):
         raise VerificationError("source symlink target must be an existing package directory: " + relative)
 
 
+def publish_source(staged, package, modes):
+    """Prepare replacements and copies for rollback on filesystem errors."""
+    pending, temporary_files, published = {}, set(), []
+    # Windows chmod only changes the read-only attribute.
+    mode_mask = stat.S_IWRITE if os.name == "nt" else 0o7777
+
+    def stage_file(destination, data, label):
+        fd, filename = tempfile.mkstemp(prefix=destination.name + label, dir=destination.parent)
+        path = Path(filename)
+        temporary_files.add(path)
+        with os.fdopen(fd, "wb") as output:
+            output.write(data)
+        return path
+
+    try:
+        for relative, mode in modes.items():
+            destination = package / relative
+            data = (staged / relative).read_bytes()
+            original = destination.read_bytes() if destination.exists() else None
+            original_mode = stat.S_IMODE(destination.stat().st_mode) if original is not None else 0
+            publish_mode = original_mode if mode == "-" else int(mode, 8)
+            mode_matches = (original_mode & mode_mask) == (publish_mode & mode_mask)
+            if original == data and mode_matches:
+                continue
+            replacement = stage_file(destination, data, ".ssrfix-")
+            replacement.chmod(publish_mode)
+            backup = None
+            if original is not None:
+                backup = stage_file(destination, original, ".ssrrollback-")
+                shutil.copystat(destination, backup)
+            pending[destination] = (replacement, backup)
+
+        for destination, (replacement, _backup) in pending.items():
+            os.replace(replacement, destination)
+            published.append(destination)
+    except OSError as error:
+        recovery_failures = []
+        for destination in reversed(published):
+            _replacement, backup = pending[destination]
+            try:
+                if backup is None:
+                    destination.unlink()
+                else:
+                    os.replace(backup, destination)
+            except OSError as rollback_error:
+                # Keep a usable backup if the filesystem also refuses rollback.
+                if backup is not None:
+                    temporary_files.discard(backup)
+                recovery_failures.append(f"{destination} (backup {backup}): {rollback_error}")
+        if recovery_failures:
+            raise VerificationError(f"SSR publication failed: {error}. Rollback failed for " +
+                                    ", ".join(recovery_failures)) from error
+        raise
+    finally:
+        for path in temporary_files:
+            if os.name == "nt" and path.exists():
+                path.chmod(stat.S_IWRITE)
+            path.unlink(missing_ok=True)
+
+
 def prepare_source(core, package):
     """Apply only reviewed package integration, rejecting unknown upstream bytes.
 
@@ -436,28 +496,11 @@ def prepare_source(core, package):
         if existing is not None and not migrating:
             verify_prepared(manifest)
         (staged / manifest_relative).write_text(json.dumps(manifest, indent=2, sort_keys=True) + "\n", encoding="utf-8")
-        for relative in [*expected, manifest_relative]:
-            # Integration only changes canonical translation files. Never
-            # dereference, rewrite or replace the validated upstream alias.
-            if relative in SOURCE_LINKS:
-                continue
-            source, destination = staged / relative, package / relative
-            mode = expected[relative][1] if relative in expected else "0644"
-            if not destination.exists() or source.read_bytes() != destination.read_bytes():
-                # mkstemp starts at 0600 on POSIX; preserve source modes for
-                # LuCI/recipe files instead of copying that temporary policy.
-                publish_mode = (stat.S_IMODE(destination.stat().st_mode)
-                                if mode == "-" else int(mode, 8))
-                descriptor, temporary_file = tempfile.mkstemp(prefix=destination.name + ".ssrfix.", dir=destination.parent)
-                try:
-                    with os.fdopen(descriptor, "wb") as output:
-                        output.write(source.read_bytes())
-                    os.chmod(temporary_file, publish_mode)
-                    os.replace(temporary_file, destination)
-                finally:
-                    Path(temporary_file).unlink(missing_ok=True)
-            if mode != "-":
-                destination.chmod(int(mode, 8))
+        # Integration changes only canonical translation files. Leave the
+        # upstream symlink in place, and publish the manifest after the data.
+        modes = {relative: mode for relative, (_blob, mode) in expected.items() if relative not in SOURCE_LINKS}
+        modes[manifest_relative] = "0644"
+        publish_source(staged, package, modes)
 
 
 def main(argv=None):

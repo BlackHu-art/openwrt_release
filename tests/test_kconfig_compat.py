@@ -324,7 +324,7 @@ class KconfigCompatibility(unittest.TestCase):
             except Exception as error:
                 self.fail("Reviewed Qt linuxfb/DRM metadata must parse: " + str(error).split("\n")[1])
             self.assertEqual(values.get("PACKAGE_qt5base-plugin-platforms-linuxfb"), "y")
-            self.assertEqual(values.get("BUILD_qt5base-gui_DRM"), enabled)
+            self.assertEqual(values.get("BUILD_qt5base-gui_DRM", "n"), enabled)
             self.assertEqual(values.get("PACKAGE_libdrm", "n"), enabled)
 
     def test_partial_existing_edit_is_rejected_without_writes(self):

@@ -7,7 +7,7 @@ Real Lua and shell execute with UCI/process/filesystem boundaries substituted.
 """
 import base64
 import copy
-from contextlib import contextmanager
+from contextlib import contextmanager, nullcontext
 from functools import lru_cache
 import hashlib
 import gzip
@@ -253,7 +253,7 @@ class SourceIntegration(unittest.TestCase):
     def setUp(self):
         self.temporary = tempfile.TemporaryDirectory(prefix="ssr-v198-")
         self.addCleanup(self.temporary.cleanup)
-        self.package = Path(self.temporary.name) / "package"
+        self.package = Path(self.temporary.name).resolve() / "package"
         if os.name == "nt":
             shutil.copytree(UPSTREAM, self.package)
         else:
@@ -325,7 +325,7 @@ class SourceIntegration(unittest.TestCase):
         self.assertNotEqual(result.returncode, 0)
         self.assertEqual(self.snapshot(), before)
 
-    def test_complete_prior_preparation_is_upgraded_and_stale_manifest_fails(self):
+    def prepare_prior_release(self):
         patches = self.prior_patches()
         for patch in patches:
             subprocess.run(["git", "apply", str(patch)], cwd=self.package,
@@ -341,6 +341,11 @@ class SourceIntegration(unittest.TestCase):
         prior = {"source_commit": COMMIT, "repair_version": "198-r2", "files": files,
                  "patches": {patch.name: hashlib.sha256(patch.read_bytes()).hexdigest() for patch in patches}}
         manifest_path.write_text(json.dumps(prior), encoding="utf-8")
+        return prior
+
+    def test_complete_prior_preparation_is_upgraded_and_stale_manifest_fails(self):
+        prior = self.prepare_prior_release()
+        manifest_path = self.package / MANIFEST
         result = prepare_source(self.package)
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
         self.assertEqual(json.loads(manifest_path.read_text())["repair_version"], "198-r3")
@@ -349,6 +354,35 @@ class SourceIntegration(unittest.TestCase):
         result = prepare_source(self.package)
         self.assertNotEqual(result.returncode, 0)
         self.assertEqual(self.snapshot(), before)
+
+    def assert_manifest_write_failure_rolls_back_and_allows_retry(self):
+        before = self.snapshot()
+        verifier = load_module("ssr_publish_test_verifier", "wrt_core/ssrplus_verify.py")
+        replace = os.replace
+
+        def reject_manifest(source, destination):
+            if Path(destination) == self.package / MANIFEST:
+                raise OSError("injected manifest publication failure")
+            replace(source, destination)
+
+        link = windows_translation_link_boundary(self.package) if os.name == "nt" else nullcontext()
+        with link, mock.patch.object(verifier.os, "replace", side_effect=reject_manifest):
+            with self.assertRaisesRegex(OSError, "injected manifest publication failure"):
+                verifier.prepare_source(ROOT / "wrt_core", self.package)
+        after = self.snapshot()
+        self.assertEqual({name for name in before.keys() | after.keys()
+                          if before.get(name) != after.get(name)}, set())
+
+        result = prepare_source(self.package)
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertEqual(json.loads((self.package / MANIFEST).read_text())["repair_version"], "198-r3")
+
+    def test_manifest_write_failure_rolls_back_first_preparation(self):
+        self.assert_manifest_write_failure_rolls_back_and_allows_retry()
+
+    def test_manifest_write_failure_rolls_back_upgrade(self):
+        self.prepare_prior_release()
+        self.assert_manifest_write_failure_rolls_back_and_allows_retry()
 
     def test_origin_override_cannot_mislabel_the_upstream_commit(self):
         (self.package / ".ssrplus-upstream-commit").write_text("a" * 40 + "\n")
