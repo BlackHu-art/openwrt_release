@@ -26,10 +26,18 @@ for workflow in WORKFLOWS:
     cache = step_named(steps, "Cache Dependencies")
     key = cache["with"]["key"]
     restores = cache["with"]["restore-keys"].splitlines()
-    deletion = step_named(steps, "Delete Old Cache")["run"]
     assert "${{ env.REPO_HASH }}" in key
     assert all("${{ env.REPO_HASH }}" in item for item in restores)
-    assert "${{ env.REPO_HASH }}" in deletion
+    if workflow.name == "release_wrt.yml":
+        deletion = step_named(steps, "Delete Old Cache")["run"]
+        assert "${{ env.REPO_HASH }}" in deletion
+    else:
+        assert all("gh cache delete" not in step.get("run", "") for step in steps), (
+            "Build WRT must be able to upload firmware with a read-only workflow token"
+        )
+        upload = step_named(steps, "Upload Firmware")
+        assert steps.index(upload) == steps.index(step_named(steps, "Build Firmware")) + 1
+        assert upload["with"]["if-no-files-found"] == "error"
     logs = step_named(steps, "Upload Build Logs")
     assert logs["if"] == "${{ !cancelled() }}"
     assert logs["with"]["path"] == "./action_build/logs/"

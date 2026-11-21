@@ -155,6 +155,30 @@ jobs:
             *) echo "Unknown build mode: $BUILD_MODE" >&2; exit 2 ;;
           esac
 
+      # Cache retention is handled by Actions. Upload successful outputs
+      # before diagnostics so runner housekeeping cannot hide a usable build.
+      - name: Upload Firmware
+        if: ${{ inputs.build_mode != 'config_only' }}
+        uses: actions/upload-artifact@v7.0.1
+        with:
+          name: ${{ env.BUILD_DATE }}_${{ inputs.model }}
+          path: ./firmware/*.*
+          if-no-files-found: error
+
+      - name: Upload Prepared Configuration
+        if: ${{ inputs.build_mode == 'config_only' }}
+        uses: actions/upload-artifact@v7.0.1
+        with:
+          name: prepared-config-${{ inputs.model }}-${{ github.run_id }}
+          include-hidden-files: true
+          path: |
+            ./action_build/.config
+            ./action_build/.config.requested
+            ./action_build/feeds.conf.default
+            ./action_build/feeds.conf
+          if-no-files-found: error
+          retention-days: 7
+
       - name: Upload Build Logs
         if: ${{ !cancelled() }}
         uses: actions/upload-artifact@v7.0.1
@@ -164,18 +188,6 @@ jobs:
           path: ./action_build/logs/
           if-no-files-found: ignore
           retention-days: 7
-
-      - name: Delete Old Cache
-        if: ${{ inputs.build_mode != 'config_only' }}
-        run: |
-          # 获取缓存列表并删除
-          gh cache list --key ${{ matrix.os }}-${{ inputs.model }}-${{ env.REPO_HASH }}- --json key --jq '.[] | .key' | while read -r key; do
-            gh cache delete "$key"
-          done
-          # 输出缓存状态
-          echo "========cache status========"
-          echo "ccache: $(du -sh ./action_build/.ccache | cut -f 1)"
-          echo "staging: $(du -sh ./action_build/staging_dir | cut -f 1)"
 
       - name: Machine Information (Post-build)
         if: ${{ !cancelled() }}
@@ -203,24 +215,3 @@ jobs:
           du -sh ./firmware 2>/dev/null || true
           echo "Firmware file count: $(ls -1 ./firmware 2>/dev/null | wc -l)"
           echo "===================================================="
-
-      - name: Upload Firmware
-        if: ${{ inputs.build_mode != 'config_only' }}
-        uses: actions/upload-artifact@v7.0.1
-        with:
-          name: ${{ env.BUILD_DATE }}_${{ inputs.model }}
-          path: ./firmware/*.*
-
-      - name: Upload Prepared Configuration
-        if: ${{ inputs.build_mode == 'config_only' }}
-        uses: actions/upload-artifact@v7.0.1
-        with:
-          name: prepared-config-${{ inputs.model }}-${{ github.run_id }}
-          include-hidden-files: true
-          path: |
-            ./action_build/.config
-            ./action_build/.config.requested
-            ./action_build/feeds.conf.default
-            ./action_build/feeds.conf
-          if-no-files-found: error
-          retention-days: 7

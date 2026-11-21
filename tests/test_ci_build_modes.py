@@ -54,7 +54,7 @@ class BuildModes(unittest.TestCase):
     def test_config_probe_does_not_publish_or_refresh_firmware_caches(self):
         workflow = yaml.safe_load((ROOT / ".github/workflows/build_wrt.yml").read_text())
         steps = workflow['jobs']['build']['steps']
-        for name in ('Cache Dependencies', 'Refresh the cache', 'Delete Old Cache'):
+        for name in ('Cache Dependencies', 'Refresh the cache'):
             step = next(s for s in steps if s.get('name') == name)
             self.assertEqual(step.get('if'), "${{ inputs.build_mode != 'config_only' }}", name)
 
