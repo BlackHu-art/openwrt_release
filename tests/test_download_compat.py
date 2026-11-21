@@ -133,9 +133,11 @@ include include/toplevel.mk
                  if self.fixture == FIXTURE else FIXTURE).read_bytes()
         for contents in (original.replace(b"$(SUBMAKE) $(dir);", b"$(SUBMAKE) $(dir) || true;"),
                          original + b"\ndownload:\n\t@true\n", original + b"\t@true\n",
+                         original + b"\n  download:\n\t@true\n",
                          b"download:\n\t@true\n", original + b"\n" + other,
                          original.replace(b"tools/flock/compile", b"tools/other/compile")):
             with self.subTest(contents=contents):
+                (self.root / "calls").unlink(missing_ok=True)
                 self.toplevel.write_bytes(contents)
                 result = self.build()
                 self.assertNotEqual(result.returncode, 0, result.stdout + result.stderr)

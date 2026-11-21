@@ -38,7 +38,7 @@ def prepare_download(build_root):
     if target.is_symlink() or not target.is_file():
         raise ValueError("download recipe is missing or redirected: " + str(target))
     current = target.read_bytes()
-    rules = re.findall(rb"(?m)^download[ \t]*::?[^\n]*\n(?:[ \t]*\n|\t[^\n]*\n)*", current)
+    rules = re.findall(rb"(?m)^ *download[ \t]*::?[^\n]*\n(?:[ \t]*\n|\t[^\n]*\n)*", current)
     blocks = [block for pair in REVIEWED_BLOCKS for block in pair]
     known_rules = {block[block.index(b"download:"):].rstrip(b"\n") for block in blocks}
     if (sum(current.count(block) for block in blocks) != 1
