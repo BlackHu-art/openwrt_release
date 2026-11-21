@@ -11,6 +11,7 @@ python tests/test_managed_plugins.py
 python tests/test_managed_build.py
 python tests/test_feeds_lock.py
 python tests/test_upstream_build_fixes.py
+python tests/test_netcontrol_compat.py
 python tests/test_ci_build_modes.py
 python tests/test_fw876_sources.py
 python tests/test_simple_obfs_compat.py

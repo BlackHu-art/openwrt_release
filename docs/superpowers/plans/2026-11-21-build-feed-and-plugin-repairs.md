@@ -39,7 +39,7 @@ The feed adapter consumes a local Git build tree plus the checked-in lock, write
 - [x] Add failing behavior tests for exact locked fetches, unknown origins/cores, duplicate/missing entries, idempotence and stale checkout rejection.
 - [x] Implement atomic configuration preparation and post-fetch verification, integrate before/after the existing feeds update.
 - [x] Include lock identity in config preview/cache identity; preserve requested package selections.
-- [ ] Run focused tests and actual representative source preparation/defconfig under Linux.
+- [x] Run focused tests and actual representative source preparation/defconfig under Linux.
 
 ### Task 2: Reviewed Qt5/squeezelite variants
 

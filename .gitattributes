@@ -107,5 +107,7 @@
 /tests/test_feeds_lock.py text eol=lf
 /tests/test_ci_build_modes.py text eol=lf
 /tests/test_upstream_build_fixes.py text eol=lf
+/wrt_core/netcontrol_compat.py text eol=lf
+/tests/test_netcontrol_compat.py text eol=lf
 /tests/test_theme_upstream.py text eol=lf
 /tests/fixtures/netcontrol/61364846/** -text -filter -ident -working-tree-encoding whitespace=-blank-at-eof

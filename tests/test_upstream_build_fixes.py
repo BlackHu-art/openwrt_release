@@ -24,10 +24,13 @@ class UpstreamBuildFixes(unittest.TestCase):
         return subprocess.run([BASH, "--noprofile", "--norc", "-c", source, "upstream-fix", *map(str, arguments)],
                               cwd=ROOT, env=environment, capture_output=True, text=True, timeout=30)
 
-    def netcontrol_donor(self):
+    def netcontrol_donor(self, *, with_second_package=False):
         """Create a real Git donor whose default branch has newer, wrong bytes."""
         writer = self.build / "netcontrol-donor"
         shutil.copytree(NETCONTROL_FIXTURE, writer)
+        if with_second_package:
+            (writer / "second-package").mkdir()
+            (writer / "second-package/Makefile").write_text("PKG_NAME:=second-package\n")
         def git(*arguments):
             return subprocess.run(["git", "-C", str(writer), "-c", "core.autocrlf=false",
                                    "-c", "commit.gpgsign=false", *arguments],
@@ -77,6 +80,141 @@ class UpstreamBuildFixes(unittest.TestCase):
         self.assertEqual((package / "Makefile").read_text(), "existing reviewed package\n")
         self.assertEqual([p.name for p in package.iterdir()], ["Makefile"])
 
+    def sparse_with_injection(self, donor, reviewed, target, injection="", *packages):
+        script = r'''source "${SPARSE_IMPORT_MODULE:-$BASE_PATH/modules/custom_feed.sh}"
+git_retry() {
+    if [[ "$1" == clone ]]; then
+        CLONE_DEST=${@: -1}
+        printf '%s\n' "$CLONE_DEST" > "$BUILD_DIR/clone-destination"
+    fi
+    git -c core.autocrlf=false "$@"
+}
+TARGET=$2
+''' + injection + r'''
+if sync_sparse_packages_to_feed_dir "$1" "$3" "$2" fixture "${@:4}"; then
+    touch "$BUILD_DIR/indexed"
+else
+    exit $?
+fi
+'''
+        return self.shell(script, donor.as_uri(), target, reviewed,
+                          *(packages or ("luci-app-netcontrol",)))
+
+    def test_sparse_publication_failure_removes_partial_new_files_and_restores_old_package(self):
+        donor, reviewed = self.netcontrol_donor()
+        target = self.build / "imported"
+        package = target / "luci-app-netcontrol"
+        package.mkdir(parents=True)
+        (package / "Makefile").write_text("old reviewed recipe\n")
+        (package / "old-runtime").write_text("keep existing complete runtime\n")
+        injection = r'''
+mv() {
+    local args=("$@") src=${@: -2:1} dst=${@: -1}
+    if [[ "$src" == */luci-app-netcontrol && "$src" != */previous/* &&
+          ( "$dst" == "$TARGET/" || "$dst" == "$TARGET/luci-app-netcontrol" ) ]]; then
+        mkdir -p "$TARGET/luci-app-netcontrol"
+        cp "$src/Makefile" "$TARGET/luci-app-netcontrol/Makefile"
+        return 79
+    fi
+    command mv "${args[@]}"
+}
+'''
+        result = self.sparse_with_injection(donor, reviewed, target, injection)
+        self.assertNotEqual(result.returncode, 0, "partial move was accepted for feed indexing")
+        self.assertFalse((self.build / "indexed").exists())
+        self.assertEqual((package / "Makefile").read_text(), "old reviewed recipe\n")
+        self.assertEqual((package / "old-runtime").read_text(), "keep existing complete runtime\n")
+        self.assertEqual(sorted(p.name for p in package.iterdir()), ["Makefile", "old-runtime"])
+
+    def test_sparse_publication_prevalidates_every_requested_directory(self):
+        donor, reviewed = self.netcontrol_donor()
+        target = self.build / "imported"
+        package = target / "luci-app-netcontrol"
+        package.mkdir(parents=True)
+        (package / "Makefile").write_text("old reviewed recipe\n")
+        result = self.sparse_with_injection(donor, reviewed, target, "",
+                                            "luci-app-netcontrol", "missing-package")
+        self.assertNotEqual(result.returncode, 0)
+        self.assertFalse((self.build / "indexed").exists())
+        self.assertEqual((package / "Makefile").read_text(), "old reviewed recipe\n")
+
+    def test_sparse_clone_is_staged_below_target_filesystem(self):
+        donor, reviewed = self.netcontrol_donor()
+        target = self.build / "imported"
+        target.mkdir()
+        result = self.sparse_with_injection(donor, reviewed, target)
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        clone = Path((self.build / "clone-destination").read_text().strip())
+        self.assertTrue(clone.is_relative_to(target), "clone was staged in a different temporary filesystem")
+
+    def test_sparse_cleanup_failure_is_not_reported_as_indexable_success(self):
+        donor, reviewed = self.netcontrol_donor()
+        target = self.build / "imported"
+        target.mkdir()
+        injection = r'''
+rm() {
+    local path=${@: -1}
+    if [[ -n ${CLONE_DEST:-} && ( "$CLONE_DEST" == "$path" || "$CLONE_DEST" == "$path/"* ) ]]; then
+        return 78
+    fi
+    command rm "$@"
+}
+'''
+        result = self.sparse_with_injection(donor, reviewed, target, injection)
+        # The old global-TMPDIR implementation needs this fixture-only cleanup.
+        clone = Path((self.build / "clone-destination").read_text().strip())
+        if clone.exists() and not clone.is_relative_to(self.build):
+            shutil.rmtree(clone)
+        self.assertNotEqual(result.returncode, 0, "failed staging cleanup was accepted for indexing")
+        self.assertFalse((self.build / "indexed").exists())
+
+    def test_sparse_failed_target_removal_cannot_publish_or_reach_index(self):
+        donor, reviewed = self.netcontrol_donor()
+        target = self.build / "imported"
+        package = target / "luci-app-netcontrol"
+        package.mkdir(parents=True)
+        (package / "Makefile").write_text("old reviewed recipe\n")
+        injection = r'''
+REMOVAL_FAILED=0
+rm() {
+    if [[ ${@: -1} == "$TARGET/luci-app-netcontrol" && "$REMOVAL_FAILED" == 0 ]]; then
+        REMOVAL_FAILED=1
+        return 75
+    fi
+    command rm "$@"
+}
+'''
+        result = self.sparse_with_injection(donor, reviewed, target, injection)
+        self.assertNotEqual(result.returncode, 0)
+        self.assertFalse((self.build / "indexed").exists())
+        self.assertEqual((package / "Makefile").read_text(), "old reviewed recipe\n")
+
+    def test_sparse_later_publication_failure_rolls_back_all_prior_replacements(self):
+        donor, reviewed = self.netcontrol_donor(with_second_package=True)
+        target = self.build / "imported"
+        for package, content in (("luci-app-netcontrol", "old first package\n"),
+                                 ("second-package", "old second package\n")):
+            (target / package).mkdir(parents=True)
+            (target / package / "Makefile").write_text(content)
+        injection = r'''
+mv() {
+    local src=${@: -2:1} dst=${@: -1}
+    if [[ "$src" == */second-package && "$src" != */previous/* &&
+          ( "$dst" == "$TARGET/" || "$dst" == "$TARGET/second-package" ) ]]; then
+        mkdir -p "$TARGET/second-package"
+        cp "$src/Makefile" "$TARGET/second-package/Makefile"
+        return 79
+    fi
+    command mv "$@"
+}
+'''
+        result = self.sparse_with_injection(donor, reviewed, target, injection,
+                                            "luci-app-netcontrol", "second-package")
+        self.assertNotEqual(result.returncode, 0)
+        self.assertFalse((self.build / "indexed").exists())
+        self.assertEqual((target / "luci-app-netcontrol/Makefile").read_text(), "old first package\n")
+        self.assertEqual((target / "second-package/Makefile").read_text(), "old second package\n")
+
     @unittest.skipIf(os.name == "nt", "complete managed feed materialization restores POSIX symlinks")
     def test_s20m_installs_netcontrol_before_index_and_others_do_not_fetch_it(self):
         donor, reviewed = self.netcontrol_donor()
@@ -122,6 +260,14 @@ install_custom_feed
                 self.assertEqual((package / "Makefile").read_bytes(),
                                  (NETCONTROL_FIXTURE / "luci-app-netcontrol/Makefile").read_bytes())
                 self.assertTrue((self.build / "indexed").exists())
+                if suffix == ".git":
+                    from test_netcontrol_compat import run_firstboot
+                    runtime = self.build / "installed-firstboot"
+                    boot = run_firstboot((package / "root/etc/uci-defaults/luci-netcontrol").read_text(), runtime)
+                    self.assertEqual(boot.returncode, 0, boot.stdout + boot.stderr)
+                    self.assertFalse(any(line.startswith("timecontrol ")
+                                         for line in (runtime / "events").read_text().splitlines()),
+                                     "the actual custom feed path published the unsafe raw initializer")
         result = self.shell(script, donor.as_uri(), reviewed,
                             "https://github.com/VIKINGYFY/immortalwrt.git",
                             "3fd1e27a511851b41cf082b067b60099e8e026c4")

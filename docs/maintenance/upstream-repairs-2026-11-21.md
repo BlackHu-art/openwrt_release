@@ -24,7 +24,7 @@
 | Argon | [稳定 v3.1.4 / c5c0873e](https://github.com/jerrykuku/luci-theme-argon/tree/c5c0873e122dc767c7ab0198c8bffc6e952b5cfb) | 完整刷新 249 个原始文件：菜单加载、CSS 缓存/下拉层级、壁纸 TLS/超时、翻译更新等；保留已有配置。 |
 | Aurora | [298dbcc7](https://github.com/eamonxg/luci-theme-aurora/commit/298dbcc74ddf820923a51285fb0826d429e5d7ca) | 固定三个已合并修复后的 218 个原始文件：通知关闭、导航加载/会话缓存、登录令牌与新 LuCI 兼容。配方为 1.4.3，**并非已发布稳定 release**；配置包仍为 1.2.5。 |
 | W1701K NPU | [原项目 e16d7ace](https://github.com/ZqinKing/wrt_release/commit/e16d7ace545f4795155247c8b8a6f9cdbb6ad4a9)、[devmem fe48c218](https://github.com/ZqinKing/wrt_release/commit/fe48c218) | 仅 W1701K 获取必选插件的固定来源及运行工具；其他设备不依赖该下载。不引入该提交中的 Passwall/CUPS/其他软件包。 |
-| S20M Netcontrol | [rule2c / 61364846](https://github.com/rule2c/luci-app-netcontrol/commit/61364846e1188d87801f778749efc4f2a4deac43) | 固定完整提交补齐已选但缺失的插件，仅 S20M 获取；精确检出成功后才复制，保留源码的默认关闭状态。 |
+| S20M Netcontrol | [rule2c / 61364846](https://github.com/rule2c/luci-app-netcontrol/commit/61364846e1188d87801f778749efc4f2a4deac43) | 固定完整提交补齐已选但缺失的插件，仅 S20M 获取；保留默认关闭，并在构建副本省去自动迁移/停用旧 timecontrol 的步骤。 |
 | netfilter | [d567052b](https://github.com/ZqinKing/wrt_release/commit/d567052b09b26e5e30f2981008e1cd5e577aed8d) | 覆盖无条件 `+kmod-iptables` 配方，保留 Linux 6.12/6.18 的互斥修复。 |
 | CI 环境 | [b3074c60](https://github.com/ZqinKing/wrt_release/commit/b3074c60870242df523cd171c31a5167a8e79d14) | 先 checkout 再运行受管 setup；下载失败明确退出，避免完整系统升级和 APT recommends，并检查工具。 |
 
@@ -64,7 +64,7 @@ core/feed 所有的插件随对应已锁定的核心/LuCI/软件包来源更新�
 | luci-app-eqos-mtk | 仅S20M；padavanonly固定核心/24.10 feed，避免混入主线不同实现。 |
 | luci-app-turboacc-mtk | 仅S20M；同上，设备平台功能。 |
 | luci-app-wrtbwmon | 仅S20M；同上，保留配置。 |
-| luci-app-netcontrol | S20M 原来已选择，但实际固定核心、24.10 LuCI 与 small-package 都没有配方。现从 canonical rule2c/luci-app-netcontrol 固定 `61364846e1188d87801f778749efc4f2a4deac43` 获取 1.0.0-r1；运行依赖 nftables/conntrack，保留默认关闭，原配置选择不变。 |
+| luci-app-netcontrol | S20M 原来已选择，但实际固定核心、24.10 LuCI 与 small-package 都没有配方。现从原作者 rule2c/luci-app-netcontrol 固定 `61364846e1188d87801f778749efc4f2a4deac43` 获取 1.0.0-r1；运行依赖 nftables/conntrack，保留默认关闭及原配置选择。构建副本只省去旧 timecontrol 自动迁移，不自动复制其配置、配额或停用旧服务。 |
 | luci-app-airoha-flowsense | W1701K core `ZqinKing/immortalwrt@796897b5417537c0b10ee9ec31166ac5901bc33b`，package/luci-app-airoha-flowsense/Makefile blobac9a10a1b6b59923c6e8758605a88b240d2cff9e，已验证完整tree存在。 |
 | luci-app-mlo | 同一W1701K core package/luci-app-mlo/Makefile blob0536311214025c1c6e6328ba4ae054e44b8e5b74，已存在。 |
 | luci-app-w1700k-fancontrol | 同一core package/luci-app-w1700k-fancontrol/Makefile blob4f9cf7ae8157d7a7c99018f554d0e6690c0742bf，已存在。 |
@@ -85,17 +85,32 @@ core/feed 所有的插件随对应已锁定的核心/LuCI/软件包来源更新�
 - MosDNS LuCI、Nikki、Lucky、Easytier 和 timecontrol 没有被本轮额外选入。
 - 构建输入锁覆盖固件与原生 feeds；原有直接 clone 的外部插件入口、Go 工具链和下载归档仍各自维护，
   不把本轮描述为全部外部内容离线化。受管内容/兼容输入漂移依然明确拒绝。
+- Netcontrol 原始输入及 fixture 完整保留；[构建适配器](../../wrt_core/netcontrol_compat.py)
+  仅接受原样或完整派生的首次启动脚本，单文件原子写入并保留权限。已有 timecontrol 的迁移需另行决定。
+  外部稀疏导入在目标文件系统暂存，先检查全部请求目录，再保留旧副本并发布；移动/清理失败明确退出，
+  部分发布会回滚，失败不进入 feed 索引。
 
 ## 验证状态
 
 源码身份、受管 30 单元校验、固定输入行为回归与各修复先失败后通过的证据已分别记录。
 本机 macOS 无 Linux `/proc`、网络命名空间或目标交叉工具链，Linux 专属检查由精确提交 CI 验证。
 
-- `9260829` 的 [Linux 全量回归 44868964550](https://github.com/BlackHu-art/openwrt_release/actions/runs/44868964550)
-  通过：54 组 Python 测试共 766 项（765 通过、1 项 Windows 专属测试跳过），以及全部 shell 检查。
+- `42abb91` 的 [Linux 全量回归 44870567787](https://github.com/BlackHu-art/openwrt_release/actions/runs/44870567787)
+  通过：54 组 Python 测试共 777 项（776 通过、1 项 Windows 专属测试跳过），以及全部 shell 检查。
   包括真实 Xray/Mihomo、原生 Kconfig，以及网络命名空间内实际 dnsmasq/nft、9 种 IPv6 模式检查。
 - 独立整分支审查及后续复审完成。发现的本地设备切换、静默索引漏报、SSR 写入回滚、
   配置产物隐藏文件、配置检查缓存和 NPU 下载范围问题均已补回归；清理失败会在重置源码前退出。
-- 六种核心身份的来源准备/defconfig 暴露了 fwknopd 依赖环和 S20M 的 netcontrol 丢选，已补修复待重跑；
-  两个代表目标的完整固件编译待配置验证通过后执行，实机未验证。
-  后续在此补充实际结果，不将主机测试等同于固件成功。
+- `42abb91` 的六种核心身份来源准备/defconfig 全部通过，已下载并核对配置产物：完整保留 `.config`、
+  `.config.requested` 和来源锁，原请求的 LuCI 插件均保留，京东云 Docker 排除仍成立。
+
+| 目标 | 配置验证 | 保留的 LuCI 应用数 |
+| --- | --- | --- |
+| JDCloud ImmortalWrt / 3fd1 | [44870591385](https://github.com/BlackHu-art/openwrt_release/actions/runs/44870591385) | 24 |
+| JDCloud LiBwrt / 25.12 | [44870593970](https://github.com/BlackHu-art/openwrt_release/actions/runs/44870593970) | 23 |
+| Redmi AX6 / f9b0 | [44870596745](https://github.com/BlackHu-art/openwrt_release/actions/runs/44870596745) | 14 |
+| x64 / master | [44870599779](https://github.com/BlackHu-art/openwrt_release/actions/runs/44870599779) | 19 |
+| W1701K / master | [44870602436](https://github.com/BlackHu-art/openwrt_release/actions/runs/44870602436) | 19 |
+| S20M / 24.10 | [44870605379](https://github.com/BlackHu-art/openwrt_release/actions/runs/44870605379) | 15 |
+
+随后仅补稀疏导入中断恢复及 Netcontrol 旧配置保护；最终版本的 Linux 回归、S20M 配置复核和两个
+京东云代表目标完整编译待执行。实机未验证，不将来源/配置检查等同于固件编译成功。

@@ -24,7 +24,7 @@ get_custom_feed_package_dir() {
 }
 
 
-sync_sparse_packages_to_feed_dir() {
+sync_sparse_packages_to_feed_dir() (
     local repo_url="$1"
     local repo_branch="$2"
     local target_dir="$3"
@@ -32,13 +32,47 @@ sync_sparse_packages_to_feed_dir() {
     shift 4
 
     local packages=("$@")
-    local tmp_dir
+    local tmp_dir="" source_dir pkg target
+    local attempted=()
     local missing_packages=()
     local clone_args=(clone --depth 1 --filter=blob:none --sparse)
-    local pkg commit_sha=""
+    local commit_sha=""
 
     python3 "$BASE_PATH/managed_plugins.py" assert-external "${packages[@]}" || return 1
-    tmp_dir=$(mktemp -d)
+    mkdir -p "$target_dir" || return 1
+    # Rename publication must stay on the target filesystem, even when TMPDIR
+    # is a different mount. Backups also stay here for ordinary I/O rollback.
+    tmp_dir=$(mktemp -d "$target_dir/.feed-sync.XXXXXX") || return 1
+    source_dir="$tmp_dir/source"
+    cleanup_sparse_import() {
+        local status=$? rollback_failed=0 index pkg target
+        trap - EXIT
+        if [[ $status != 0 ]]; then
+            for ((index=${#attempted[@]}-1; index>=0; index--)); do
+                pkg=${attempted[index]}
+                target="$target_dir/$pkg"
+                if ! rm -rf -- "$target"; then
+                    rollback_failed=1
+                    continue
+                fi
+                if [[ -e "$tmp_dir/previous/$pkg" || -L "$tmp_dir/previous/$pkg" ]]; then
+                    if ! mv -- "$tmp_dir/previous/$pkg" "$target"; then
+                        rollback_failed=1
+                    fi
+                fi
+            done
+        fi
+        if [[ $rollback_failed == 1 ]]; then
+            echo "错误：$repo_label 回滚失败，原有包备份保留在 $tmp_dir/previous。" >&2
+            exit 1
+        fi
+        if ! rm -rf -- "$tmp_dir"; then
+            echo "错误：无法清理 $repo_label 的暂存目录 $tmp_dir。" >&2
+            exit 1
+        fi
+        exit "$status"
+    }
+    trap cleanup_sparse_import EXIT
 
     # A full commit in the ref position is immutable. Branch/empty callers
     # keep their existing rolling behavior.
@@ -48,49 +82,60 @@ sync_sparse_packages_to_feed_dir() {
         clone_args+=(-b "$repo_branch")
     fi
 
-    clone_args+=("$repo_url" "$tmp_dir")
+    clone_args+=("$repo_url" "$source_dir")
 
     echo "正在从 $repo_label 稀疏同步指定目录..."
     if ! git_retry "${clone_args[@]}"; then
         echo "错误：从 $repo_url 拉取仓库骨架失败" >&2
-        rm -rf "$tmp_dir"
         return 1
     fi
 
     # Never publish the cloned default HEAD if a reviewed pin is unavailable.
     if [[ -n "$commit_sha" ]]; then
-        if ! git_retry -C "$tmp_dir" fetch --depth 1 origin "$commit_sha" ||
-           ! git_retry -C "$tmp_dir" checkout --detach "$commit_sha" ||
-           [[ $(git -C "$tmp_dir" rev-parse HEAD) != "$commit_sha" ]]; then
+        if ! git_retry -C "$source_dir" fetch --depth 1 origin "$commit_sha" ||
+           ! git_retry -C "$source_dir" checkout --detach "$commit_sha" ||
+           [[ $(git -C "$source_dir" rev-parse HEAD) != "$commit_sha" ]]; then
             echo "错误：无法固定 $repo_label 到已审查提交 $commit_sha。" >&2
-            rm -rf "$tmp_dir"
             return 1
         fi
     fi
 
-    if ! git_retry -C "$tmp_dir" sparse-checkout set "${packages[@]}"; then
+    if ! git_retry -C "$source_dir" sparse-checkout set "${packages[@]}"; then
         echo "错误：配置 $repo_label 稀疏检出目录失败" >&2
-        rm -rf "$tmp_dir"
         return 1
     fi
 
+    # Validate every requested input before replacing any existing package.
     for pkg in "${packages[@]}"; do
-        if [ -d "$tmp_dir/$pkg" ]; then
-            rm -rf "$target_dir/$pkg"
-            mv "$tmp_dir/$pkg" "$target_dir/"
-        else
+        if [[ ! "$pkg" =~ ^[a-zA-Z0-9][a-zA-Z0-9._+-]*$ ||
+              ! -d "$source_dir/$pkg" || -L "$source_dir/$pkg" ]]; then
             missing_packages+=("$pkg")
         fi
     done
-
-    rm -rf "$tmp_dir"
-
-    if [ ${#missing_packages[@]} -ne 0 ]; then
+    if [[ ${#missing_packages[@]} != 0 ]]; then
         printf '错误：%s 仓库缺少以下必要目录：\n' "$repo_label" >&2
         printf '  - %s\n' "${missing_packages[@]}" >&2
         return 1
     fi
-}
+
+    mkdir -p "$tmp_dir/previous" || return 1
+    for pkg in "${packages[@]}"; do
+        target="$target_dir/$pkg"
+        if [[ -e "$target" || -L "$target" ]]; then
+            # Leave the old tree untouched until every backup is complete.
+            cp -a -- "$target" "$tmp_dir/previous/$pkg" || return 1
+        fi
+    done
+    for pkg in "${packages[@]}"; do
+        target="$target_dir/$pkg"
+        attempted+=("$pkg")
+        if ! rm -rf -- "$target" || ! mv -- "$source_dir/$pkg" "$target"; then
+            echo "错误：无法发布 $repo_label 的 $pkg；恢复已有包。" >&2
+            return 1
+        fi
+    done
+    return 0
+)
 
 
 sync_repo_root_package_to_feed_dir() {
@@ -304,6 +349,15 @@ install_custom_feed() {
             return 1
         fi
     done
+
+    if [[ $netcontrol_required == 1 ]]; then
+        # Adding this missing plugin must not migrate, stop or disable a
+        # separately installed Timecontrol service on the user's router.
+        if ! python3 "$BASE_PATH/netcontrol_compat.py" "$custom_feed_dir/luci-app-netcontrol"; then
+            rm -rf "$custom_feed_dir"
+            return 1
+        fi
+    fi
 
     if ! sync_repo_root_package_to_feed_dir "https://github.com/adminchenyu/eMMC-Health.git" "main" "$custom_feed_dir" "adminchenyu/eMMC-Health" "luci-app-emmc-health"; then
         rm -rf "$custom_feed_dir"
