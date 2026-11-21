@@ -19,6 +19,21 @@ REVIEWED = {
     QT + "/Config.in": "1ad8695b21aa118824d514a0854f390b9e4859057e8b340942fe812d13be4f55",
     SQUEEZE + "/Makefile": "2502c1809fc6b32be93ee50e2eb8ec4d81cd9c2905387646352604d85719a22e",
 }
+# Exact additional recipes from the independently reviewed master, 25.12 and
+# 24.10 feed snapshots. These retain their own versions, source hashes,
+# dependency/conflict declarations and packaging fixes. Only the same two
+# parent/feature guards below are adapted; arbitrary feed drift still fails.
+# Full bytes and provenance are recorded under fixtures/kconfig-compat/variants.
+REVIEWED_VARIANTS = {
+    QT + "/Makefile": (
+        "e615c8343db4695e0c9059f699d969f1d5c9c21e3931add4b6c026dc277e0bb4",
+    ),
+    SQUEEZE + "/Makefile": (
+        "ce2ca21722e6a0547c291aa4aa1947e19fde6ab533e9109a3ce8844a947dcf08",
+        "3ac165e84a5fb1ea57cecae1b1dbfef8dbaa97dd012faf7e06128399f71464b6",
+        "67525c5f8b5ee6dbcba1bb4f42bcea6cdc34346d2bc6072db77bf21a2e792c5f",
+    ),
+}
 EDITS = {
     QT + "/Config.in": (
         (b'    default BUILD_qt5base-gui_OPENGL_NONE\n    depends on PACKAGE_qt5base-gui\n',
@@ -31,6 +46,10 @@ EDITS = {
          b'\t\t\tWMA and ALAC codec support\n\t\t    default n\n\tendmenu\n'),
     ),
 }
+QT_DRM_EDIT = (
+    b'config BUILD_qt5base-gui_DRM\n    bool "Include DRM support"\n    depends on PACKAGE_qt5base-gui\n',
+    b'config BUILD_qt5base-gui_DRM\n    bool "Include DRM support"\n',
+)
 
 
 def prepare(build_dir: Path) -> None:
@@ -46,6 +65,7 @@ def prepare(build_dir: Path) -> None:
     if not build_dir.is_dir():
         raise ValueError(f"build directory does not exist: {build_dir}")
     changes = []
+    modern_qt = False
     for relative, digest in REVIEWED.items():
         path = build_dir / relative
         package = path.parent
@@ -58,13 +78,21 @@ def prepare(build_dir: Path) -> None:
         content = path.read_bytes()
         original = content
         edits = EDITS.get(relative, ())
+        if modern_qt and relative == QT + "/Config.in":
+            # The reviewed new linuxfb recipe adds a conditional DRM library.
+            # Its propagated prerequisites create the same parent/feature loop
+            # as OpenGL. Keep the library dependency and unguard the feature.
+            edits += (QT_DRM_EDIT,)
         for before, after in edits:
             # Reverse only a complete known edit. An extra occurrence, partial
             # edit, changed comment or unrelated recipe change fails the hash.
             if before not in original and original.count(after) == 1:
                 original = original.replace(after, before)
-        if hashlib.sha256(original).hexdigest() != digest:
+        identity = hashlib.sha256(original).hexdigest()
+        if identity not in (digest, *REVIEWED_VARIANTS.get(relative, ())):
             raise ValueError(f"unreviewed Kconfig feed input: {relative}")
+        if relative == QT + "/Makefile":
+            modern_qt = identity in REVIEWED_VARIANTS[relative]
         prepared = original
         for before, after in edits:
             if prepared.count(before) != 1:

@@ -26,3 +26,9 @@ REQUIRE_KCONFIG_CONF=1 bash tests/test_kconfig_linux.sh
 ```
 
 原生门禁需要 Linux、GCC、GNU Make、Perl 和 Python 3。已保留上游生成的 lexer/parser，因此不需要临时重新生成解析器。测试不修改 `deconfig/`、`compilecfg/` 或固件插件选择，也不执行 Qt5/squeezelite 目标架构编译。
+
+## 2026-11-21 来源变体
+
+新增精确审查 master、openwrt-25.12、openwrt-24.10 的 squeezelite 配方，以及 video `6a3b5fd6` 的 Qt5 依赖/打包修复。保留各版本下载身份、依赖和冲突声明；完整原始输入见 `tests/fixtures/kconfig-compat/variants/` 与来源记录。
+
+新版 Qt5 的 linuxfb 对 libdrm 增加条件依赖，会经元数据传递引入 DRM 与父包的新循环。本地先用真实配方复现，再仅对此已审查配方去除 DRM 功能的父包 guard；其 libdrm 条件依赖和开关语义保留。旧配方仍只应用原 OpenGL 修复。新增分支样本均验证未选择包、功能库依赖、默认值、重复执行和未知变化拒绝，Linux 原生 conf 同样执行这些案例。

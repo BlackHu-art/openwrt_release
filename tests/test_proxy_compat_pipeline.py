@@ -65,7 +65,7 @@ stage_pre_install_source_fixes
         result = self.prepare()
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
         self.assertIn("PKG_VERSION:=26.10.21\n", recipe.read_text(encoding="utf-8"))
-        self.assertIn("PKG_RELEASE:=3\n", recipe.read_text(encoding="utf-8"))
+        self.assertIn("PKG_RELEASE:=4\n", recipe.read_text(encoding="utf-8"))
         prepared = {p.relative_to(self.feed): p.read_bytes()
                     for p in self.feed.rglob("*") if p.is_file()}
         recipe_relative = recipe.relative_to(self.feed)

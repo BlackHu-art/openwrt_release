@@ -79,12 +79,12 @@ class BuildGate(unittest.TestCase):
         result = self.prepare_source()
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
         manifest = json.loads((package / "root" / artifacts.MANIFEST_TARGET).read_text(encoding="utf-8"))
-        self.assertEqual(manifest["repair_version"], "198-r2")
+        self.assertEqual(manifest["repair_version"], "198-r3")
         self.assertIn("ssrplus-v198-integration.patch", manifest["patches"])
         self.assertNotIn("ssrplus-startup-lock.patch", manifest["patches"])
         self.assertIn("/usr/share/shadowsocksr/gen_config.lua", manifest["files"])
         self.assertIn("/etc/hotplug.d/iface/99-ssrplus-pppoe", manifest["files"])
-        self.assertIn("PKG_RELEASE:=2\n", (package / "Makefile").read_text(encoding="utf-8"))
+        self.assertIn("PKG_RELEASE:=3\n", (package / "Makefile").read_text(encoding="utf-8"))
 
     def test_source_preparation_rejects_changed_generator_before_publishing(self):
         package = self.source_fixture()

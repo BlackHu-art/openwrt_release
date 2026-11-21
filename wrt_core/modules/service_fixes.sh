@@ -165,7 +165,8 @@ fix_netfilter_kmod_clash() {
     fi
 
     if netfilter_kmod_clash_include_fixed "$include_netfilter_mk" && \
-       grep -q 'DEPENDS:=+(!(LINUX_6_12||LINUX_6_18)):kmod-iptables' "$netfilter_mk"; then
+       grep -q 'DEPENDS:=+(!(LINUX_6_12||LINUX_6_18)):kmod-iptables' "$netfilter_mk" && \
+       ! grep -q 'DEPENDS:=+kmod-iptables' "$netfilter_mk"; then
         echo "Netfilter kmod clash workaround already applied"
         return 0
     fi
@@ -202,6 +203,11 @@ fix_netfilter_kmod_clash() {
     if grep -q 'DEPENDS:=+(!LINUX_6_12&&!LINUX_6_18):kmod-iptables' "$netfilter_mk"; then
         echo "Normalizing netfilter kmod clash workaround expression..."
         sed -i 's/DEPENDS:=+(!LINUX_6_12\&\&!LINUX_6_18):kmod-iptables/DEPENDS:=+(!(LINUX_6_12||LINUX_6_18)):kmod-iptables/' "$netfilter_mk"
+    fi
+
+    # Upstream d567052b also handles cores whose recipe has no kernel guard yet.
+    if grep -q 'DEPENDS:=+kmod-iptables' "$netfilter_mk"; then
+        sed -i 's/DEPENDS:=+kmod-iptables/DEPENDS:=+(!(LINUX_6_12||LINUX_6_18)):kmod-iptables/' "$netfilter_mk" || return 1
     fi
 
     if grep -q 'DEPENDS:=+(!(LINUX_6_12||LINUX_6_18)):kmod-iptables' "$netfilter_mk"; then

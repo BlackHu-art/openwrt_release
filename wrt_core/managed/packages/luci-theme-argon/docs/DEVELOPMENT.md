@@ -93,7 +93,7 @@ Use monochrome SVGs with a `viewBox` and transparent background. CSS masks suppl
 
 ## Static update feed deployment
 
-The router reads a static `/updates/stable.json` manifest without calling the GitHub API. After publication, CI uses its own `GITHUB_TOKEN` to retrieve the official release, verifies the theme package SHA256 digests and sizes, and generates one artifact. GitHub Pages publishes that artifact directly; Cloudflare Pages deploys the same files from a dedicated `updates` Git branch. Packages continue to download from the pinned GitHub Release, and translation packages remain separate.
+The router reads a static `/updates/stable.json` manifest without calling the GitHub API. After publication, CI uses its own `GITHUB_TOKEN` to retrieve the official release, verifies theme and translation package SHA256 digests and sizes, and generates one artifact. GitHub Pages publishes that artifact directly; Cloudflare Pages deploys the same files from a dedicated `updates` Git branch. Packages continue to download from the pinned GitHub Release. The installer includes matching packages for existing Argon translations and the configured LuCI language when available.
 
 Initial maintainer setup:
 
@@ -119,6 +119,8 @@ Run **Publish update feeds** again to republish GitHub Pages. Identical artifact
 
 The manifest contains `schema`, `repository`, `tag`, `published_at`, `notes`, and the `apk`/`ipk` filenames with `_sha256`/`_size` fields. Metadata comes from the published package bytes rather than master's Makefile. Both formats must be complete and match the tag. Malformed feeds trigger fallback and never overwrite the previous successful cache. Checks are manual, with a five-minute success cache, a one-minute failure cooldown and a lock that coalesces concurrent requests.
 
+Schema 1 also supports an optional `translations` object keyed by language package suffix, such as `zh-cn`. Each entry has the same six package fields for both formats. Names must match the theme's release, each translation is limited to 1 MiB, and at most 32 languages are accepted. Existing translations without verified metadata disable automatic installation. All required packages are downloaded and verified before the package manager runs; storage checks use their combined size, and completion requires the expected installed versions. The theme's pre-install hook and UCI initialization preserve bundled catalogs across a first upgrade made by an older updater, without replacing catalogs already supplied by independent language packages.
+
 Source builds default to an empty CF primary. Configure one before packaging:
 
 ```sh
@@ -142,3 +144,5 @@ UCODE_BIN=/path/to/ucode sh .github/scripts/check_theme.sh
 The script checks JavaScript, shell and Ucode syntax, verifies compiled CSS against LESS, and runs the Node/Python tests. CI's Ucode build is defined in [check.yml](../.github/workflows/check.yml).
 
 For UI changes, check the actual affected LuCI pages in light/dark modes and desktop/mobile widths, including keyboard focus, long text and reduced motion where relevant. Network and hardware behavior still needs a suitable OpenWrt environment.
+
+Include Firefox ESR 115, 128, 140 and 153 when checking login and theme settings. Leave browser feature preferences at their defaults. `argon-compat.js` supplies DOM markers for joined controls and dropdown table sections only when native `:has()` is unavailable; use forgiving `:is()` lists to keep those fallback selectors valid. Keep new browser API use feature-detected, and avoid unsupported selectors in JavaScript queries. The fallback covers common theme controls; plugin-specific layouts need their own checks.

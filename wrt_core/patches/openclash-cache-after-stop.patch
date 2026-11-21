@@ -1,0 +1,80 @@
+# Selected from vernesong/OpenClash 2faa4fabfe1c12899feb1ddc060adda3fa7f2343.
+# Preserve the stable shutdown sequence and copy only after core exit.
+diff --git a/root/etc/init.d/openclash b/root/etc/init.d/openclash
+index 9981959..43b4ebc 100644
+--- a/root/etc/init.d/openclash
++++ b/root/etc/init.d/openclash
+@@ -3954,10 +3954,12 @@ stop_service()
+    get_config
+ 
+    LOG_TIP "OpenClash Stoping..."
+-   LOG_OUT "Step 1: Backup The Current Groups State..."
++   LOG_OUT "Step 1: Capture The Running Configuration..."
+ 
+    {
+-      /usr/share/openclash/openclash_history_get.sh
++      # UCI may already select a different configuration.
++      local running_config
++      running_config=$(unify_ps_cfgname)
+ 
+       LOG_OUT "Step 2: Delete OpenClash Firewall Rules..."
+       revert_firewall
+@@ -3976,9 +3978,16 @@ stop_service()
+       procd_send_signal "openclash-watchdog" "" TERM
+       # remove only the core instance, rc.common's stop() deletes the service itself
+       procd_kill "openclash" "openclash"
++      # procd may unregister the instance before the core exits.
+       for i in $(seq 1 10); do
+-         procd_running "openclash" >/dev/null && sleep 1 || break
++         if ! procd_running "openclash" >/dev/null && ! pidof clash >/dev/null; then
++            break
++         fi
++         sleep 1
+       done
++      if [ -n "$running_config" ] && ! pidof clash >/dev/null; then
++         /usr/share/openclash/openclash_history_get.sh after_stop "$running_config"
++      fi
+ 
+       LOG_OUT "Step 4: Restart Dnsmasq..."
+       revert_dnsmasq
+diff --git a/root/usr/share/openclash/openclash_history_get.sh b/root/usr/share/openclash/openclash_history_get.sh
+index a6f8414..aa6b02d 100644
+--- a/root/usr/share/openclash/openclash_history_get.sh
++++ b/root/usr/share/openclash/openclash_history_get.sh
+@@ -33,8 +33,18 @@ if [ "$1" = "close_all_conection" ]; then
+    exit 0
+ fi
+ 
+-CONFIG_FILE=$(unify_ps_cfgname)
+-CONFIG_NAME=$(echo "$CONFIG_FILE" |awk -F '/' '{print $4}' 2>/dev/null)
++if [ "$1" = "after_stop" ]; then
++   CONFIG_FILE="$2"
++   # A new core may have started while this helper was waiting for the lock.
++   if pidof clash >/dev/null; then
++      del_lock
++      exit 0
++   fi
++else
++   CONFIG_FILE=$(unify_ps_cfgname)
++   [ -f "$CONFIG_FILE" ] || CONFIG_FILE=$(uci_get_config "config_path")
++fi
++CONFIG_NAME="${CONFIG_FILE##*/}"
+ small_flash_memory=$(uci_get_config "small_flash_memory")
+ HISTORY_PATH_OLD="/etc/openclash/history/${CONFIG_NAME%.*}"
+ HISTORY_PATH="/etc/openclash/history/${CONFIG_NAME%.*}.db"
+@@ -42,14 +52,7 @@ core_version=$(uci_get_config "core_version" || echo 0)
+ CACHE_PATH_OLD="/etc/openclash/.cache"
+ source "/etc/openwrt_release"
+ 
+-if [ -z "$CONFIG_FILE" ] || [ ! -f "$CONFIG_FILE" ]; then
+-   CONFIG_FILE=$(uci_get_config "config_path")
+-   CONFIG_NAME=$(echo "$CONFIG_FILE" |awk -F '/' '{print $5}' 2>/dev/null)
+-   HISTORY_PATH_OLD="/etc/openclash/history/${CONFIG_NAME%.*}"
+-   HISTORY_PATH="/etc/openclash/history/${CONFIG_NAME%.*}.db"
+-fi
+-
+-if [ -n "$(pidof clash)" ] && [ -f "$CONFIG_FILE" ]; then
++if [ -f "$CONFIG_FILE" ] && { [ "$1" = "after_stop" ] || pidof clash >/dev/null; }; then
+    if [ "$small_flash_memory" == "1" ] || [ -n "$(echo $core_version |grep mips)" ] || [ -n "$(echo $DISTRIB_ARCH |grep mips)" ] || [ -n "$(rm -f /var/lock/opkg.lock && opkg status libc 2>/dev/null |grep 'Architecture' |awk -F ': ' '{print $2}' |grep mips)" ] || [ -n "$(rm -f /lib/apk/db/lock && apk list libc 2>/dev/null |grep mips)" ]; then
+       CACHE_PATH="/tmp/etc/openclash/cache.db"
+       if [ -f "$CACHE_PATH" ]; then

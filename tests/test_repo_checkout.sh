@@ -81,6 +81,20 @@ REPO_URL=file://$remote
 REPO_BRANCH=main
 COMMIT_HASH=$commit_a
 EOF
+python3 - "$fixture_root/wrt_core/feeds.lock.json" "$REPO_URL" "$commit_a" <<'PYLOCK'
+import json
+from pathlib import Path
+import sys
+path, url, commit = sys.argv[1:]
+Path(path).write_text(json.dumps({
+    "schema": 1,
+    "cores": [{"url": url, "commit": commit, "feed_set": "fixture"}],
+    "feed_sets": {"fixture": {"packages": {
+        "url": "https://example.invalid/packages.git", "commit": "f" * 40,
+    }}},
+}) + "\n")
+PYLOCK
+source_lock_hash=$(sha256sum "$fixture_root/wrt_core/feeds.lock.json" | awk '{print $1}')
 github_env="$test_root/github_env"
 : >"$github_env"
 (
@@ -88,10 +102,30 @@ github_env="$test_root/github_env"
     GITHUB_ENV="$github_env" "$fixture_root/wrt_core/pre_clone_action.sh" fixture
 )
 test "$(git -C "$fixture_root/action_build" rev-parse HEAD)" = "$commit_a"
-test "$(cat "$fixture_root/repo_flag")" = "file://$remote/main@$commit_a"
+expected_repo_flag=$(printf '%s\nfeeds_lock_sha256=%s\n' "file://$remote/main@$commit_a" "$source_lock_hash")
+test "$(cat "$fixture_root/repo_flag")" = "$expected_repo_flag"
 expected_repo_hash=$(sha256sum "$fixture_root/repo_flag" | awk '{print $1}')
 grep -Fx "REPO_HASH=$expected_repo_hash" "$github_env"
 grep -Fx "PRECLONE_COMMIT_HASH=$commit_a" "$github_env"
+grep -Fx "PRECLONE_FEEDS_LOCK_SHA256=$source_lock_hash" "$github_env"
+
+# A source-lock change with an identical core must invalidate the CI cache key.
+python3 - "$fixture_root/wrt_core/feeds.lock.json" <<'PYLOCK'
+import json
+from pathlib import Path
+import sys
+path = Path(sys.argv[1])
+data = json.loads(path.read_text())
+data["review_note"] = "changed reviewed feed lock"
+path.write_text(json.dumps(data) + "\n")
+PYLOCK
+(
+    cd "$fixture_root"
+    GITHUB_ENV="$github_env" "$fixture_root/wrt_core/pre_clone_action.sh" fixture
+)
+changed_repo_hash=$(sha256sum "$fixture_root/repo_flag" | awk '{print $1}')
+test "$changed_repo_hash" != "$expected_repo_hash"
+grep -Fx "REPO_HASH=$changed_repo_hash" "$github_env"
 
 # The workflow must retain the exact source revision selected by pre-clone even
 # if the remote branch advances before the build job consumes GITHUB_ENV.

@@ -123,9 +123,11 @@ miniupnpd 2.3.11 的旧补丁兼容修复与真实源码验证方法见 [测试�
 
 ## 6. 配置来源
 
+18 个设备的固件提交与配套 feeds 已固定，获取前检查来源、获取后核对实际 HEAD。旧 VIKINGYFY 底座使用 Rust 接口迁移前的 packages，25.12/24.10 使用各自维护分支；来源刷新方法见 [feed 来源锁](docs/feed-source-lock.md)。
+
 每个设备由两类文件共同定义：
 
-- `wrt_core/compilecfg/<设备配置名>.ini`：定义源码仓库、分支、构建目录、默认配置片段、可选提交哈希和容器 SDK 镜像。
+- `wrt_core/compilecfg/<设备配置名>.ini`：定义源码仓库、分支、构建目录、默认配置片段、固定提交哈希和容器 SDK 镜像。
 - `wrt_core/deconfig/<设备配置名>.config`：定义 OpenWrt 目标平台、设备和软件包配置。
 
 不同设备会使用不同上游源码，例如 `VIKINGYFY/immortalwrt`、`immortalwrt/immortalwrt`、`LiBwrt/openwrt-6.x`、`padavanonly/immortalwrt-mt798x` 或本仓库维护的特定分支。`BUILD_TARGET_SDK` 未配置时，容器构建默认使用 `immortalwrt/sdk:openwrt-25.12`。
@@ -163,9 +165,9 @@ https://github.com/kenzok8/small-package.git
 
 相关增删和同步逻辑位于 `wrt_core/update.sh` 编排的 `wrt_core/modules/` 静态阶段。配置片段只选择 Kconfig，不负责 clone 仓库、修改 feeds 或安装 feeds。
 
-Argon 3.1.0 已内置主题设置和 `argon-config` 翻译。构建使用锁定主题内的空兼容包保留
+Argon 3.1.4 已内置主题设置和 `argon-config` 翻译。构建使用锁定主题内的空兼容包保留
 `luci-app-argon-config` 包名，并移除旧版独立配置插件源码，让配置文件、界面和翻译由主题唯一提供。
-集成标记或兼容包缺失时停止构建。Aurora 主题 1.4.0 与配置包 1.2.5 仍分别维护。
+集成标记或兼容包缺失时停止构建。Aurora 主题固定到已合并修复源码 `298dbcc7`（配方 1.4.3，尚无对应稳定 release），配置包 1.2.5 仍分别维护。
 
 HomeProxy 从本地锁定的官方源码复制到构建目录后、最终 feeds 索引刷新和安装前，继续应用
 [PR #673 第一提交 `7c6ded7`](https://github.com/immortalwrt/homeproxy/commit/7c6ded7b99953c7148f3f4a2edf69a592a4f424e)
@@ -181,9 +183,9 @@ HomeProxy 从本地锁定的官方源码复制到构建目录后、最终 feeds 
 
 补丁保存在 `wrt_core/patches/homeproxy-*.patch`。构建时从两个兼容补丁版本中选择一个，再预检 ACL 和特性缓存补丁，全部通过后才修改源码；已应用的补丁逐份跳过。遇到无法匹配的上游源码变化会停止构建，需检查并更新补丁，避免静默编出有兼容问题的 HomeProxy。
 
-SSR 与已选配套核心统一固定到 `fw876/helloworld@v198.2`：SSR 为 `198-r2`，
+SSR 与已选配套核心统一固定到 `fw876/helloworld@v198.2`：SSR 原始输入为 `198-r2`，构建副本回移运行依赖与父包选择修复后为 `198-r3`，
 共享 Xray 原始输入为 `26.10.21-r2` 完整 fw 配方及十份补丁；生产构建副本应用
-UPX 复用补丁后为 `26.10.21-r3`，Go 工具链最低 `1.27.3`。来源与取舍见
+UPX 复用及 Naive CGO 链接参数修复后为 `26.10.21-r4`，Go 工具链最低 `1.27.3`。来源与取舍见
 [本轮上游修复记录](docs/fw876-upstream-backports.md)。
 运行时共享 Xray 通过 SSR「组件更新」管理；SSR 主程序的在线自升级禁用，
 以保留本项目适配。旧启动/DNS 修复仅留历史测试，当前集成及验证边界见
@@ -195,6 +197,8 @@ QuickFile 仍从外部上游获取，不属于这 30 个受管单元。已核对
 官方归档 SHA-256 与 recipe 一致；旧架构 sed 已失效且静默无改动，并非已证明的编译失败。
 构建已移除旧改写，并用结构检查要求安装目标 Rust 产物；Rust 源码归档仍按上游哈希外部下载。
 具体兼容行为、来源刷新和验证边界见 [插件兼容性说明](docs/plugin-compatibility.md)。
+
+本轮构建与全部已选插件的上游修复、保留项和验证边界见 [2026-11-21 维护记录](docs/maintenance/upstream-repairs-2026-11-21.md)。
 
 ## 8. 项目结构说明
 

@@ -334,6 +334,7 @@ print_config_fragment_summary() {
     echo "Config fragments:"
     echo "  Device: $Dev"
     echo "  Source commit: $COMMIT_HASH"
+    python3 "$BASE_PATH/feeds_lock.py" describe --repo-url "$REPO_URL" --commit "$COMMIT_HASH"
     echo "  Default fragments: $(join_fragments "${DEFAULT_CONFIG_FRAGMENTS[@]}")"
     echo "  Add fragments: $(join_fragments "${ADD_CONFIG_FRAGMENT_LIST[@]}")"
     echo "  Remove fragments: $(join_fragments "${REMOVE_CONFIG_FRAGMENT_LIST[@]}")"
@@ -467,6 +468,12 @@ if [[ -n ${PRECLONE_COMMIT_HASH:-} ]]; then
         echo "Error: configured COMMIT_HASH does not match PRECLONE_COMMIT_HASH." >&2
         exit 1
     fi
+fi
+
+FEEDS_LOCK_SHA256=$(python3 "$BASE_PATH/feeds_lock.py" identity --repo-url "$REPO_URL" --commit "$COMMIT_HASH")
+if [[ -n ${PRECLONE_FEEDS_LOCK_SHA256:-} && "$PRECLONE_FEEDS_LOCK_SHA256" != "$FEEDS_LOCK_SHA256" ]]; then
+    echo "Error: pre-clone feed lock does not match the current source lock." >&2
+    exit 1
 fi
 
 resolve_config_fragments

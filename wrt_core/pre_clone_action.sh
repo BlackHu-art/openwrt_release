@@ -41,19 +41,28 @@ COMMIT_HASH=${COMMIT_HASH:-none}
 # Original script used BASE_PATH/action_build.
 BUILD_DIR="$BASE_PATH/../action_build"
 
-echo $REPO_URL $REPO_BRANCH
+# Validate the configured immutable source before cloning or reusing a tree.
+FEEDS_LOCK_SHA256=$(python3 "$BASE_PATH/feeds_lock.py" identity --repo-url "$REPO_URL" --commit "$COMMIT_HASH") || exit 1
+
+echo "$REPO_URL $REPO_BRANCH"
 clone_repo
 if ! checkout_repo_ref; then
     exit 1
 fi
 
-RESOLVED_SHA=$(git -C "$BUILD_DIR" rev-parse HEAD)
+RESOLVED_SHA=$(git -C "$BUILD_DIR" rev-parse HEAD) || exit 1
+ACTUAL_FEEDS_LOCK_SHA256=$(python3 "$BASE_PATH/feeds_lock.py" identity --tree "$BUILD_DIR") || exit 1
+if [[ "$ACTUAL_FEEDS_LOCK_SHA256" != "$FEEDS_LOCK_SHA256" ]]; then
+    echo "Error: source lock changed during pre-clone." >&2
+    exit 1
+fi
 REPO_FLAG="$BASE_PATH/../repo_flag"
-echo "$REPO_URL/$REPO_BRANCH@$RESOLVED_SHA" >"$REPO_FLAG"
+printf '%s\nfeeds_lock_sha256=%s\n' "$REPO_URL/$REPO_BRANCH@$RESOLVED_SHA" "$FEEDS_LOCK_SHA256" >"$REPO_FLAG"
 if [[ -n ${GITHUB_ENV:-} ]]; then
     REPO_HASH=$(sha256sum "$REPO_FLAG" | awk '{print $1}')
     echo "REPO_HASH=$REPO_HASH" >>"$GITHUB_ENV"
     echo "PRECLONE_COMMIT_HASH=$RESOLVED_SHA" >>"$GITHUB_ENV"
+    echo "PRECLONE_FEEDS_LOCK_SHA256=$FEEDS_LOCK_SHA256" >>"$GITHUB_ENV"
 fi
 
 # GitHub Action 移除国内下载源

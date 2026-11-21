@@ -19,7 +19,8 @@ test("production assets stay within raw-transfer budgets", () => {
 
   // 187K: pseudo-elements are nested rules, one content declaration each.
   assert.ok(main <= 187_000, "main.css exceeds 187 KB");
-  assert.ok(login <= 12_000, "login.css exceeds 12 KB");
+  // 12.5K: auth_plugin warning tokens added ~0.35 KB.
+  assert.ok(login <= 12_500, "login.css exceeds 12.5 KB");
   // 22K: palette recents (record on pick, pure-LRU browse order, storage
   // validation) added ~0.8 KB and the ">" logout command ~0.2 KB. The total
   // budget below moved by the same amount.
@@ -34,7 +35,9 @@ test("production assets stay within raw-transfer budgets", () => {
   // 16K: the router now ships from @eamonxg/luci-theme-devkit — theme hooks
   // as document events, the title format read off the document, and the
   // inner-scroller restoration shared with shadcn (+0.8 KB raw, +0.3 KB gz).
-  assert.ok(router <= 16_000, "router-aurora.js exceeds 16 KB");
+  // 18 KiB: bounded dependency prewarm adds 2,035 B raw / 778 B gzip,
+  // with a two-request limit, retry/timeout handling and data-saver gates.
+  assert.ok(router <= 18_432, "router-aurora.js exceeds 18 KiB");
   assert.ok(logo <= 16_000, "logo.svg exceeds 16 KB");
   assert.ok(
     main + menu + router + font + logo <= 264_000,

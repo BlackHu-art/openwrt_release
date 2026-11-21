@@ -17,6 +17,7 @@ ENTRY_POINTS = (
     "docs/windows-testing.md", "docs/fw876-core-migration.md",
     "docs/plugin-compatibility.md",
     "docs/fw876-upstream-backports.md", "wrt_core/managed/README.md",
+    "docs/feed-source-lock.md", "docs/kconfig-compat.md",
     "maintenance/plugins/README.md",
 )
 INLINE_LINK = re.compile(r"!?\[[^\]\n]*\]\(\s*(<[^>\n]+>|[^\s)]+)")

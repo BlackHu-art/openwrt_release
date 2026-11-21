@@ -33,7 +33,11 @@ source "$SCRIPT_DIR/modules/xray_core_compat.sh"
 # 阶段顺序不可随意调整：feeds install 前后依赖的目录不同。
 stage_repo_checkout() {
     # 从干净的上游源码树开始，保证后续修正基线一致。
+    if [[ -e "$BUILD_DIR" ]]; then
+        python3 "$BASE_PATH/feeds_lock.py" preflight "$BUILD_DIR" --repo-url "$REPO_URL" --commit "$COMMIT_HASH" || return 1
+    fi
     clone_repo
+    checkout_repo_ref || return 1
     clean_up
     reset_feeds_conf
 }
@@ -150,6 +154,9 @@ initialize_update_arguments() {
     if [[ "$BUILD_DIR" != /* ]]; then
         BUILD_DIR="$(pwd)/$BUILD_DIR"
     fi
+    # OpenWrt's native scripts honor inherited TOPDIR before their own location.
+    # Bind it here for clean, custom feed update, install and child Make calls.
+    export TOPDIR="$BUILD_DIR"
 }
 
 main() {

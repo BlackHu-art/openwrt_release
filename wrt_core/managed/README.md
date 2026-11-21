@@ -29,8 +29,8 @@ Argon 子树内还包含空 `luci-app-argon-config` 兼容 recipe，随主题一
 | taskd | 1.0.3-r2 | small-package fca4816303d6 | custom_feed/taskd |
 | luci-lib-taskd | 1.0.26 | small-package fca4816303d6 | custom_feed/luci-lib-taskd |
 | luci-lib-xterm | 4.18.0 | small-package fca4816303d6 | custom_feed/luci-lib-xterm |
-| luci-theme-argon | 3.1.0 | 81e781c09ecf | feeds/luci/themes/luci-theme-argon |
-| luci-theme-aurora | 1.4.0 | 84c27b66952e | feeds/luci/themes/luci-theme-aurora |
+| luci-theme-argon | 3.1.4 稳定版 | c5c0873e122d | feeds/luci/themes/luci-theme-argon |
+| luci-theme-aurora | 1.4.3 源码修复（非已发布稳定版） | 298dbcc74ddf | feeds/luci/themes/luci-theme-aurora |
 | luci-app-aurora-config | 1.2.5 | a5299ce01448 | feeds/luci/applications/luci-app-aurora-config |
 
 完整仓库 URL、引用、提交和源路径均以锁文件为准。27 个 custom_feed 单元先写入
@@ -77,7 +77,7 @@ Xray 保存完整 `26.10.21-r2` recipe、EIP93 说明及十份补丁。
 [`fix_xray_core_compat`](../modules/xray_core_compat.sh) 对整个包做精确校验，
 并检查 Go >=1.27.3；每次准备都会重新检查。构建副本通过
 [`xray_core_compat.py`](../xray_core_compat.py) 移植上游 UPX 产物复用，派生为
-`26.10.21-r3`，仅接受完整原始输入或完整预期派生结果。此目录的原始 r2 输入和
+`26.10.21-r4`，再加入 Naive 所需的精确 CGO 链接参数许可；仅接受完整原始输入、已知完整 r3 或完整预期派生结果。此目录的原始 r2 输入和
 来源锁不改变，详见 [移植记录](../../docs/fw876-upstream-backports.md)。
 Passwall1 与 Passwall2 的源码及构建集成均已移除。
 原官方 Xray 升级补丁不再用于生产。fw876 Xray 需要 `golang/host` 和 `upx/host`，
@@ -109,7 +109,7 @@ SHA-256 为 `5eb5e0524a42b62895ee8163d50bf1d78999db7c1321646fdcca3c99c26249e2`�
 锁文件保留其独立来源和许可说明：捕获版本没有发布额外明确许可证，
 small-package 根 Apache-2.0 不能作为这个 gist 的许可证明。
 
-Argon 3.1.0 由主题唯一提供配置、RPC、界面与翻译，内部空兼容包保留旧包名和升级流程。
+Argon 3.1.4 由主题唯一提供配置、RPC、界面与翻译，内部空兼容包保留旧包名和升级流程。
 构建删除旧独立配置源码；集成标记或兼容包缺失即失败。Aurora 主题与配置仍是两个源码单元。
 
 QuickFile 另走外部获取流程，**不属于本目录**。已核对 2.0.8 官方 Rust 源码包哈希；
@@ -132,4 +132,6 @@ QuickFile 另走外部获取流程，**不属于本目录**。已核对 2.0.8 �
 
 Aurora 构建副本还经过 `theme_compat.py` 完整脚本 guard。旧版或缺失 schema 的
 初始化仅补缺省和无冲突别名，保留已有设置；未来或未知 schema 不降级。
-Argon 仓库级初始化同样只填缺项。原始受管源码和哈希保持不变。
+Argon 仓库级初始化同样只填缺项。配置保护适配不修改原始受管源码；主题来源刷新独立更新完整原始文件及来源锁。
+
+2026-11-21 的完整主题来源刷新和 fw876 构建副本修复见 [维护记录](../../docs/maintenance/upstream-repairs-2026-11-21.md)。SSR 原始来源仍为 198-2，当前派生运行依赖与选择修复版本为 198-r3。

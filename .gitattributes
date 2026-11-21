@@ -97,3 +97,14 @@
 /tests/fixtures/quickstart/sources.json text eol=lf
 /docs/maintenance/plugin-backports-2026-10-31.md text eol=lf
 /docs/superpowers/plans/2026-10-31-plugin-upstream-fixes.md text eol=lf
+
+# Reviewed build-source lock and regression entry points.
+/wrt_core/feeds_lock.py text eol=lf
+/wrt_core/feeds.lock.json text eol=lf
+/wrt_core/setup_ci_environment.sh text eol=lf
+/wrt_core/modules/feeds.sh text eol=lf
+/wrt_core/modules/repo.sh text eol=lf
+/tests/test_feeds_lock.py text eol=lf
+/tests/test_ci_build_modes.py text eol=lf
+/tests/test_upstream_build_fixes.py text eol=lf
+/tests/test_theme_upstream.py text eol=lf

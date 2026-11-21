@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """Exercise the real Xray recipe gate without downloads or firmware builds."""
-import os
+import hashlib
 import json
+import os
 from pathlib import Path
 import shutil
 import subprocess
@@ -66,7 +67,7 @@ class XrayRecipeCompatibility(unittest.TestCase):
         recipe_path = self.recipe.relative_to(self.build).as_posix()
         self.assertNotEqual(after.pop(recipe_path), before.pop(recipe_path))
         self.assertEqual(after, before)
-        self.assertIn(b"PKG_RELEASE:=3\n", self.recipe.read_bytes())
+        self.assertIn(b"PKG_RELEASE:=4\n", self.recipe.read_bytes())
         self.assertIn(b"PKG_RELEASE:=2\n", (FIXTURE / "Makefile").read_bytes())
 
     def test_every_private_protocol_patch_is_required_and_verified(self):
@@ -198,11 +199,31 @@ class XrayRecipeCompatibility(unittest.TestCase):
         result = self.apply()
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
         prepared = self.recipe.read_bytes()
-        for changed in (prepared.replace(b"PKG_RELEASE:=3", b"PKG_RELEASE:=2"),
+        for changed in (prepared.replace(b"PKG_RELEASE:=4", b"PKG_RELEASE:=3"),
+                        prepared.replace(b"-l:libcronet[.]a", b".*"),
                         prepared + b"\n# unreviewed dependency\n"):
             with self.subTest(recipe=changed[-80:]):
                 self.recipe.write_bytes(changed)
                 self.assert_rejected_without_changes("Makefile")
+
+    def test_only_complete_prior_preparation_can_be_upgraded(self):
+        result = self.apply()
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        expected = self.recipe.read_bytes()
+        prior = expected.replace(b"PKG_RELEASE:=4\n", b"PKG_RELEASE:=3\n").replace(
+            b"  # Cronet selects its static archive by filename, which cgo rejects by default.\n"
+            b"  GO_PKG_VARS+=CGO_LDFLAGS_ALLOW='-l:libcronet[.]a'\n", b"")
+        blob = b"blob " + str(len(prior)).encode() + b"\0" + prior
+        self.assertEqual(hashlib.sha1(blob).hexdigest(), "98f541c95e36200441a08374b9e06507e57cf64d")
+        self.recipe.write_bytes(prior)
+        patch = next((self.package / "patches").glob("*.patch"))
+        original = patch.read_bytes()
+        patch.write_bytes(original + b"\n# stale patch\n")
+        self.assert_rejected_without_changes(patch.name)
+        patch.write_bytes(original)
+        result = self.apply()
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertEqual(self.recipe.read_bytes(), expected)
 
     def test_prepared_package_still_checks_all_files_and_patches(self):
         result = self.apply()
@@ -264,7 +285,9 @@ INSTALL_BIN := cp
 GO_PKG_BUILD_BIN_DIR = $(PKG_BUILD_DIR)/go/bin
 PKG_INSTALL_DIR = $(PKG_BUILD_DIR)/ipkg-install
 include feeds/custom_feed/xray-core/Makefile
-.PHONY: pack-one pack-two
+.PHONY: pack-one pack-two linker-allowance
+linker-allowance:
+	@$(GO_PKG_VARS) sh -c 'printf "%s\\n" "$$CGO_LDFLAGS_ALLOW"'
 $(PKG_BUILD_DIR)/.built: source.bin
 	$(call Build/Compile)
 	$(call Build/Install)
@@ -276,8 +299,10 @@ pack-two: $(PKG_BUILD_DIR)/.built
 ''', encoding="utf-8")
 
     def make_packages(self, *targets):
+        env = self.env.copy()
+        env.pop("CGO_LDFLAGS_ALLOW", None)
         return subprocess.run([self.make, "--no-print-directory", "-f", "harness.mk", *targets],
-                              cwd=self.build, env=self.env, capture_output=True, text=True,
+                              cwd=self.build, env=env, capture_output=True, text=True,
                               encoding="utf-8", errors="replace", timeout=30)
 
     def assert_make_succeeds(self, *targets):
@@ -307,6 +332,14 @@ pack-two: $(PKG_BUILD_DIR)/.built
         for device in ("device-one", "device-two"):
             self.assertEqual((self.build / device / "usr/bin/xray").read_bytes(),
                              b"compiled-generation-one:packed")
+
+    def test_only_naive_builds_pass_the_cronet_archive_allowance_to_go(self):
+        self.prepare()
+        for naive, expected in (("y", "-l:libcronet[.]a"), ("n", ""), ("", "")):
+            with self.subTest(naive=naive):
+                result = self.make_packages("CONFIG_XRAY_CORE_NAIVE=" + naive, "linker-allowance")
+                self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+                self.assertEqual(result.stdout.strip(), expected)
 
     def test_rebuild_replaces_packed_copy_and_compresses_the_new_binary_once(self):
         self.prepare()

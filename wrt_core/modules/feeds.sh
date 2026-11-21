@@ -8,36 +8,46 @@ get_feeds_path() {
     printf '%s\n' "$feeds_path"
 }
 
-append_feed_if_missing() {
-    local feeds_path="$1"
-    local match_pattern="$2"
-    local feed_entry="$3"
-
-    if ! grep -q "$match_pattern" "$feeds_path"; then
-        [ -z "$(tail -c 1 "$feeds_path")" ] || echo "" >>"$feeds_path"
-        echo "$feed_entry" >>"$feeds_path"
-    fi
-}
-
 update_feeds() {
-    local FEEDS_PATH
-    FEEDS_PATH=$(get_feeds_path)
-    sed -i '/^#/d' "$FEEDS_PATH"
-    sed -i '/packages_ext/d' "$FEEDS_PATH"
-    sed -i '/[[:space:]]small8[[:space:]]/d' "$FEEDS_PATH"
-    sed -i '/[[:space:]]custom_feed[[:space:]]/d' "$FEEDS_PATH"
-
-    append_feed_if_missing "$FEEDS_PATH" "openwrt_bandix" "src-git openwrt_bandix https://github.com/timsaya/openwrt-bandix.git;main"
-    append_feed_if_missing "$FEEDS_PATH" "luci_app_bandix" "src-git luci_app_bandix https://github.com/timsaya/luci-app-bandix.git;main"
+    # Validate the complete source set before changing feeds.conf or building an index.
+    python3 "$BASE_PATH/feeds_lock.py" prepare "$BUILD_DIR" || return 1
 
     if [ ! -f "$BUILD_DIR/include/bpf.mk" ]; then
         touch "$BUILD_DIR/include/bpf.mk"
     fi
 
-    network_retry ./scripts/feeds update -a
+    # Fetch only immutable commits in temporary trees. Native URL-pinned retries
+    # can otherwise leave a default HEAD and index it before verification.
+    network_retry python3 "$BASE_PATH/feeds_lock.py" fetch "$BUILD_DIR" || return 1
+    python3 "$BASE_PATH/feeds_lock.py" verify "$BUILD_DIR" || return 1
+    run_feed_index upstream || return 1
+    python3 "$BASE_PATH/feeds_lock.py" verify "$BUILD_DIR" || return 1
+}
+
+run_feed_index() {
+    local phase="$1" log_file
+    shift
+    local -a statuses options=()
+    mkdir -p "$BUILD_DIR/logs" || return 1
+    log_file="$BUILD_DIR/logs/feeds-index-$phase.log"
+    if TOPDIR="$BUILD_DIR" ./scripts/feeds update -i "$@" 2>&1 | tee "$log_file"; then
+        statuses=("${PIPESTATUS[@]}")
+    else
+        statuses=("${PIPESTATUS[@]}")
+    fi
+    [[ ${statuses[0]} -eq 0 && ${statuses[1]} -eq 0 ]] || return 1
+    if [[ "$phase" == custom ]]; then
+        options=(--only custom_feed)
+    elif [[ "$phase" == final ]]; then
+        options=(--custom)
+    fi
+    python3 "$BASE_PATH/feeds_lock.py" check-index "$BUILD_DIR" --log "$log_file" "${options[@]}"
 }
 
 install_feeds() {
-    network_retry ./scripts/feeds update -i
-    ./scripts/feeds install -a -f
+    # Compatibility patches may change files, but source commits must remain locked.
+    python3 "$BASE_PATH/feeds_lock.py" verify "$BUILD_DIR" --custom || return 1
+    run_feed_index final || return 1
+    python3 "$BASE_PATH/feeds_lock.py" verify "$BUILD_DIR" --custom || return 1
+    TOPDIR="$BUILD_DIR" ./scripts/feeds install -a -f
 }

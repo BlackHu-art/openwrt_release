@@ -11,14 +11,16 @@
   "equivalent_official_reference": {
     "repository": "vernesong/OpenClash",
     "commit": "e553e82e01c697aefbe1555261a503f425e00ccd",
-    "verified_file_count": 14,
+    "verified_file_count": 15,
     "verification": "Git blob equality for all files in this receipt; this is not the production fetch source"
   },
   "backport_donor_repository": "vernesong/OpenClash",
   "backports": [
     "373d0023c7006fee3bb66c90f40355ef02e2d682",
     "2cd5ad9847b1debcb65b9843925041305aa3c2b3",
-    "4015008110e8a40b41c416677c0e7224635d9379"
+    "4015008110e8a40b41c416677c0e7224635d9379",
+    "2faa4fabfe1c12899feb1ddc060adda3fa7f2343",
+    "73f3abdb8d4ef46ea939b1b9c730f13d3e800d5b"
   ],
   "files": {
     "luasrc/controller/openclash.lua": "f04546b358bdcb7e8c98a93b5980eec30bbb6304",
@@ -32,6 +34,7 @@
     "root/usr/share/openclash/openclash.sh": "6c181265ca96c452660653d60ec552d58eccc12c",
     "root/usr/share/openclash/openclash_curl.sh": "0d2a371bc2389d833bc81cdafdf075e5d70f0648",
     "root/usr/share/openclash/openclash_etag.sh": "9a5313dccf8603fa0dc82737d08941604574c3f3",
+    "root/usr/share/openclash/openclash_history_get.sh": "a6f84146c67dcd97ac8df1086ebbba034edd13ee",
     "root/usr/share/openclash/uci.rb": "726b0ea480762404aa9a15903fcce5bc1e2801ed",
     "root/usr/share/openclash/yml_change.sh": "abbce9f50b25f5459611f7d32940a018caf40ecd",
     "root/www/luci-static/resources/openclash/js/config_edit.js": "07b04ca809cfbd4b3a14eaa1c639b31eb6131a3c"

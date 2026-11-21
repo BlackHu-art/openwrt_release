@@ -837,14 +837,14 @@
       "path": "packages/luci-theme-aurora",
       "repository": "https://github.com/eamonxg/luci-theme-aurora",
       "ref": "master",
-      "commit": "84c27b66952e6fc4be60128067a6b88bfd34afb5",
-      "commit_date": "2026-09-19T17:01:11Z",
+      "commit": "298dbcc74ddf820923a51285fb0826d429e5d7ca",
+      "commit_date": "2026-11-04T06:54:44Z",
       "upstream_path": ".",
-      "tree": "798f80558cc056db85106134292596cbf3268236",
+      "tree": "4237ad3159287a32334c00f965170e80bc057578",
       "license_sources": [
         {
           "path": "LICENSE",
-          "url": "https://github.com/eamonxg/luci-theme-aurora/blob/84c27b66952e6fc4be60128067a6b88bfd34afb5/LICENSE",
+          "url": "https://github.com/eamonxg/luci-theme-aurora/blob/298dbcc74ddf820923a51285fb0826d429e5d7ca/LICENSE",
           "git_blob_sha1": "261eeb9e9f8b2b4b0d119366dda99c6fd7d35c64",
           "captured_path": "sources/luci-theme-aurora/LICENSE"
         }
@@ -860,7 +860,7 @@
         },
         {
           "line": 11,
-          "text": "PKG_VERSION:=1.4.0"
+          "text": "PKG_VERSION:=1.4.3"
         },
         {
           "line": 13,
@@ -920,16 +920,16 @@
         {
           "path": ".claude/skills/aurora-motion/SKILL.md",
           "mode": "100644",
-          "git_blob": "4514bee841441fc1ea737687d205b4ef282a6356",
-          "sha256": "067ca0fff13b799282ac645aad18f38da235d59d21c4b2b9d6d9a4e1fcd5f75f",
-          "bytes": 10391
+          "git_blob": "686ef23bb9fe82fc1df17330fb5367a316ff98ab",
+          "sha256": "59b692d9b013cdb7b564e0cbebd6c9829c8f2cf738b5f84daf02c2c9e7849863",
+          "bytes": 11300
         },
         {
           "path": ".claude/skills/aurora-motion/references/luci-hooks.md",
           "mode": "100644",
-          "git_blob": "353507ebdcdd30fdd83a8fd742aa45ae9baab119",
-          "sha256": "9ac6b1094b0830537b96df974541f9a49d9c430e6282e6bc80180f5affe9227f",
-          "bytes": 4076
+          "git_blob": "de23e76a3c3274ae9c74bd09a9ed41737545861c",
+          "sha256": "477e454305e098fe3e5e42c30f20d0699757df6e8c7e7a2f13101b04f1cac43f",
+          "bytes": 4774
         },
         {
           "path": ".claude/skills/aurora-motion/scripts/transitionend-probe.mjs",
@@ -1137,9 +1137,9 @@
         {
           "path": ".dev/compat/README.md",
           "mode": "100644",
-          "git_blob": "d42b792d588993162841fb92ed13244c60db31e0",
-          "sha256": "9c7302878fb1a38482ab24dcb5cd6b64c7db6dc53efcdc95b3b4dc6572630433",
-          "bytes": 4119
+          "git_blob": "870bb66fa8e929106ea90dc9b62c1172160d2c9d",
+          "sha256": "28716edb7554bf28e0c892fa13d85943451162963149a8edf4fbb5a677beb291",
+          "bytes": 4483
         },
         {
           "path": ".dev/compat/fixtures/admin-services-dockerman-overview--info-table.html",
@@ -1154,6 +1154,13 @@
           "git_blob": "4609e2840aab3d630a4459c8b729705155bb20ae",
           "sha256": "92588912762a1c5f8d245aa93d55aeb7ce6f41d316ee6b80c31060cc40a79f2f",
           "bytes": 5683
+        },
+        {
+          "path": ".dev/compat/fixtures/admin-status-nftables--notification-dismissal.html",
+          "mode": "100644",
+          "git_blob": "4290a36fdc536b045b430f3b05e452cd9575ce6e",
+          "sha256": "742407c70131ab11d1c34a06f004bf3a531f78c1fe4cea4c6699ba7bcb2cf200",
+          "bytes": 4815
         },
         {
           "path": ".dev/compat/pages/admin-dashboard.md",
@@ -1254,6 +1261,13 @@
           "bytes": 2820
         },
         {
+          "path": ".dev/compat/pages/admin-status-nftables.md",
+          "mode": "100644",
+          "git_blob": "8c5504f4e02f306941ea09bddddf7d266e616197",
+          "sha256": "c16c7da1b9ece954593db88d17940eb819ef96a0d67f3ddeeceff103c3998e7a",
+          "bytes": 2521
+        },
+        {
           "path": ".dev/compat/pages/admin-status-overview.md",
           "mode": "100644",
           "git_blob": "bf369a0804d24f79ce6859451d4321d83388fc96",
@@ -1310,6 +1324,13 @@
           "bytes": 41072
         },
         {
+          "path": ".dev/docs/navigation-loading.md",
+          "mode": "100644",
+          "git_blob": "208036a7b1cb59482191c774c499ddbe2037677c",
+          "sha256": "aabca146fee6d15d8d77f17e108d7a5a91ce939c22219aafadfed6f2f2cc6938",
+          "bytes": 3604
+        },
+        {
           "path": ".dev/docs/router.md",
           "mode": "100644",
           "git_blob": "261ee570bbb9f2778e1e941f088564487fa30219",
@@ -1340,23 +1361,23 @@
         {
           "path": ".dev/package.json",
           "mode": "100644",
-          "git_blob": "2060342ec3c66321bf8cab461c580407902683a3",
-          "sha256": "847a05a9bce11d48f9f130108564d1292d0e4d0184e5bba66c9d6d6ec9af400c",
-          "bytes": 930
+          "git_blob": "03199e91841779fdbf2e8d5e6b500f5314052dfe",
+          "sha256": "fad1d2c8e87ebfb7c42429774f7a0db297583dbaef725f6482fb29f3c63da35c",
+          "bytes": 929
         },
         {
           "path": ".dev/pnpm-lock.yaml",
           "mode": "100644",
-          "git_blob": "bdeeecaeeb85a680c7a9d638ec0bc54a587e53c2",
-          "sha256": "42f043d6e079380bacfcb729903de338ab38088efe547f9caae647196c71fff9",
-          "bytes": 45315
+          "git_blob": "a53c5b3d309ce08d505914686aacc5c004752860",
+          "sha256": "4098d791aab1f2f35df358f9c2b2462c84b8995c4bcd62a34b49b2621772ef1d",
+          "bytes": 45314
         },
         {
           "path": ".dev/pnpm-workspace.yaml",
           "mode": "100644",
-          "git_blob": "5ed0b5af0d45919f64c66edfb16a5f4512461fa1",
-          "sha256": "ac02d96368617c760f093cfe61fdec64b6244007ab3553e0d6621f706f54a353",
-          "bytes": 29
+          "git_blob": "e21c8464a07b8d9e1b1da549d5ed9ada1d01ded5",
+          "sha256": "a23b7ab4d155846c0bdbd0910c871e51ca42e254559c1f41acc700d6fd845fca",
+          "bytes": 94
         },
         {
           "path": ".dev/public/aurora/fonts/aurora-font.css",
@@ -1697,9 +1718,9 @@
         {
           "path": ".dev/src/media/_utilities.css",
           "mode": "100644",
-          "git_blob": "c25b4cd8edfd9cb2ca64dc3fbd88771aa7316db9",
-          "sha256": "49f254c165e5062dc319fd5455450830c7993545e70c22c9a75274272bcf8ef3",
-          "bytes": 1775
+          "git_blob": "102e07a128a5b4e3b84ca81513cebca5358f7ac6",
+          "sha256": "c2663226390c29ba2235c0162625bfcb79c8ae1a7d7069efd036998d5c84bda0",
+          "bytes": 1257
         },
         {
           "path": ".dev/src/media/components/_badge.css",
@@ -1851,9 +1872,9 @@
         {
           "path": ".dev/src/media/login.css",
           "mode": "100644",
-          "git_blob": "df91481994f2f16b074437689150c4b5c8057f6e",
-          "sha256": "4bf62a08c1a27159c22c15f8c71b0e2c912a3ea42e9e95237d8f65601397ad97",
-          "bytes": 4600
+          "git_blob": "9765c9c000838953958c0563fd816be34e67715c",
+          "sha256": "9f5d4a7d657f4acf5be2c188560a454e9f0684156bb1ec1a7b58678381006d6c",
+          "bytes": 4663
         },
         {
           "path": ".dev/src/media/main.css",
@@ -1942,9 +1963,9 @@
         {
           "path": ".dev/tests/build-performance.test.js",
           "mode": "100644",
-          "git_blob": "16dc2a3304e5b562c7dc07f57db4755ebb5a1e7b",
-          "sha256": "a429200bd27a77bd4589feb39ab0dc82a3615f0f282f7e9651f9c8f71a33de19",
-          "bytes": 6799
+          "git_blob": "210ea62e211196705aab0575144dd36bc61f9000",
+          "sha256": "f487fa45aac019aebbfe91297d9e1205c9a8fb28ca18b6debe9c53ff610e6a5a",
+          "bytes": 7004
         },
         {
           "path": ".dev/tests/command-palette.test.js",
@@ -1956,9 +1977,9 @@
         {
           "path": ".dev/tests/compat.test.js",
           "mode": "100644",
-          "git_blob": "9af1f2352a9a34ef02220642f2997b58765b99d4",
-          "sha256": "4e44876ee0bdacd015e66a0a1f4b1dcd34e92d6ba920d01848bfa35c41824a6d",
-          "bytes": 8937
+          "git_blob": "8117abca99c24f529b43dc5cf8f9bf71a6d14b81",
+          "sha256": "e670b15251e90314296515699539cd8ec3bbe4b71e9a37c6bd27e351d186cbba",
+          "bytes": 9715
         },
         {
           "path": ".dev/tests/log-patch.test.js",
@@ -1970,9 +1991,16 @@
         {
           "path": ".dev/tests/nav-replay.test.js",
           "mode": "100644",
-          "git_blob": "3c8195abc8f0475bd5bede15449f673c0215debd",
-          "sha256": "cc8fba240dd0375fb6f5df9f0f4892bec39e4a4ec2ee20567488dbc9ff6a4345",
-          "bytes": 7010
+          "git_blob": "7a99d756ac20d510ac13c0abc7b70f8d35054bd8",
+          "sha256": "7ce947a81781330f36e281f08d890fdae93a9baa0c5bd6df100a614b3d34a854",
+          "bytes": 7134
+        },
+        {
+          "path": ".dev/tests/navigation-loading.test.js",
+          "mode": "100644",
+          "git_blob": "eb29d6ac301b06f13d7332fe03885ac0455a6f79",
+          "sha256": "03a9911f20b3db224a6277ab30305336d57a49a83e0066d088a94e7fa6f5dfcd",
+          "bytes": 877
         },
         {
           "path": ".dev/tests/navigation-model.test.js",
@@ -2012,9 +2040,9 @@
         {
           "path": ".dev/tests/page-motion.test.js",
           "mode": "100644",
-          "git_blob": "bc896d499d1207e07bb3964ebc3cf9d600c4e435",
-          "sha256": "099f36f685099219731a9284df6105e211265c97687dd06882070136cf25abe7",
-          "bytes": 1681
+          "git_blob": "2564018fbf36d2f6fb3602d051ef85c6db7ee147",
+          "sha256": "b16f6d65bb51f1fadeaa683ccb5ef278748685973a207226760047d49c2cc734",
+          "bytes": 1675
         },
         {
           "path": ".dev/tests/resolve.test.js",
@@ -2138,23 +2166,23 @@
         {
           "path": "Makefile",
           "mode": "100644",
-          "git_blob": "56450ac7e8636aef858e4edc8c743f0913f80467",
-          "sha256": "db5f9747cbf2f14f292a66d0d89edac1031213d272d26a12965bf3cb23b32014",
+          "git_blob": "ad2888e111d356d20c686c95ca8e121f04fa84f2",
+          "sha256": "6d861b3ff56adc91d34bebe52518190f9437242a18ead9d5486b0d99f6e28a1e",
           "bytes": 439
         },
         {
           "path": "README.md",
           "mode": "100644",
-          "git_blob": "a0c443bd97e23d829be9d1e5220fc361ac9b2606",
-          "sha256": "fae8f2c614e5713b97810246ebc73bf67774e30664782d3684eb11ee9e694528",
-          "bytes": 9920
+          "git_blob": "ff2030925c3c2cf1dade7606548e731b5b948c06",
+          "sha256": "76618635361a9bf4b65647f87dd2e4ae64b5c16ce9298822c6aac7f9e296498f",
+          "bytes": 9719
         },
         {
           "path": "README_zh.md",
           "mode": "100644",
-          "git_blob": "f95d2d59b27ceeeb7de096dc21b23236e4b9d110",
-          "sha256": "3d47268104dc8aa81ceddbf8058fc11f2b5f7b5c3efc88d4bb70a497e147fc2b",
-          "bytes": 9667
+          "git_blob": "6cf60c4df56c48ab2ca1129329b1bdda0745a540",
+          "sha256": "255b7afa0285786dac15a231b35d406068e7acd7a0f47a377aee6b7a1fd7b827",
+          "bytes": 9466
         },
         {
           "path": "htdocs/luci-static/aurora/fonts/aurora-font.css",
@@ -2243,16 +2271,16 @@
         {
           "path": "htdocs/luci-static/aurora/login.css",
           "mode": "100644",
-          "git_blob": "b8a2a3b3d6e0cdbfdb25ffcef431bd3eff1159d5",
-          "sha256": "1b44d5f8c08ffffb51b264f6ce40aa17635e4cc059053e707c7434fab3f5f76f",
-          "bytes": 11972
+          "git_blob": "e5ade23c7fca10a068002f854e503991f9ea6485",
+          "sha256": "11fb975dd4bd7d05093d7e4203badbc68f042b3dbc80d815956dd0e7a7725132",
+          "bytes": 12318
         },
         {
           "path": "htdocs/luci-static/aurora/main.css",
           "mode": "100644",
-          "git_blob": "a6d8b060d15eaa8a3fe531f1ca16c298f284bbe8",
-          "sha256": "e05e9834fd1c61e4760b02340c14555cb111a08b577722ffb3a6034cdeca6850",
-          "bytes": 185262
+          "git_blob": "970114133ecb09b606f8fddf27d6349cc608078c",
+          "sha256": "d081a3a60adde155e887613ef95f8b94348c2b0d200df23c1d2fe8d5e069cbba",
+          "bytes": 184884
         },
         {
           "path": "htdocs/luci-static/aurora/patches/admin-dashboard.css",
@@ -2334,9 +2362,9 @@
         {
           "path": "htdocs/luci-static/resources/router-aurora.js",
           "mode": "100644",
-          "git_blob": "c77e8a669f1d200e2a9409070c841983ad6bb41b",
-          "sha256": "d4500d31a150ea5a7eff9dd9e5a62262942a5debf4b82fbf62ff83ce4d0dd964",
-          "bytes": 15771
+          "git_blob": "abf1b0e1fef18d0a588d76531b12f77eeb8bcec2",
+          "sha256": "c18a6f9b3a2f9b551ac7d7ee55560fdaec16901bfca9da3c9ff0dfc42a35973b",
+          "bytes": 17806
         },
         {
           "path": "root/etc/uci-defaults/30_luci-theme-aurora",
@@ -2348,23 +2376,23 @@
         {
           "path": "ucode/template/themes/aurora/footer.ut",
           "mode": "100644",
-          "git_blob": "575868fcfd1263d6838d085568dcc20561fde682",
-          "sha256": "05f4a1be8f5ac7ff6bfb63c353116c6296228bfc4bcfc47895c88e154250e6a4",
-          "bytes": 3779
+          "git_blob": "cb194c18e4999f1f0b949d9ff0fa5a72bcb0badc",
+          "sha256": "abba031b6f463f66eced70329efa0f6bbfbc3bb2c4fc5727d68be8651d5f6d67",
+          "bytes": 3774
         },
         {
           "path": "ucode/template/themes/aurora/header.ut",
           "mode": "100644",
-          "git_blob": "63ef85d395ffca6eee9910ceb366576e580b8c9f",
-          "sha256": "22cdf880a340eaf28094648ce22b28b300cb7edd1f565a33878e8c43c3ea8be8",
-          "bytes": 24362
+          "git_blob": "56205925f39fde53d40d8f8d704e46c0f376f9d8",
+          "sha256": "cadebf96f744c064cdf760f137b6e15f7fe04762408203ae4a5b228fd552dffa",
+          "bytes": 24395
         },
         {
           "path": "ucode/template/themes/aurora/sysauth.ut",
           "mode": "100644",
-          "git_blob": "121e4add7df488c57ab0f207beab52ad5df22960",
-          "sha256": "e40387ce01ee455e6b9d2bf2486a7c7a363b2c737b22b7c4f340a7a0e1d1f063",
-          "bytes": 3206
+          "git_blob": "a9ce7af34816392b7afc8d0053f331164a445b23",
+          "sha256": "08d34b4cadbc5098bed03e5aadcd42815008caf5a48c2f1a7affd8b1425b5df8",
+          "bytes": 4641
         }
       ]
     },
@@ -2705,15 +2733,15 @@
     "luci-theme-argon": {
       "path": "packages/luci-theme-argon",
       "repository": "https://github.com/jerrykuku/luci-theme-argon",
-      "ref": "master",
-      "commit": "81e781c09ecf27e82737a6d46bd7697371d08ba8",
-      "commit_date": "2026-10-22T08:08:06Z",
+      "ref": "v3.1.4",
+      "commit": "c5c0873e122dc767c7ab0198c8bffc6e952b5cfb",
+      "commit_date": "2026-11-13T10:32:39Z",
       "upstream_path": ".",
-      "tree": "e69f705f2752ae4824c802b8f29783700a714e40",
+      "tree": "690831b1bbeb90f4457d4081909050ec00240450",
       "license_sources": [
         {
           "path": "LICENSE",
-          "url": "https://github.com/jerrykuku/luci-theme-argon/blob/81e781c09ecf27e82737a6d46bd7697371d08ba8/LICENSE",
+          "url": "https://github.com/jerrykuku/luci-theme-argon/blob/c5c0873e122dc767c7ab0198c8bffc6e952b5cfb/LICENSE",
           "git_blob_sha1": "261eeb9e9f8b2b4b0d119366dda99c6fd7d35c64",
           "captured_path": "sources/luci-theme-argon/LICENSE"
         }
@@ -2724,15 +2752,15 @@
           "text": "LUCI_TITLE:=Argon Theme"
         },
         {
-          "line": 11,
-          "text": "LUCI_DEPENDS:=+luci-base +USE_APK:wget-any +!USE_APK:wget +jsonfilter +ucode-mod-math +flock +coreutils +coreutils-timeout"
+          "line": 12,
+          "text": "LUCI_DEPENDS:=+luci-base +wget-ssl +ca-bundle +jsonfilter +ucode-mod-math +flock +coreutils +coreutils-timeout"
         },
         {
-          "line": 14,
-          "text": "PKG_VERSION:=3.1.0"
+          "line": 15,
+          "text": "PKG_VERSION:=3.1.4"
         },
         {
-          "line": 16,
+          "line": 17,
           "text": "PKG_LICENSE:=Apache-2.0 MIT"
         }
       ],
@@ -2747,9 +2775,9 @@
         {
           "path": ".github/release-installation.md",
           "mode": "100644",
-          "git_blob": "e64fc34e7db3222bea31818f0cd09083f048336f",
-          "sha256": "ef7f5b8913d4b2ff1a4eed76e3c1bca222caa24bf9a301d34dd70e7313fbe3fa",
-          "bytes": 4213
+          "git_blob": "73865c9acc2ae291314d54e3fea54a1d9996db61",
+          "sha256": "e0708533ed539d962c3fc434d4393076547a883b0039d1b8f6c1737c0c099ee4",
+          "bytes": 1027
         },
         {
           "path": ".github/release-preview.md",
@@ -2775,9 +2803,9 @@
         {
           "path": ".github/scripts/generate_update_site.py",
           "mode": "100644",
-          "git_blob": "13f413837d37b851876509d6bee52e6123bbbc51",
-          "sha256": "e6127ab7d1287fd216ca48cc36169f568545ae61215fb33895ac9821ebd67422",
-          "bytes": 5123
+          "git_blob": "48bc8605f26d1452924fc237636f6b756c2c5408",
+          "sha256": "0f3097a30d56fef23adc77f9d41268caef57002a5ca9f6b4a110c0bfd628dd3b",
+          "bytes": 6650
         },
         {
           "path": ".github/scripts/prepare_release_commit.sh",
@@ -2824,9 +2852,9 @@
         {
           "path": ".github/workflows/publish_updates.yml",
           "mode": "100644",
-          "git_blob": "b2cf26b9f5a0938c79cb3d4ad10495ec8915527f",
-          "sha256": "b0962b8583d6a081237d633afa6af3a977109dd6342dd55efa23fde42a5a2521",
-          "bytes": 3897
+          "git_blob": "86ea7606f99f58ca8e3db801d8684bf0a9f802eb",
+          "sha256": "342177fda8c1a9376c3a80ea16a9fa3e9c206d6f49fb3986ea1f2cfca026e8c6",
+          "bytes": 3947
         },
         {
           "path": ".github/workflows/release.yml",
@@ -2852,37 +2880,37 @@
         {
           "path": "Makefile",
           "mode": "100644",
-          "git_blob": "52e22ad99008e1f9a20b32ff2e771e54228f53b1",
-          "sha256": "aec8d4c4757da7cc79325f525560807438311762326c78b78956082290877d8e",
-          "bytes": 1403
+          "git_blob": "69f47709dedf3f0083f2f7e766b4628684dec156",
+          "sha256": "ab220361f59ddf69b9e5996050143767ec2b939dae3597a72144ee00838bce58",
+          "bytes": 2051
         },
         {
           "path": "README.md",
           "mode": "100644",
-          "git_blob": "288f9428b9670451bf113deb86a0ea67146ad57a",
-          "sha256": "b2d719bee853546a44079c14b373a52c4e45f3eef6bac20388cb7b20b084f2fe",
-          "bytes": 7771
+          "git_blob": "18ebefa15a62515b32253590019f874ff0fa14ce",
+          "sha256": "aec21425ca7199bc9660d4699f88b27e19eabe141a41948f44b922565f9683fa",
+          "bytes": 8335
         },
         {
           "path": "README_ZH.md",
           "mode": "100644",
-          "git_blob": "8babd00ba44b46dbf543710f8478326b1683d28b",
-          "sha256": "cc90ed34d8c23636d2cefe84cdca6b9a17a76c3442608bd24128d0eb185448b3",
-          "bytes": 7241
+          "git_blob": "ed72b18aa8749e161f216f1f4e77153942f03466",
+          "sha256": "ab62f78495496d765b15be4601b09260ea6f144497e4e959d17c80a91d5314ee",
+          "bytes": 7717
         },
         {
           "path": "RELEASE.md",
           "mode": "100644",
-          "git_blob": "27424d65055a16270fbf28cd7403ecfe8dad42c4",
-          "sha256": "ceadf56c59bb1c4606352ece8731513765406879a620892179a382dd56f51379",
-          "bytes": 23302
+          "git_blob": "183726f3f719afd9b98030a2058d4ffdb046bff9",
+          "sha256": "3c07f789ba48a4b6aa274aa36013ad3f147ecc805c0652c4f9d5317389be489f",
+          "bytes": 29496
         },
         {
           "path": "RELEASE_ZH.md",
           "mode": "100644",
-          "git_blob": "39a05787132fafd010abfdd41f9e57a29f357d99",
-          "sha256": "ccdd1be098adc0ffa0ec303f8b6a649f4b305592c3240a5d46f46c8ffd795911",
-          "bytes": 5625
+          "git_blob": "bddc02e4478dc06f0b583004d2405665b99c920d",
+          "sha256": "f520d740e082592872cca46c5f369ce6e9d2b133d5a9db960ded6e37e9cf2ef8",
+          "bytes": 7655
         },
         {
           "path": "Screenshots/argon-3-demo.gif",
@@ -2936,23 +2964,23 @@
         {
           "path": "compat/luci-app-argon-config/Makefile",
           "mode": "100644",
-          "git_blob": "b86fc1623a4a23418fe6332afcf558e5034978a4",
-          "sha256": "f505876a37101f57050dac233c96c4db9a9201073ea5a2ae90e3dfcf7edea92f",
+          "git_blob": "b560d77f29da28debc83c5325751bc9f5a220716",
+          "sha256": "a04e971a803090dc683a5de95f17c9923fa6a239b7a3456024da087262d76c07",
           "bytes": 1014
         },
         {
           "path": "docs/DEVELOPMENT.md",
           "mode": "100644",
-          "git_blob": "72f837aa24c0516b4826b8e605b667df5e761b3d",
-          "sha256": "9d4fe6fa4c0ccb24d39881077181d26b971a82c130de7ef4ae1eeccf69fb1073",
-          "bytes": 12934
+          "git_blob": "9920c660be9e4eba689a10d073d62a80d1c70547",
+          "sha256": "403a7cdf6674eedc4aa5000f1b784e0d5245afbd90d39cfd1af66365c1c72623",
+          "bytes": 14297
         },
         {
           "path": "docs/DEVELOPMENT_ZH.md",
           "mode": "100644",
-          "git_blob": "7a0b281305ffc6667c6e6f790e30832fa8e60476",
-          "sha256": "d35b102a8a5cbf0e9f87f9fcd3216a66bd3af27f17039ae7a30f55f285e1ee97",
-          "bytes": 11759
+          "git_blob": "2944014883a7538b9e4b6d0e81c9aaf58f9294ed",
+          "sha256": "166e38e25b44a4c19d309ed63875251162cf06ef012f534c795da44bf58eb49f",
+          "bytes": 12835
         },
         {
           "path": "htdocs/luci-static/argon/background/README.md",
@@ -2964,9 +2992,9 @@
         {
           "path": "htdocs/luci-static/argon/css/cascade.css",
           "mode": "100644",
-          "git_blob": "6037dde776c7993c57d44016bef379590e9cb012",
-          "sha256": "2983b62436b678b43c9200a11ba30ec3455ca57f95606db1c766d55a6422bb6d",
-          "bytes": 267675
+          "git_blob": "7ae4d9c000bda868c4669071d1bba7023dffb9ea",
+          "sha256": "0391359fa1baf653bfebe5e00eb66b308e7945bf47a831bb9baa8d1ee7d3dad2",
+          "bytes": 296338
         },
         {
           "path": "htdocs/luci-static/argon/favicon.ico",
@@ -3214,6 +3242,20 @@
           "bytes": 764
         },
         {
+          "path": "htdocs/luci-static/argon/icon/pause.svg",
+          "mode": "100644",
+          "git_blob": "436af379c2463aca6b67eec395560c440dcc8241",
+          "sha256": "94a5008795abe4bef714c0750d27bacfe897601749e6212fa2af2167a98d388e",
+          "bytes": 180
+        },
+        {
+          "path": "htdocs/luci-static/argon/icon/play.svg",
+          "mode": "100644",
+          "git_blob": "d1180029e9e4994df897d094199e5fedbd305ed4",
+          "sha256": "30e87f0e4d48cabfa2af49bd677d8150f73a4370666c92039f71e9e9ebedea0c",
+          "bytes": 169
+        },
+        {
           "path": "htdocs/luci-static/argon/icon/ring.svg",
           "mode": "100644",
           "git_blob": "73586507b7ae48c01dc8f7dda7486b32efd1c5a4",
@@ -3321,9 +3363,16 @@
         {
           "path": "htdocs/luci-static/resources/argon-appearance.js",
           "mode": "100644",
-          "git_blob": "f3cc437761726a76434f07b74e852f7bf0681b74",
-          "sha256": "f4bd7e27bca5ccdf2617e7531d52e2b206b95355d20ce3d7245c8bbca174dd2d",
-          "bytes": 6557
+          "git_blob": "235bf6938bda85573db6877919f140ae15f22849",
+          "sha256": "f08b87d43fd85fd67e2f86a06bbb0e8a9f83161c7c910c34572d44e16bc24ef8",
+          "bytes": 6620
+        },
+        {
+          "path": "htdocs/luci-static/resources/argon-compat.js",
+          "mode": "100644",
+          "git_blob": "0fe9f5cf06e21cc95254eff1500294bd11cdec72",
+          "sha256": "1e6412c1931f65b0cccb862c398e0181c0b6cfe0aa430d8b91eb22319e8e7834",
+          "bytes": 2079
         },
         {
           "path": "htdocs/luci-static/resources/argon-config/login-centered.svg",
@@ -3342,16 +3391,16 @@
         {
           "path": "htdocs/luci-static/resources/argon-graphs.js",
           "mode": "100644",
-          "git_blob": "1807abdbb5bcfdb4eac48ec0cfcf25b7f67ec113",
-          "sha256": "cdbc0c2180757cb8954c29c4a4212980ee7cc0b310e5085d3614d47f2c687a81",
-          "bytes": 2328
+          "git_blob": "afcb97071478829ac5f4e7ba585dbd9bf7ba01d1",
+          "sha256": "65bdf930f69d4b203785a0aad37d3a6964fb6e97437505a5f7ed1f8cd5e2dbed",
+          "bytes": 2967
         },
         {
           "path": "htdocs/luci-static/resources/argon-overview.js",
           "mode": "100644",
-          "git_blob": "ce385309f02a4186906edaf304be0b485962897d",
-          "sha256": "2b678e1638fb617c3a5d2d316c285e9951857124f1374aa1949d39a76bb12ec6",
-          "bytes": 1885
+          "git_blob": "30262738426a8f74756fa8a9c887933d424f855d",
+          "sha256": "a00a1bad8a93bfe42848a16c5e612066c3bd5f4ddcbf999cf8bcdf0ce5a1c191",
+          "bytes": 2032
         },
         {
           "path": "htdocs/luci-static/resources/argon-sshkeys.js",
@@ -3377,16 +3426,16 @@
         {
           "path": "htdocs/luci-static/resources/menu-argon.js",
           "mode": "100644",
-          "git_blob": "dd84579ba215a90c3b31ce465de407cacf381aed",
-          "sha256": "bc93b493d85b0b4368f26b30b53c0a37120d3bc2bc699e95577c3d891801bc8e",
-          "bytes": 15447
+          "git_blob": "07dfee30e1b0ec8098ce7fd3ef8c1bd543dfbfae",
+          "sha256": "43766bb0b7ced564f15c34e072c70a535b5836011b6a4713ebb52978484c94a8",
+          "bytes": 15565
         },
         {
           "path": "htdocs/luci-static/resources/view/argon-config.js",
           "mode": "100644",
-          "git_blob": "2e9f1b9b119901293bf9bcd80b3fb3df9dad97ce",
-          "sha256": "2bac95b32a9aa8979340e8c48ae9a9be6ec74dda6a903214b483cf7c421fa24f",
-          "bytes": 11996
+          "git_blob": "d8370b20f316e53cf5bbffd2d4279fa960b6d44e",
+          "sha256": "6f4e475fc9ed87208f25583495c08071cc7830f079741b2fa635f1bb14072b9a",
+          "bytes": 11973
         },
         {
           "path": "less/cascade.less",
@@ -3398,23 +3447,23 @@
         {
           "path": "less/components/accessibility.less",
           "mode": "100644",
-          "git_blob": "de16f70d45dbb7fcc20ab5439d99f84c509f6816",
-          "sha256": "1ebc52ea5525dd6a0a182f67f1a137fcd4ebc4c1b2e42aa5ff3cd075ba8a2180",
-          "bytes": 471
+          "git_blob": "59f0f039d37778044f9db774721cf000b50044e4",
+          "sha256": "3ebfa65e42782277842304aa112aaa85868fdcda7c8e8bc941d4b9b721dbfa32",
+          "bytes": 941
         },
         {
           "path": "less/components/appearance.less",
           "mode": "100644",
-          "git_blob": "dfc61df2f98a87ca13427124b18924b1a76cf9e7",
-          "sha256": "b0752b53f3546d9802d1ad6d2bef77033e2db1ae9549a4dd104ec95a175c3d85",
-          "bytes": 5738
+          "git_blob": "29aef9f16253569d598b45e40c782e6c7050bc08",
+          "sha256": "305bd6e4ae8480e8b44beb3e96b3fbdd1a3d48565500debf149f735262b85753",
+          "bytes": 6053
         },
         {
           "path": "less/components/buttons.less",
           "mode": "100644",
-          "git_blob": "571c4a967b84885d5ac3b8a03b79a7d176b347f9",
-          "sha256": "d96c18c375360b7e9c5fc9fa7dce61437eeb12637d539c3d43e02c75a5c5a0af",
-          "bytes": 5706
+          "git_blob": "b9ada55ea40b86c651ba6f3b9f1382c0adde2035",
+          "sha256": "f4a1a2f5a1052830c3b372937228ead03804bad38f4a1d9f3342678a1b368979",
+          "bytes": 6299
         },
         {
           "path": "less/components/changes.less",
@@ -3426,30 +3475,30 @@
         {
           "path": "less/components/dropdowns.less",
           "mode": "100644",
-          "git_blob": "1d6b1f4d6d39b50734470c532fdca776bc7a68c8",
-          "sha256": "42219361a91c44f61f670d7c2736b7e15dc732f09bcc59f99067a37051aa0d8e",
-          "bytes": 3461
+          "git_blob": "43e1b0636eb76d1f9c05d1fd95e59f29b2fea80d",
+          "sha256": "27470bfaeac0530f24e2477a2c253ea4192b3af4b0231b390414be0e2f56e30b",
+          "bytes": 3615
         },
         {
           "path": "less/components/feedback.less",
           "mode": "100644",
-          "git_blob": "d89d89f767f587a5543e0df4a9cef1893d0c4887",
-          "sha256": "f53c401ccd1ca4392b6eb7e554b75415e8303cf0908810f66e0caffe61f128ed",
-          "bytes": 5614
+          "git_blob": "3822e8ae958c14d19422d88971cdff54099c1236",
+          "sha256": "cad2547f0d82f68817b0b53902ca061c3ddc5328a4221d8ba094bd3acfcb3d7c",
+          "bytes": 5804
         },
         {
           "path": "less/components/forms.less",
           "mode": "100644",
-          "git_blob": "eeffec56205f9bc667ccf8ef3ba2189ce1ed653a",
-          "sha256": "6a12f74ec4b62772e1265cca84682020662b0ba3e5210f08dd5dabbaec364541",
-          "bytes": 8252
+          "git_blob": "fe505bf8c88b00c5ed291a81f0247c459720e6df",
+          "sha256": "15015540b95c3f8f3db9fadd507186721a827c9f9fc7d462b16ff1db9c19cb16",
+          "bytes": 8423
         },
         {
           "path": "less/components/foundation.less",
           "mode": "100644",
-          "git_blob": "d7ed8fc762f8749096d991e2d7c443bbdfc60e36",
-          "sha256": "7e9144fdb5ee3c6ebd5d5f834be203e517714d1572d162da9a0a9b48ae62415b",
-          "bytes": 1341
+          "git_blob": "aea566e93ed1a7b74f7b02b3138ce84661261b6d",
+          "sha256": "e941dcfb01cdb85a338f3c4a3db3df3148741ad5a2fbac660123c2183753522e",
+          "bytes": 1515
         },
         {
           "path": "less/components/lists.less",
@@ -3468,9 +3517,9 @@
         {
           "path": "less/components/network.less",
           "mode": "100644",
-          "git_blob": "6f49cecc90b53f094e1698e7acb085b242a81a6b",
-          "sha256": "2736ef3da43ece770c5f1a963dd3f5657e87b6f531b38f555d9b3d60e5d0acbc",
-          "bytes": 1224
+          "git_blob": "d574ce9311e9c243e1b2824a4bc0fa725993f217",
+          "sha256": "44eab46770ddd5df372bc830c29aee21a568af478d50cb5a409a48d856a03e69",
+          "bytes": 1682
         },
         {
           "path": "less/components/outputs.less",
@@ -3489,16 +3538,16 @@
         {
           "path": "less/components/sections.less",
           "mode": "100644",
-          "git_blob": "89c77ded3bab60350e00438922dd53461e1e1c7c",
-          "sha256": "28666dbadd5525b1d3f10848ce5dcf0ad38f14ea53a1e63076e1379c1061e2a2",
-          "bytes": 4490
+          "git_blob": "ca897e47b7d940d107ac8f1bd96ca792f2e3e81b",
+          "sha256": "64814980788432aeb51c7d02dc08c24e4b22d4d184f9278272f341085f0e538a",
+          "bytes": 4631
         },
         {
           "path": "less/components/tables.less",
           "mode": "100644",
-          "git_blob": "d90804002e0a2ce1281365cd2feafb945fb523e6",
-          "sha256": "403ae5a14e33c3878fc4df1172feb67168e8a524e9b21bd4288fc9aa18db5923",
-          "bytes": 6570
+          "git_blob": "dc096bf399ea0cd8a9ef59a44e0867ca4767be00",
+          "sha256": "277950e1b2a2bb3d027462acb662b54065095730286f37e04bf57f343689d888",
+          "bytes": 8055
         },
         {
           "path": "less/components/tabs.less",
@@ -3531,9 +3580,9 @@
         {
           "path": "less/layout.less",
           "mode": "100644",
-          "git_blob": "b5ba9a29a2d105a222271f7a4a5987877e9c32d9",
-          "sha256": "932d4de8dfd6188f0c1e6b4f3aaf8968a58547b6100967a50e7e7f6f61037fed",
-          "bytes": 14757
+          "git_blob": "efa65a0b60cff5dafdfbdb22e094370576a2785e",
+          "sha256": "9bf6d5f0e3302aea22c80366b11054e6dfe172842025e284def6990fcc196f2c",
+          "bytes": 14827
         },
         {
           "path": "less/normalize.less",
@@ -3545,9 +3594,16 @@
         {
           "path": "less/page-fix.less",
           "mode": "100644",
-          "git_blob": "d3e0b0b706ddbbf2c229790bac2a70546a491f16",
-          "sha256": "a3d15307f5d8cb392d94ca4ac1fb58cfa90a56d6cfee06ea2cad329665261729",
-          "bytes": 2051
+          "git_blob": "422263a0d7b6cf5e6bb79a43b9e1b02cb3f90af6",
+          "sha256": "e8fec4618b78b17be15bab097bebbc1f606f30373bdbc250b8a587e41435bebb",
+          "bytes": 2146
+        },
+        {
+          "path": "less/pages/administration.less",
+          "mode": "100644",
+          "git_blob": "77bfd5dd20ab0b6445f8a61e3149dd358b4df3f3",
+          "sha256": "38e008c6da237e1bc12aafe74feef931669925c3e0f91ca6840c85e5ef2c7bd8",
+          "bytes": 807
         },
         {
           "path": "less/pages/argon-config.less",
@@ -3587,9 +3643,9 @@
         {
           "path": "less/pages/crontab.less",
           "mode": "100644",
-          "git_blob": "8eaf8238fea99fa3382f2749bed21a427dff34a6",
-          "sha256": "54ce119e3827da40cc64c98f761bc0d4e45c71272cdbe9d6a55e3885b6e0b7e8",
-          "bytes": 735
+          "git_blob": "e087b41b2408150ca2e5e0e543ab719b52fa2277",
+          "sha256": "03894686f40028210ad0230ce49f713447b68908581e6d117b74a36cecd7e32a",
+          "bytes": 930
         },
         {
           "path": "less/pages/crontabhelper.less",
@@ -3601,9 +3657,9 @@
         {
           "path": "less/pages/dashboard.less",
           "mode": "100644",
-          "git_blob": "da19bf75a2003ded190804df91e89147f5f48ba4",
-          "sha256": "20a38a2d424c1c55196027f2f9f442879255f807209e918b037c0fd9f3f11371",
-          "bytes": 2199
+          "git_blob": "963db26fa89d50d603fdcc82e90c1f851b7b4832",
+          "sha256": "f0d06ec5d4524cf094691768d044fb77723c024590cb7a7b1a159f805922889e",
+          "bytes": 3845
         },
         {
           "path": "less/pages/ddns.less",
@@ -3622,9 +3678,9 @@
         {
           "path": "less/pages/diagnostics.less",
           "mode": "100644",
-          "git_blob": "42025d597369193ea42611b0a606183fbb8b1464",
-          "sha256": "c915d4b2b4578d3a844c9cd781f459fbe322de8b5de8034846f3c3ddb5c43e1a",
-          "bytes": 2786
+          "git_blob": "9fb96a025f97b978b4dbaca53a8b465ce80a6a81",
+          "sha256": "7bb479d58351c4eca494648e48ef13ec89edc05d8fa0def62cdae5376612d119",
+          "bytes": 2898
         },
         {
           "path": "less/pages/diskman.less",
@@ -3650,9 +3706,9 @@
         {
           "path": "less/pages/dockerman.less",
           "mode": "100644",
-          "git_blob": "dc70ce1736e07f5d4de3255aede4a9843aa5b7f6",
-          "sha256": "6906fc801a5a3623423576f1be0f0df292fc261366075255527fdd2af1a2a9b1",
-          "bytes": 591
+          "git_blob": "5aaba92701cb31d0856fa49d11cea87e6b99bb0d",
+          "sha256": "5c084877b4a902d81b19c1bc5aa5874f4bbb85e0ac77599ccc7adab82a7396e0",
+          "bytes": 2718
         },
         {
           "path": "less/pages/easytier.less",
@@ -3720,9 +3776,9 @@
         {
           "path": "less/pages/logs.less",
           "mode": "100644",
-          "git_blob": "6806a13fcdce3b9484b4f496e48ab5884ffd978b",
-          "sha256": "b840c525f681eccdc83fce77a9778f394dd9a288bffbd7c708a9e7e62168bbce",
-          "bytes": 2354
+          "git_blob": "dfc4cdd0bbc297d197b8af98606896aa35b1ff6a",
+          "sha256": "f99cfd83b08a2c3efe4d74daa45bb0b7d86c8891c96c8e7e26f2d77f4e827d65",
+          "bytes": 2819
         },
         {
           "path": "less/pages/mwan3.less",
@@ -3755,9 +3811,9 @@
         {
           "path": "less/pages/openclash.less",
           "mode": "100644",
-          "git_blob": "ed0a1e4a84028572a8d064af331f82071f74778f",
-          "sha256": "8ee4f499b29062fabbf7977ee629f87bb37a6567792b7df464069712c0065154",
-          "bytes": 17922
+          "git_blob": "a0a6518cd4150607aa26a8c6c3a5019a3affd9da",
+          "sha256": "31fbf5a14e3445bac4b4996bb3fdf0de403f4bffedd487beb1bbc41c5aa53238",
+          "bytes": 19974
         },
         {
           "path": "less/pages/openvpn.less",
@@ -3769,9 +3825,9 @@
         {
           "path": "less/pages/overview.less",
           "mode": "100644",
-          "git_blob": "d73ba6e253ffe9193a1feabe98234ebe2266d91a",
-          "sha256": "0854da681500c26af8807f8eed296dbe8753ab5efb56b4153891cd7e55acfd8c",
-          "bytes": 4332
+          "git_blob": "7c8ac6b09880579433e59233f95610efa1bade3b",
+          "sha256": "bd839786aaa886bc959f3564b9511f00e244b494112c7c1f78ad6dffa5896c66",
+          "bytes": 4723
         },
         {
           "path": "less/pages/package-manager-legacy.less",
@@ -3783,9 +3839,9 @@
         {
           "path": "less/pages/package-manager.less",
           "mode": "100644",
-          "git_blob": "40c2c4c95e4fac93822e273b60dc92bd44939955",
-          "sha256": "436f6d3e3d24164b54bd96458f41871383cb94bf256596260def1891953c8e5c",
-          "bytes": 1859
+          "git_blob": "0d48db2e8370d85e9e294dbacd00f22a7c57ac4b",
+          "sha256": "037f0bc409b6cab3e24915be84684b56a4a3cdf95cfa3e63536d8b783dde8fdb",
+          "bytes": 1920
         },
         {
           "path": "less/pages/partexp.less",
@@ -3797,9 +3853,9 @@
         {
           "path": "less/pages/passwall.less",
           "mode": "100644",
-          "git_blob": "409624c873499a4c421b1049bebdc6924608bab7",
-          "sha256": "ecec14521b4a73157a1116acb9575413fa0279da67fe5ad7ba2fbc1ef2771411",
-          "bytes": 7019
+          "git_blob": "9719cade1b98aabe10a6a509d640cb5234f1304e",
+          "sha256": "b3db1661da1b324953783bda5ad5afc2f47149f5fcc485ba8aa38aba533c5152",
+          "bytes": 7891
         },
         {
           "path": "less/pages/passwall2.less",
@@ -3818,16 +3874,16 @@
         {
           "path": "less/pages/power.less",
           "mode": "100644",
-          "git_blob": "a2c7230d2a14349e8e2d271eb9d7b40fa57ba2ab",
-          "sha256": "9a8cff80eea5deb65f1db571cf90e27904da4ec48e56bda626d618c9e1101471",
-          "bytes": 1165
+          "git_blob": "3a8bc8e4571580a6cb731c98e9bb18d0bc6b45ff",
+          "sha256": "52fd56d379c12797f35445320d567ed51f6de64bb195a288f09bec3f8a3ce767",
+          "bytes": 1288
         },
         {
           "path": "less/pages/processes.less",
           "mode": "100644",
-          "git_blob": "42d9fb9df00aeba2cd7623a83cf202d0f1a3a9d5",
-          "sha256": "7f94a878f0aace1cd74b930b0425e1ffc6a2c27b4eea1164b60670a6eaf08fb4",
-          "bytes": 535
+          "git_blob": "8f41d7939ab021462dc3cdad8b986a3f65bf097e",
+          "sha256": "9f928783c2896bec50e857d8984e6de7ea0be02f6c6577c7626eaaf70b606103",
+          "bytes": 585
         },
         {
           "path": "less/pages/realtime.less",
@@ -3839,9 +3895,9 @@
         {
           "path": "less/pages/repokeys.less",
           "mode": "100644",
-          "git_blob": "666ce98bec18c5072a17c7a44de832240a7c2fe9",
-          "sha256": "36fe7d947a91703f289497ee310575199ac1bfb7aea9f696414b84bbbb067f5f",
-          "bytes": 2189
+          "git_blob": "ffce2b281876cc81b670eb96e127618a07a0045c",
+          "sha256": "d35d6454b215a423ef824aa4e95077b1e735857617f93ab8f198488f2d621ee3",
+          "bytes": 2762
         },
         {
           "path": "less/pages/routes.less",
@@ -3874,9 +3930,9 @@
         {
           "path": "less/pages/sshkeys.less",
           "mode": "100644",
-          "git_blob": "d8d06763c177432814ecb4e6708050a9346652e9",
-          "sha256": "da57c142a6beaa7b44725c55d0910bc8d6bbe6f9c20cf4240e9d435a53232d5f",
-          "bytes": 3277
+          "git_blob": "e608f3af266783a6c9773370c2531716d679549e",
+          "sha256": "866c02c63cc2f2c598ab1ad51be253113e6e66dcf66aba46e6d48325bb4377a3",
+          "bytes": 3537
         },
         {
           "path": "less/pages/startup.less",
@@ -3909,9 +3965,16 @@
         {
           "path": "less/pages/system.less",
           "mode": "100644",
-          "git_blob": "a30a3e80d456a8b7e98e9f32bd468be1344a4a3f",
-          "sha256": "47081ad140a1d1e6168773cf1dedf32e465f7fba8cd2258a20893b38c9ce7fdf",
-          "bytes": 430
+          "git_blob": "a1833f27e5679d04a05431fb8d2981206258c4c3",
+          "sha256": "f05703c4a2079fb07330c37a83ad231a172facfed1cdf03fb2ef08c83685c17f",
+          "bytes": 732
+        },
+        {
+          "path": "less/pages/tailscale.less",
+          "mode": "100644",
+          "git_blob": "268e05d36ca2be6d1122b434e6d12872c1f955cd",
+          "sha256": "7279eba72907ca760b2b71a4c053675d2cfaa62e9033a548de9a40e760e46c39",
+          "bytes": 2029
         },
         {
           "path": "less/pages/ttyd.less",
@@ -3930,9 +3993,16 @@
         {
           "path": "less/pages/wireless.less",
           "mode": "100644",
-          "git_blob": "1acef8421270cd6b60d8aa7566ef40ca73fd3103",
-          "sha256": "32665bb67bd1274310eea4044ae59472d654af8004c6e33b3cf920ed2260c67e",
-          "bytes": 1313
+          "git_blob": "9db99972ca61a8f92377c2da2bf5e81617df3db2",
+          "sha256": "c13b8d7a8f0364035c2aad2438f73bb2396690fbf78ab3eb8b1a5678f4313062",
+          "bytes": 2820
+        },
+        {
+          "path": "less/pages/wol.less",
+          "mode": "100644",
+          "git_blob": "d9f7c69939e6eac469c52ba385d8e322970250ee",
+          "sha256": "4770856a5d31693536e7a91527dbffdb7a1dac4f6597b5991331f405631c4988",
+          "bytes": 841
         },
         {
           "path": "less/pure-min.less",
@@ -3944,9 +4014,9 @@
         {
           "path": "less/responsive.less",
           "mode": "100644",
-          "git_blob": "b0e748b796e6d69712555b98723b81bd250d7d51",
-          "sha256": "a51242b583b6910f36fe14b4c26b3a0efe78f8843a9a735521dc4ceb80cc909a",
-          "bytes": 12770
+          "git_blob": "a0ba6a43836e995dcb86d5ec9c20695ad77c87e3",
+          "sha256": "5bf81e7666aa41c8cc5241612d76994a5434de669052571d7a66ac5523740de9",
+          "bytes": 13274
         },
         {
           "path": "less/shape.less",
@@ -3965,9 +4035,9 @@
         {
           "path": "less/sysauth.less",
           "mode": "100644",
-          "git_blob": "b5b6c4b6ff0e7787f227a3146e483586d10dac5e",
-          "sha256": "50a99e65c518fae2d9d3987787cea5d9d3b444a1e0e885a035f41b0887c329f5",
-          "bytes": 9098
+          "git_blob": "57e0b913a0208506ee172d5ea928dbac11e5bf17",
+          "sha256": "2b53f5d4fea4d3944e3fba45c521b10c7fb4a3c328c8650c3e54bb543ba3473f",
+          "bytes": 10176
         },
         {
           "path": "less/theme.less",
@@ -3979,121 +4049,121 @@
         {
           "path": "po/ar/argon-config.po",
           "mode": "100644",
-          "git_blob": "341ce732cd8bfff385a323611ec92edca3510a88",
-          "sha256": "23c67c29338690a29c148039f7308bbf644a6ee033aad52dfeb3edecec27d89e",
-          "bytes": 21035
+          "git_blob": "2e2e0bdd244940513ee026985db0a1ae50e1d72f",
+          "sha256": "7dc168fb7da92282827ef8113c8a0f62ce7fa98883579990d55b4dd4904c598f",
+          "bytes": 21352
         },
         {
           "path": "po/de/argon-config.po",
           "mode": "100644",
-          "git_blob": "d602159729d93cafe6ab1f9218ba86bd50c07f1a",
-          "sha256": "6e4fbd651ad07cf8056f5a9b4976c287bba66cf6355dbec3e2c06c3b74242816",
-          "bytes": 19750
+          "git_blob": "90962d3312edd6050b90d18dec5ebe511805ba7c",
+          "sha256": "b55248b461568135e2f1ed7b27d7266aacfc22b37bfd2b8f2013bac71acd4a46",
+          "bytes": 20036
         },
         {
           "path": "po/es/argon-config.po",
           "mode": "100644",
-          "git_blob": "35d103c79f0d46e2d5b477383d1c35d92cc3be14",
-          "sha256": "b6b807d70ab53c8bdd84e3f84434f75805e1b08f7a14678aaeb8e2a1af6f4066",
-          "bytes": 19559
+          "git_blob": "60834dc8ba71bc0f9cf3df87745cb03365a462ff",
+          "sha256": "742152aacc5fbb145d7dae3cdceccac8e3058a5e6f88f1349d6b3634041a79c6",
+          "bytes": 19848
         },
         {
           "path": "po/fr/argon-config.po",
           "mode": "100644",
-          "git_blob": "612024bd45ffd4b50d5b35bc4186837a1a03ffbe",
-          "sha256": "b6a71c75f06366184de134f86e4bfd5ff82895d9eb1342ee6919bcf21d64c9d3",
-          "bytes": 19790
+          "git_blob": "2e10bfc11e2371aeb83d6a6304cc5eb4f045d731",
+          "sha256": "8d270c80025dc534691fd44ca96ac063fd14a96192b87f2d2e82c801b5d36f03",
+          "bytes": 20095
         },
         {
           "path": "po/it/argon-config.po",
           "mode": "100644",
-          "git_blob": "330a74715bc539b27521ad0a17017fd55efbe34a",
-          "sha256": "3a69f3791e4eecf599ea9b73014b9bc5536b2633fca0e64fdf1a5e7e22f3f4af",
-          "bytes": 19325
+          "git_blob": "b0499db39faa7cbb3770e1e12cac96317cdbb694",
+          "sha256": "c7828bdcdcdeded5ac09a87a70a87c7fcfdf9ffc904d860bf73edc5459ded533",
+          "bytes": 19619
         },
         {
           "path": "po/ja/argon-config.po",
           "mode": "100644",
-          "git_blob": "561cd0852052bb6fd703005700d4c4edd2c6c37b",
-          "sha256": "cecd193a2721c0409517035abd8366a1711da350fc57a48afc9683788eee808f",
-          "bytes": 20614
+          "git_blob": "6c72d7c79d14e62a545d6c6e4eb836e01d09299c",
+          "sha256": "ff81fa13abd0aa4ab6bf4214da3b77c6b611d5685f1d453d5ce0ed9b730944ae",
+          "bytes": 20893
         },
         {
           "path": "po/ko/argon-config.po",
           "mode": "100644",
-          "git_blob": "c23e058a67a8d5db54bb2c4b94e0a4040613d774",
-          "sha256": "1e332699840a3b13364b7501b2ecb66a6339c75ec82f6fac6ae304b5fd5d35e8",
-          "bytes": 19797
+          "git_blob": "6940b615ed5bb3c61f1129aa53ba1845331deb5c",
+          "sha256": "a0edc9cda6c107829427874c30e94d0d2b4d7611ae9099ecd8f45865092d9b1b",
+          "bytes": 20079
         },
         {
           "path": "po/nl/argon-config.po",
           "mode": "100644",
-          "git_blob": "9627dd3c66d0150cce3fd2ee1f4f9f1c6106e4bf",
-          "sha256": "789c981365d73d300e030d7e88b9fa59f3a2a34dad5159911c026a9d258e009d",
-          "bytes": 19237
+          "git_blob": "3d8059a10a4d851d470164258affa5e6ce07596b",
+          "sha256": "5fe75ffe9b83bdded07adeeb1cd52eaf1945fbea1cc5ab3521452d1f723578fb",
+          "bytes": 19520
         },
         {
           "path": "po/pl/argon-config.po",
           "mode": "100644",
-          "git_blob": "681e4f01e294439816204c80fe2e5096bc353723",
-          "sha256": "3a9ebae9ff0a3e3fc148a400d701fb5c7a753f076bb029ab5936dd77fb0d0f8c",
-          "bytes": 19310
+          "git_blob": "935dd1119b98c01ff05f9bc42f4663d5d92d43b9",
+          "sha256": "a9a30529ddf78d60ccb140d9693246ec9f3ada26bc55f352eeec65b75c53b394",
+          "bytes": 19572
         },
         {
           "path": "po/pt_BR/argon-config.po",
           "mode": "100644",
-          "git_blob": "48254e3d039cddafb92774ffc7ee73521b60c0fe",
-          "sha256": "18fe521bb0350ed6ad913180a0dbddc2767b3e2bfd1848a1a88409c08968dca6",
-          "bytes": 19342
+          "git_blob": "7c433474ee26e043cd61af487649dbbca96f2291",
+          "sha256": "6e0e098f3aba97b45028a5705b5d7d375f70342994579a9357c60d75970a00ac",
+          "bytes": 19624
         },
         {
           "path": "po/ru/argon-config.po",
           "mode": "100644",
-          "git_blob": "88800279fbbf2757230bc1c02ce60d08bfe5f711",
-          "sha256": "f150d6bfb234b55a487b043cf5ade5e33022effa0b6735b336389677f22bea1e",
-          "bytes": 22453
+          "git_blob": "1e65ee752d0ce9c2022e879f01a79b269fcdb08d",
+          "sha256": "bd859ffc892fbddf499d10e8d5c9998b73c644b7c35811fa8d18305355b0daa0",
+          "bytes": 22775
         },
         {
           "path": "po/templates/argon-config.pot",
           "mode": "100644",
-          "git_blob": "2b8b87b18dea06976b3718c7b6c9f26dd8e63694",
-          "sha256": "4f83dfbd05f719c6956976e50a0a69bc3fc7422f00320c25d9658ccce96b6b95",
-          "bytes": 14100
+          "git_blob": "e40132b317b102014401bd330dbce9f85a6b5f47",
+          "sha256": "5e64c18b17c3cba61d2615976eaf5c79430a901bbc63afcec02a6b4ad363ba88",
+          "bytes": 14338
         },
         {
           "path": "po/tr/argon-config.po",
           "mode": "100644",
-          "git_blob": "8f0f317acd9129ff2fcbcec02d75993dafc862ce",
-          "sha256": "fde3cffdbf76d179d9bcd6f16e000525fb5c2883a5822fd45639b17ea1ee77dd",
-          "bytes": 19057
+          "git_blob": "ea32d7283db82138f61bcaf42562f39ec7fea085",
+          "sha256": "4e08b4d18ae4e20e1916dc902a82f455e606e27b87d32d10469122d8f91b3977",
+          "bytes": 19330
         },
         {
           "path": "po/uk/argon-config.po",
           "mode": "100644",
-          "git_blob": "98d3d913b6c3c2c4757d6a876101e0b9f3365fae",
-          "sha256": "a8316f79fd2bfacf4230b09ed9086863a94979f2546a69a9ed06ab29990aab5e",
-          "bytes": 22570
+          "git_blob": "5f81bc25c504ff47d6dae846e6a286da7a457a18",
+          "sha256": "443047bdacc41eb3f93af4040f5ead0c23750d7929a31fa22999d2d6b32c1c07",
+          "bytes": 22864
         },
         {
           "path": "po/vi/argon-config.po",
           "mode": "100644",
-          "git_blob": "29b7920cb652b617e23c384812913ec45d59b367",
-          "sha256": "9f9283a6a93042a7611d8fb5d83e0426a28efc4a8467599286066970c390d70d",
-          "bytes": 19987
+          "git_blob": "32ca1c39306d768a13cf9e4b2ffe5e773681b9d9",
+          "sha256": "137492dfef775e69d0d5e6ba06ec602b7598d4874a7a3ffe24ff511b8328ddcb",
+          "bytes": 20256
         },
         {
           "path": "po/zh_Hans/argon-config.po",
           "mode": "100644",
-          "git_blob": "793407c4d62e1ec80b0345a8a82552000ce3d545",
-          "sha256": "2142bf8e493e55e31b61c749361a2ac74c17e7c1383a7d6c4deafbf1f08ad56f",
-          "bytes": 18173
+          "git_blob": "5390cc7c90862be2ebce4f291291a678d7b89b7b",
+          "sha256": "cf48ff7dbd4dbb589e1add184d239ddaf7fa69a091d8c2bf736e9ec6909dd83a",
+          "bytes": 18433
         },
         {
           "path": "po/zh_Hant/argon-config.po",
           "mode": "100644",
-          "git_blob": "52b0af020e54c4d3c062da334a04fb63a0611d4f",
-          "sha256": "c7485b40a77a9000e26d4bc240f3e8400760badb89d8fb3755e2673f8658bcff",
-          "bytes": 18208
+          "git_blob": "6141c28add7b57e0058fd9c1c588ae0ff9d33c7f",
+          "sha256": "246a561594c18b8b0272a21126073131e65cb9141de5d1766626e8da02ccb51b",
+          "bytes": 18478
         },
         {
           "path": "root/etc/config/argon",
@@ -4105,9 +4175,9 @@
         {
           "path": "root/etc/uci-defaults/30_luci-theme-argon",
           "mode": "100644",
-          "git_blob": "105ad42092fafae9e40f7864f8a2792c610d2cca",
-          "sha256": "5e3eb8aefd5e5be2a2d3b667e7621088cdac5a93cc4f5814d870a2a8ccadd037",
-          "bytes": 2354
+          "git_blob": "b238668e25d6d9f0a352ad3683b1a1d1c50be88f",
+          "sha256": "bf2924e7625ab43e11fc061cfc460a66d00c3d83a34840517a36b4a9dfbe1049",
+          "bytes": 3029
         },
         {
           "path": "root/lib/upgrade/keep.d/luci-argon-branding",
@@ -4140,16 +4210,16 @@
         {
           "path": "root/usr/libexec/rpcd/luci.argon_update",
           "mode": "100755",
-          "git_blob": "fb6f6107084900f454df9d1eeaa34ef05fdeaac3",
-          "sha256": "6c24c3bd6d4c5d42811e819f31bd7524070b965b9320bb0cb00039fb5dcec208",
-          "bytes": 13116
+          "git_blob": "c3718dec7efbeb30c4a04bd9b081d180c454e19d",
+          "sha256": "23767a0f598b6fcac1862538e52c0181c5fbf35a353daec509cd6daf903db0a6",
+          "bytes": 18875
         },
         {
           "path": "root/usr/libexec/rpcd/luci.argon_wallpaper",
           "mode": "100755",
-          "git_blob": "2decfaea25f2409f0d6d054738373817d6a933d1",
-          "sha256": "ae2d1a5479ba8ef317a17036318656ef64ce912a0c3e734f9de237761c582d80",
-          "bytes": 3542
+          "git_blob": "232418e2bc71e0c857ab4a0558389276567b00b2",
+          "sha256": "66b0c177924b1295172ed19580cc1ce36899d7a6ad201b6e2b566e42aa681659",
+          "bytes": 3925
         },
         {
           "path": "root/usr/share/argon/config-integrated",
@@ -4203,9 +4273,9 @@
         {
           "path": "tests/appearance.test.js",
           "mode": "100644",
-          "git_blob": "6e98cc3a337a2efb7e63a596c666786c6f63719f",
-          "sha256": "8720f5a00e66ebc3ac738172c937255214fee5fd90e4cc6751ec4122df943704",
-          "bytes": 6635
+          "git_blob": "bf0886ba8f037ffbc930c0a449a40fa09b78c9e0",
+          "sha256": "6919d1d9507846f7440c7b76abd6076d754c26a0c6cf0718bcab210b30bcd292",
+          "bytes": 6767
         },
         {
           "path": "tests/argon-config.test.js",
@@ -4215,6 +4285,13 @@
           "bytes": 14458
         },
         {
+          "path": "tests/background-playback.test.js",
+          "mode": "100644",
+          "git_blob": "f249824da05f7bc66f82cad7fdb1e1262d0ab406",
+          "sha256": "700a202ce2ba88a32131931fadfcf85e3c580927ab5865590f289aa95806e52f",
+          "bytes": 3557
+        },
+        {
           "path": "tests/branding.test.js",
           "mode": "100644",
           "git_blob": "d2b086865d9b529b50e051c923d110ff61baa2e0",
@@ -4222,11 +4299,32 @@
           "bytes": 4383
         },
         {
+          "path": "tests/browser-compat.test.js",
+          "mode": "100644",
+          "git_blob": "d9fd7ad692ba6c4f91b195e9f4f66f0b3cfacd48",
+          "sha256": "85b621a846c2ee14863e29802856d87a6b8b21e95e484e87e379e4eb15dca793",
+          "bytes": 2994
+        },
+        {
+          "path": "tests/graphs.test.js",
+          "mode": "100644",
+          "git_blob": "37ab0e3f7e1865429b5a69b3af8ed170ce3ec818",
+          "sha256": "2f26e9f466750961b7c5a8045fd67c464e2949589bf19588e5d9357e1da50c74",
+          "bytes": 3079
+        },
+        {
           "path": "tests/helpers/render-templates.js",
           "mode": "100644",
-          "git_blob": "247fdf8b9b0a91e5972d4f7f6567fcb7bf40080d",
-          "sha256": "7c779f99178e442b1dbf4a8af6856b6f23fe924979b95fd43afdf00e3fc73f03",
-          "bytes": 4450
+          "git_blob": "693050c0de4ddcba9b8a923f4b75606440e514e4",
+          "sha256": "653734a5bdca0532dbe4eca400df712fdbfb1a12df4c145e616cf7c38f3ae937",
+          "bytes": 4569
+        },
+        {
+          "path": "tests/menu-navigation.test.js",
+          "mode": "100644",
+          "git_blob": "4621968d9840663f7f2c2bca0ab931752a5ae470",
+          "sha256": "be2fe25b647449500a58ae09ec7d18308af3a3ae8479529c7d6cc942f84180ec",
+          "bytes": 3691
         },
         {
           "path": "tests/palette.test.js",
@@ -4245,9 +4343,9 @@
         {
           "path": "tests/template-composition.test.js",
           "mode": "100644",
-          "git_blob": "d366dada5a39528a8a9edb32755222d5a1a22f25",
-          "sha256": "49d76779d9d31da0b9571a2e027f7bd1b071d8d47a41ec675c19acd933667185",
-          "bytes": 6258
+          "git_blob": "1db7f7dace901a14cca721f25a370529fb86ce9f",
+          "sha256": "3398186a8c6de08f380d7660d5fafe48afd63c2ff4ddad6eba0f481ed8ca8dd3",
+          "bytes": 7237
         },
         {
           "path": "tests/test_appearance.py",
@@ -4266,9 +4364,9 @@
         {
           "path": "tests/test_config_migration.py",
           "mode": "100644",
-          "git_blob": "da32f28e9f1c61dc7e30aaea8349f6a3f0bafacf",
-          "sha256": "ea7591ab628a01b7f342f9da2454071b413cca8bc5bffa07ec31f1b5ab91dcd8",
-          "bytes": 6166
+          "git_blob": "bff6b6e2d69efbfa4415b8f9fb3de245df5f7b50",
+          "sha256": "37d9a68786e0813119fed6d332d35c9bcb50bb772d53b30d44fb3275383a7834",
+          "bytes": 8045
         },
         {
           "path": "tests/test_config_rpc.py",
@@ -4301,23 +4399,23 @@
         {
           "path": "tests/test_update_rpc.py",
           "mode": "100644",
-          "git_blob": "ab885f5f89768bfcecb0d565be8f328e6109047a",
-          "sha256": "7b777b7635f297a344892a7274fabcef53a29bd3d8d14b8182f0042ec3719985",
-          "bytes": 22629
+          "git_blob": "2d1dd156ce110121e5ed69ae75345452b80a1d69",
+          "sha256": "83a97bd3355262d2bae0b715dfbffe63a93cccbdf248f6871890763d7ee85313",
+          "bytes": 30922
         },
         {
           "path": "tests/test_update_site.py",
           "mode": "100644",
-          "git_blob": "37b033946855ee373dc738df1545e20448c5d841",
-          "sha256": "8bcc77eb1d535819a38ea6d32d406b9c58cfc32468d378a8fe88180cc47063a6",
-          "bytes": 6223
+          "git_blob": "b2cd7cc4cac0ad1eb6186ff896c6f7f842b00299",
+          "sha256": "dc56e6f0eddfe4d478c1d2c1462af51e12d4a20f597ef54b2209e2b3f872c7b7",
+          "bytes": 8406
         },
         {
           "path": "tests/theme-behavior.test.js",
           "mode": "100644",
-          "git_blob": "41ca2508bbf4a01d2a3360681193e2f5e19ddb9b",
-          "sha256": "f0f9a8b8aadcca7d823339d3967841dd17b2b3aa8b16b49d06b57b296b0994cb",
-          "bytes": 18271
+          "git_blob": "fb1471a7fc8c62ff5bca469f5b1b4b73eb118d03",
+          "sha256": "4d8468cbcbced3eafbdbf298b6280ad3b22c005b30da99f88b0ed35f9867ea93",
+          "bytes": 18449
         },
         {
           "path": "tests/updates.test.js",
@@ -4327,25 +4425,32 @@
           "bytes": 17676
         },
         {
+          "path": "tests/wallpaper-rpc.test.js",
+          "mode": "100644",
+          "git_blob": "8965ad5cbc38ed92adb062eba295fe2dc93490c1",
+          "sha256": "f1184cc9dd136ac8a20a8e449bdc522219c6b28bc5a7e85be5c1576d07afde28",
+          "bytes": 4917
+        },
+        {
           "path": "ucode/template/themes/argon/footer.ut",
           "mode": "100644",
-          "git_blob": "58a5bdc2ca1cd1bf1c3ee9dfa86768062b9dd5ef",
-          "sha256": "93f71f6109aedd712ab4b07b5337e67725f760b188dfc022fb3164ab4438c44d",
-          "bytes": 1335
+          "git_blob": "d2413d8ebfb8c284551cfb2db8d0fb5ed14aabf2",
+          "sha256": "6c52aba9c014d0e425c138449eecc7b9838daa3a6ae541c2fb9845315ea13728",
+          "bytes": 1343
         },
         {
           "path": "ucode/template/themes/argon/footer_login.ut",
           "mode": "100644",
-          "git_blob": "d2e61426b7075027f2a808f6609ffa7df7fe9dea",
-          "sha256": "250aff86dba0b85c8f53390acccb3a6c6e4ad2cee988749e87ece89e3b404125",
-          "bytes": 1199
+          "git_blob": "e21300692a59814079c7ceb88579708b175eba56",
+          "sha256": "ba2658a8dcbc6660e435942a7fc3d4e313d5bbcc76aa49954cec5f8fed98e1a1",
+          "bytes": 1200
         },
         {
           "path": "ucode/template/themes/argon/head.ut",
           "mode": "100644",
-          "git_blob": "a49c7f2c5e35b92c936bad83e176f957a05348f4",
-          "sha256": "191c213e37266d6465e3e895900575e21cb3d079696248333f6cae5c7d43b345",
-          "bytes": 4964
+          "git_blob": "49b94d67f3594bc996ff9c0637f364aa8d3db1a2",
+          "sha256": "3ca683df0bedef4f3432a5ae68e1e91599eb7def1e9a13793a34c62b101cce04",
+          "bytes": 5347
         },
         {
           "path": "ucode/template/themes/argon/head_meta.ut",
@@ -4357,9 +4462,9 @@
         {
           "path": "ucode/template/themes/argon/header.ut",
           "mode": "100644",
-          "git_blob": "476c7c3d9ccafae56f241a07cbd0759a7a79b7e4",
-          "sha256": "9f9ccb1d05209e16a585a538e3b772b27aa960b163fbb1646384f00c57556ebc",
-          "bytes": 3131
+          "git_blob": "4fdf445b7b8b7f5a77a08b39cd86521dc14ed0a0",
+          "sha256": "4818e18c6a0240e3bec89b48656ad69cce1c90a22fcac1e7662d1bbdaec25812",
+          "bytes": 3219
         },
         {
           "path": "ucode/template/themes/argon/header_login.ut",
@@ -4371,9 +4476,9 @@
         {
           "path": "ucode/template/themes/argon/login_background.ut",
           "mode": "100644",
-          "git_blob": "16afa199446a70062ea31aa2ca09d08d5f0a30bc",
-          "sha256": "1e02a11ef59a7655a41421ff9230506d7d17cec3c9cf097bf03c48f17ba4cb72",
-          "bytes": 3787
+          "git_blob": "f5db9560f9279cf19cf0d61560c95596dd3944c1",
+          "sha256": "deff8581dcffd90c3ba7f30ef26f3af345f7e2c9344733256493a63f470d65d6",
+          "bytes": 5151
         },
         {
           "path": "ucode/template/themes/argon/login_form.ut",
@@ -4392,16 +4497,16 @@
         {
           "path": "ucode/template/themes/argon/page_scripts.ut",
           "mode": "100644",
-          "git_blob": "0092943ec53b0d5cdb43d0a3b2257a9621d3466e",
-          "sha256": "b8d2fda8710e686c7721fb04541bf4c6d2212d0330df3f303125bf378f98675e",
-          "bytes": 786
+          "git_blob": "768974fe16f80b2f030e468594bbb0a3461d6690",
+          "sha256": "fcf87b6910d64c6d26c09aae35377e4025d77c120756cb8ad0b537eb1010d93f",
+          "bytes": 814
         },
         {
           "path": "ucode/template/themes/argon/sysauth.ut",
           "mode": "100644",
-          "git_blob": "9a983cc8cbaa1f56d6857123f5a5b89f31abeab1",
-          "sha256": "d433a3037356c04c1d3f4f4fea133b62737b8b1815c8cb1cc7c444cf723d9867",
-          "bytes": 2052
+          "git_blob": "14bb5475f04ef88cf2f6f72bc5181445d9eff824",
+          "sha256": "dc368bdfcedb7ae9865fc6d1783a8ff873057992d8bedb8327ac1e6ddd7d4f05",
+          "bytes": 2053
         }
       ]
     },

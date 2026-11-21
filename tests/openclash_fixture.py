@@ -19,6 +19,7 @@ SOURCES = {
     "openclash.sh": "root/usr/share/openclash/openclash.sh",
     "openclash_etag.sh": "root/usr/share/openclash/openclash_etag.sh",
     "openclash_curl.sh": "root/usr/share/openclash/openclash_curl.sh",
+    "openclash_history_get.sh": "root/usr/share/openclash/openclash_history_get.sh",
     "uci.rb": "root/usr/share/openclash/uci.rb",
     "proxy-groups-config.lua": "luasrc/model/cbi/openclash/proxy-groups-config.lua",
 }

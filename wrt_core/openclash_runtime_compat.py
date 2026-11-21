@@ -21,6 +21,8 @@ PATCHES = (
     "openclash-subscription-safety.patch",
     "openclash-group-rename.patch",
     "openclash-etag-lock.patch",
+    "openclash-cache-after-stop.patch",
+    "openclash-dns-rule-compat.patch",
 )
 
 

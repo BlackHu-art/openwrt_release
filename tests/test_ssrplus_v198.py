@@ -15,6 +15,7 @@ import importlib.util
 import json
 import os
 from pathlib import Path
+import re
 import shutil
 import stat
 import subprocess
@@ -164,6 +165,90 @@ print = function(text) py_output(text) end
     return output[0]
 
 
+class RuntimeDependencySelection(unittest.TestCase):
+    iptables = ("dnsmasq_full_ipset", "ipset", "iptables", "iptables-zz-legacy",
+                "iptables-mod-conntrack-extra", "iptables-mod-iprange", "iptables-mod-socket",
+                "iptables-mod-tproxy", "kmod-ipt-nat")
+    nftables = ("dnsmasq_full_nftset", "nftables", "kmod-nft-socket", "kmod-nft-tproxy", "kmod-nft-nat")
+    feature_packages = ("3proxy", "mihomo", "v2ray-geoip", "v2ray-geosite", "xray-core")
+
+    def setUp(self):
+        from test_kconfig_compat import command, stage, write
+
+        temporary = tempfile.TemporaryDirectory(prefix="ssr-runtime-kconfig-")
+        self.addCleanup(temporary.cleanup)
+        self.build = Path(temporary.name)
+        stage(self.build)
+        package = self.build / "feeds/custom_feed/luci-app-ssr-plus"
+        if os.name == "nt":
+            shutil.copytree(UPSTREAM, package)
+        else:
+            stage_source(package)
+        result = prepare_source(package)
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        # Stub the LuCI build wrapper; GNU Make and OpenWrt's real dump and
+        # metadata scripts still process the actual SSR Makefile/config block.
+        write(self.build / "feeds/luci/luci.mk", """include $(INCLUDE_DIR)/package.mk
+define Package/$(PKG_NAME)
+  DEPENDS:=$(LUCI_DEPENDS)
+  TITLE:=$(LUCI_TITLE)
+  CATEGORY:=LuCI
+endef
+$(eval $(call BuildPackage,$(PKG_NAME)))
+""")
+        make = os.environ.get("MAKE") or shutil.which("make")
+        result = command([make, "--no-print-directory", "-s", "DUMP=1", "TOPDIR=../../..",
+                          "INCLUDE_DIR=../../../include", "dumpinfo"], package)
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        metadata = "Source-Makefile: feeds/custom_feed/luci-app-ssr-plus/Makefile\n" + result.stdout
+        leaves = set(self.iptables + self.nftables + self.feature_packages +
+                     ("firewall4", "coreutils", "coreutils-timeout", "librt"))
+        for deps in re.findall(r"^Depends: (.*)$", metadata, re.M):
+            leaves.update(dep.lstrip("+").split(":")[-1] for dep in deps.split())
+        for name in sorted(leaves):
+            # The pinned packages recipe declares a menu parent and applet deps.
+            depends = "Depends: +coreutils +librt\n" if name == "coreutils-timeout" else ""
+            if name == "coreutils":
+                depends = "Menu: 1\n"
+            metadata += (f"\nSource-Makefile: package/leaves/{name}/Makefile\nPackage: {name}\n"
+                         f"Category: Utilities\nTitle: {name}\n{depends}Type: ipkg\nDescription: leaf\n@@\n")
+        write(self.build / "packageinfo", metadata)
+        result = command(["perl", "scripts/package-metadata.pl", "config", "packageinfo"], self.build)
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        modules = "modules" if os.environ.get("KCONFIG_CONF") else "option modules"
+        prelude = f'config MODULES\n bool\n {modules}\n default y\nconfig x86_64\n bool\n default y\n'
+        write(self.build / "Kconfig", prelude + result.stdout)
+
+    def test_disabled_ssr_does_not_select_runtime_packages(self):
+        from test_kconfig_compat import evaluate
+
+        for firewall4 in ("y", "n"):
+            with self.subTest(firewall4=firewall4):
+                config = evaluate(self.build, {"PACKAGE_firewall4": firewall4,
+                    "PACKAGE_luci-app-ssr-plus": "n", "PACKAGE_luci-app-ssr-plus_INCLUDE_Xray": "y"})
+                for name in self.iptables + self.nftables + self.feature_packages + ("coreutils", "coreutils-timeout"):
+                    self.assertEqual(config.get("PACKAGE_" + name, "n"), "n", name)
+                config = evaluate(self.build, {"PACKAGE_firewall4": firewall4,
+                    "PACKAGE_luci-app-ssr-plus": "n", "PACKAGE_xray-core": "y"})
+                self.assertEqual(config.get("PACKAGE_xray-core"), "y")
+
+    def test_each_core_selection_gets_timeout_and_its_parent(self):
+        from test_kconfig_compat import evaluate
+
+        # Mihomo is independent of the None/Xray choice in SSR's recipe.
+        for selected in ("y", "m"):
+            for core in ("None", "Xray", "Mihomo"):
+                with self.subTest(selected=selected, core=core):
+                    config = evaluate(self.build, {"PACKAGE_firewall4": "y", "PACKAGE_luci-app-ssr-plus": selected,
+                        "PACKAGE_luci-app-ssr-plus_INCLUDE_Xray": "y" if core == "Xray" else "n",
+                        "PACKAGE_luci-app-ssr-plus_INCLUDE_Mihomo": "y" if core == "Mihomo" else "n"})
+                    self.assertEqual(config.get("PACKAGE_luci-app-ssr-plus"), selected)
+                    for name in ("coreutils", "coreutils-timeout", "flock", "dns2socks"):
+                        self.assertEqual(config.get("PACKAGE_" + name, "n"), selected, name)
+                    self.assertEqual(config.get("PACKAGE_xray-core", "n"), selected if core == "Xray" else "n")
+                    self.assertEqual(config.get("PACKAGE_mihomo", "n"), selected if core == "Mihomo" else "n")
+
+
 class SourceIntegration(unittest.TestCase):
     def setUp(self):
         self.temporary = tempfile.TemporaryDirectory(prefix="ssr-v198-")
@@ -182,8 +267,10 @@ class SourceIntegration(unittest.TestCase):
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
         manifest = json.loads((self.package / MANIFEST).read_text())
         self.assertEqual(manifest["source_commit"], COMMIT)
-        self.assertEqual(manifest["repair_version"], "198-r2")
-        self.assertEqual(set(manifest["patches"]), {"ssrplus-v198-integration.patch", "ssrplus-v198-xray-transports.patch", "ssrplus-v198-update-policy.patch"})
+        self.assertEqual(manifest["repair_version"], "198-r3")
+        self.assertEqual(set(manifest["patches"]), {"ssrplus-v198-integration.patch",
+            "ssrplus-v198-xray-transports.patch", "ssrplus-v198-update-policy.patch",
+            "ssrplus-v198-runtime-dependencies.patch"})
         changed = {source.relative_to(UPSTREAM).as_posix() for source in UPSTREAM.rglob("*")
                    if source.is_file() and source.relative_to(UPSTREAM).as_posix() != TRANSLATION_LINK
                    and (self.package / source.relative_to(UPSTREAM)).read_bytes() != source.read_bytes()}
@@ -221,6 +308,43 @@ class SourceIntegration(unittest.TestCase):
 
     def test_unknown_source_file_is_rejected_before_integration(self):
         (self.package / "root/usr/share/shadowsocksr/ssrp-runtime.sh").write_text("old runtime\n")
+        before = self.snapshot()
+        result = prepare_source(self.package)
+        self.assertNotEqual(result.returncode, 0)
+        self.assertEqual(self.snapshot(), before)
+
+    def prior_patches(self):
+        return [ROOT / "wrt_core/patches" / f"ssrplus-v198-{name}.patch"
+                for name in ("integration", "xray-transports", "update-policy")]
+
+    def test_partial_patch_stack_without_manifest_is_rejected(self):
+        subprocess.run(["git", "apply", str(self.prior_patches()[0])], cwd=self.package,
+                       check=True, capture_output=True, timeout=30)
+        before = self.snapshot()
+        result = prepare_source(self.package)
+        self.assertNotEqual(result.returncode, 0)
+        self.assertEqual(self.snapshot(), before)
+
+    def test_complete_prior_preparation_is_upgraded_and_stale_manifest_fails(self):
+        patches = self.prior_patches()
+        for patch in patches:
+            subprocess.run(["git", "apply", str(patch)], cwd=self.package,
+                           check=True, capture_output=True, timeout=30)
+        files = {}
+        for line in (ROOT / "wrt_core/compat/ssrplus/source-files.tsv").read_text().splitlines():
+            _blob, relative, mode = line.split()
+            if mode != "-":
+                path = self.package / relative
+                path.chmod(int(mode, 8))
+                files["/" + relative[5:]] = {"sha256": hashlib.sha256(path.read_bytes()).hexdigest(), "mode": mode}
+        manifest_path = self.package / MANIFEST
+        prior = {"source_commit": COMMIT, "repair_version": "198-r2", "files": files,
+                 "patches": {patch.name: hashlib.sha256(patch.read_bytes()).hexdigest() for patch in patches}}
+        manifest_path.write_text(json.dumps(prior), encoding="utf-8")
+        result = prepare_source(self.package)
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertEqual(json.loads(manifest_path.read_text())["repair_version"], "198-r3")
+        manifest_path.write_text(json.dumps(prior), encoding="utf-8")
         before = self.snapshot()
         result = prepare_source(self.package)
         self.assertNotEqual(result.returncode, 0)
@@ -287,13 +411,13 @@ class SourceIntegration(unittest.TestCase):
                     payload = gzip.compress(containers.tar_bytes(data_files(damage)))
                     artifact = self.package.parent / ("compiled." + kind)
                     if kind == "ipk":
-                        control = b"Package: luci-app-ssr-plus\nVersion: 198-2\nArchitecture: all\n"
+                        control = b"Package: luci-app-ssr-plus\nVersion: 198-3\nArchitecture: all\n"
                         artifact.write_bytes(containers.ar_bytes([
                             ("debian-binary", b"2.0\n"),
                             ("control.tar.gz", gzip.compress(containers.tar_bytes([("control", control, 0o644)]))),
                             ("data.tar.gz", payload)]))
                     else:
-                        info = b"pkgname = luci-app-ssr-plus\npkgver = 198-r2\narch = all\n"
+                        info = b"pkgname = luci-app-ssr-plus\npkgver = 198-r3\narch = all\n"
                         artifact.write_bytes(gzip.compress(containers.tar_bytes([(".PKGINFO", info, 0o644)])) + payload)
                     result = subprocess.run([os.sys.executable, str(ROOT / "wrt_core/ssrplus_verify.py"),
                         "package", "--manifest", str(expected), "--package", str(artifact)],
@@ -307,7 +431,7 @@ class SourceLinkContract(unittest.TestCase):
     def setUp(self):
         self.temporary = tempfile.TemporaryDirectory(prefix="ssr-link-contract-")
         self.addCleanup(self.temporary.cleanup)
-        self.package = Path(self.temporary.name) / "package"
+        self.package = Path(self.temporary.name).resolve() / "package"
         shutil.copytree(ROOT / "wrt_core/managed/packages/luci-app-ssr-plus", self.package)
         self.verifier = load_module("ssr_link_verifier", "wrt_core/ssrplus_verify.py")
 

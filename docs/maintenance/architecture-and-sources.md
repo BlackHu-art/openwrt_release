@@ -5,7 +5,7 @@
 ## 配置与调用顺序
 
 [`build.sh`](../../build.sh) 只把 `compilecfg/<设备>.ini` 与 `deconfig/<设备>.config` 同名成对的设备列为可选。
-`.ini` 决定固件上游仓库、分支、可选提交、构建目录和默认 fragments。
+`.ini` 决定固件上游仓库、分支、固定提交、构建目录和默认 fragments。
 配置依次组合为：设备 `.config` → `compile_base.config` → 生效 fragments。
 `ADD_CONFIG_FRAGMENTS` 追加并去重，`REMOVE_CONFIG_FRAGMENTS` 从最终片段列表移除；
 移除片段不会撤销设备配置或公共配置中已有的选择。先用 `config_preview` 查看有效结果。
@@ -14,7 +14,7 @@
 build.sh：设备/模式与 fragments → 判断 Docker 选择
   └─ wrt_core/update.sh
        1. stage_repo_checkout：准备并清理上游构建树
-       2. stage_upstream_feeds_update：生成 feeds/*
+       2. stage_upstream_feeds_update：按底座来源锁固定远端 feeds，获取后核对 HEAD
        3. stage_feed_source_cleanup：移除同名冲突来源
        4. stage_custom_feed_prepare：装载受管源码及其他 custom_feed
        5. stage_pre_install_source_fixes：构建副本适配、补丁、工具链门槛
@@ -28,6 +28,8 @@ build.sh：设备/模式与 fragments → 判断 Docker 选择
 阶段实现见 [`update.sh`](../../wrt_core/update.sh)。安装前不能依赖 `package/feeds/*`，
 安装后需考虑 feeds 链接和最终来源路径。下载、日志、退出码和成品门禁由
 [`build_steps.sh`](../../wrt_core/modules/build_steps.sh) 等模块实现，不能只看主入口末尾是否输出成功。
+
+所有设备已声明完整固件 SHA；feed 选择以实际 Git origin+HEAD 为准，未知身份拒绝。旧 VIKINGYFY 核心与新版 Rust 配方不混用。详见 [feed 来源锁](../feed-source-lock.md)。
 
 ## 三种源码位置
 

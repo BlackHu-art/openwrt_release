@@ -99,7 +99,7 @@ source "$KCONFIG_GATE"
                                 env=environment, capture_output=True, text=True, timeout=30)
         self.assertNotEqual(result.returncode, 0, result.stdout + result.stderr)
         self.assertIn('Kconfig', result.stderr)
-        self.assertIn('needs Linux' if os.name == 'nt' else 'requires gcc', result.stderr)
+        self.assertIn('requires gcc' if sys.platform.startswith('linux') else 'needs Linux', result.stderr)
 
     def test_required_ruby_cannot_be_silently_skipped(self):
         environment = dict(os.environ, OPENCLASH_REQUIRE_RUBY34='1')

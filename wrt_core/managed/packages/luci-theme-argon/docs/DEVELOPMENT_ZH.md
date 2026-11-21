@@ -93,7 +93,7 @@ lessc less/cascade.less htdocs/luci-static/argon/css/cascade.css
 
 ## 静态更新源部署
 
-更新检查读取 `/updates/stable.json` 静态清单。路由器不调用 GitHub API；发布工作流使用自身的 `GITHUB_TOKEN` 读取正式 Release，核验主题包的 SHA256/大小后生成一份产物。GitHub Pages 直接发布该产物，Cloudflare Pages 从专用 `updates` 分支部署同一份文件。安装包继续从固定的 GitHub Release 版本下载，独立语言包仍单独安装。
+更新检查读取 `/updates/stable.json` 静态清单。路由器不调用 GitHub API；发布工作流使用自身的 `GITHUB_TOKEN` 读取正式 Release，核验主题和语言包的 SHA256/大小后生成一份产物。GitHub Pages 直接发布该产物，Cloudflare Pages 从专用 `updates` 分支部署同一份文件。安装包继续从固定的 GitHub Release 版本下载；安装器会包含现有 Argon 翻译及可用的 LuCI 当前配置语言对应的包。
 
 首次启用需要仓库维护者完成以下配置：
 
@@ -119,6 +119,8 @@ lessc less/cascade.less htdocs/luci-static/argon/css/cascade.css
 
 清单字段包括 `schema`、`repository`、`tag`、`published_at`、`notes`，以及 `apk`/`ipk` 文件名和对应的 `_sha256`/`_size`。由最终发布包计算元数据，不从 master 的 Makefile 推断最新版。两种格式均须完整且属于同一版本；客户端拒绝损坏清单，并保留上一次成功记录。请求只在手动检查时发起，成功缓存五分钟，双源均失败后冷却一分钟。
 
+Schema 1 还支持可选的 `translations` 对象，以 `zh-cn` 等语言包后缀为键，每项包含双格式对应的六个包字段。文件名须与主题发行版本匹配，单个语言包不超过 1 MiB，最多接受 32 种语言。现有翻译缺少可校验信息时不开放自动安装。所有所需包先完成下载和校验，再调用包管理器；空间检查按总大小计算，安装完成后核对各包版本。主题的 preinst 与 UCI 初始化会保留旧更新器首次升级时的内嵌翻译，并保留独立语言包已提供的文件。
+
 源码构建默认不包含 CF 地址。需要自行指定时，在打包前执行：
 
 ```sh
@@ -142,3 +144,5 @@ UCODE_BIN=/path/to/ucode sh .github/scripts/check_theme.sh
 脚本检查 JavaScript、Shell、Ucode 语法，核对 LESS 与 CSS 产物，并运行 Node / Python 测试。CI 的 Ucode 构建步骤见 [check.yml](../.github/workflows/check.yml)。
 
 UI 改动应检查实际受影响页面的亮暗色、桌面与窄屏，以及相关的键盘焦点、长文本和减少动画场景。网络和硬件行为仍需相应 OpenWrt 环境验证。
+
+登录和主题设置的检查应包含 Firefox ESR 115、128、140、153，保留浏览器默认的特性设置。`argon-compat.js` 仅在缺少原生 `:has()` 时为组合控件和下拉表格添加 DOM 标记，通过可容错的 `:is()` 选择器提供样式。新增浏览器 API 应检测能力，JavaScript 查询应避免不受支持的选择器。此兼容处理覆盖主题常用控件，插件专属布局仍需单独验证。

@@ -263,6 +263,70 @@ class KconfigCompatibility(unittest.TestCase):
             self.assertEqual(hashlib.sha256(data).hexdigest(), item["sha256"], item["fixture"])
             self.assertEqual(hashlib.sha1(f"blob {len(data)}\0".encode() + data).hexdigest(), item["git_blob"])
 
+    def test_reviewed_feed_branches_keep_versions_dependencies_and_feature_semantics(self):
+        cases = (
+            ("master", "2.0.0.1584", "2", True),
+            ("openwrt-25.12", "2.0.0.1518", "1", False),
+            ("openwrt-24.10", "1.9.9.1432", "3", False),
+        )
+        protected = re.compile(rb'^(?:PKG_(?:VERSION|RELEASE|SOURCE[^:]*|MIRROR_HASH)|\s*(?:DEPENDS\+?|CONFLICTS))[:+]?=.*$', re.M)
+        for branch, version, release, modern_qt in cases:
+            with self.subTest(branch=branch):
+                for relative in (QT + "/Makefile", QT + "/Config.in", SQUEEZE + "/Makefile"):
+                    source = FIXTURE / relative.removeprefix("feeds/")
+                    (self.build / relative).write_bytes(source.read_bytes())
+                squeeze = self.build / SQUEEZE / "Makefile"
+                squeeze.write_bytes((FIXTURE / "variants" / branch / "packages/sound/squeezelite/Makefile").read_bytes())
+                if modern_qt:
+                    (self.build / QT / "Makefile").write_bytes((FIXTURE / "variants/master/video/frameworks/qt5/qt5base/Makefile").read_bytes())
+                recipes = [self.build / QT / "Makefile", squeeze]
+                before = {p: protected.findall(p.read_bytes()) for p in recipes}
+                result = command([sys.executable, ADAPTER, self.build], ROOT)
+                self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+                self.assertIn(f"PKG_VERSION:={version}\n".encode(), squeeze.read_bytes())
+                self.assertIn(f"PKG_RELEASE:={release}\n".encode(), squeeze.read_bytes())
+                self.assertEqual(before, {p: protected.findall(p.read_bytes()) for p in recipes})
+                generate(self.build)
+                defaults = evaluate(self.build)
+                self.assertFalse({k: v for k, v in defaults.items() if k.startswith("PACKAGE_") and v in ("y", "m")})
+                self.assertEqual(defaults.get("BUILD_qt5base-gui_OPENGL_NONE"), "y")
+                for enabled in ("n", "y"):
+                    values = evaluate(self.build, {"PACKAGE_squeezelite-custom": "y",
+                        "SQUEEZELITE_WMA_ALAC": enabled, "BUILD_PATENTED": "y",
+                        "PACKAGE_video-support": "y", "aarch64": "y", "HAS_FPU": "y"})
+                    self.assertEqual(values.get("PACKAGE_squeezelite-custom"), "y")
+                    self.assertEqual(values.get("PACKAGE_libffmpeg", "n"), enabled)
+                before_repeat = self.snapshot()
+                mtimes = {p: p.stat().st_mtime_ns for p in recipes}
+                self.prepare()
+                self.assertEqual(before_repeat, self.snapshot())
+                self.assertEqual(mtimes, {p: p.stat().st_mtime_ns for p in recipes})
+
+    def test_new_reviewed_branch_still_rejects_unreviewed_changes_before_writing(self):
+        for branch in ("master", "openwrt-25.12", "openwrt-24.10"):
+            with self.subTest(branch=branch):
+                path = self.build / SQUEEZE / "Makefile"
+                path.write_bytes((FIXTURE / "variants" / branch / "packages/sound/squeezelite/Makefile").read_bytes() + b"\n# unknown upstream change\n")
+                before = self.snapshot()
+                with self.assertRaisesRegex(ValueError, "unreviewed Kconfig feed input"):
+                    self.prepare()
+                self.assertEqual(before, self.snapshot())
+
+    def test_current_qt_linuxfb_drm_keeps_library_selection_without_parent_cycle(self):
+        (self.build / QT / "Makefile").write_bytes((FIXTURE / "variants/master/video/frameworks/qt5/qt5base/Makefile").read_bytes())
+        self.prepare()
+        generate(self.build, "qt")
+        for enabled in ("n", "y"):
+            try:
+                values = evaluate(self.build, {"PACKAGE_qt5base-plugin-platforms-linuxfb": "y",
+                    "PACKAGE_qt5base-gui": "y", "BUILD_qt5base-gui_DRM": enabled,
+                    "PACKAGE_video-support": "y", "aarch64": "y", "HAS_FPU": "y"})
+            except Exception as error:
+                self.fail("Reviewed Qt linuxfb/DRM metadata must parse: " + str(error).split("\n")[1])
+            self.assertEqual(values.get("PACKAGE_qt5base-plugin-platforms-linuxfb"), "y")
+            self.assertEqual(values.get("BUILD_qt5base-gui_DRM"), enabled)
+            self.assertEqual(values.get("PACKAGE_libdrm", "n"), enabled)
+
     def test_partial_existing_edit_is_rejected_without_writes(self):
         path = self.build / SQUEEZE / "Makefile"
         path.write_bytes(path.read_bytes().replace(b'\tif PACKAGE_squeezelite-custom\n',

@@ -84,10 +84,15 @@ sync_repo_root_package_to_feed_dir() {
     local target_dir="$3"
     local repo_label="$4"
     local package_name="$5"
+    local commit_sha="${6:-}"
     local tmp_dir
     local clone_args=(clone --depth 1 --filter=blob:none)
 
     python3 "$BASE_PATH/managed_plugins.py" assert-external "$package_name" || return 1
+    if [[ -n "$commit_sha" && ! "$commit_sha" =~ ^[0-9a-f]{40}$ ]]; then
+        echo "错误：$repo_label 必须使用完整提交 SHA。" >&2
+        return 1
+    fi
     tmp_dir=$(mktemp -d)
 
     if [ -n "$repo_branch" ]; then
@@ -101,6 +106,16 @@ sync_repo_root_package_to_feed_dir() {
         echo "错误：从 $repo_url 克隆 $repo_label 失败" >&2
         rm -rf "$tmp_dir"
         return 1
+    fi
+
+    if [[ -n "$commit_sha" ]]; then
+        if ! git_retry -C "$tmp_dir" fetch --depth 1 origin "$commit_sha" ||
+           ! git_retry -C "$tmp_dir" checkout --detach "$commit_sha" ||
+           [[ $(git -C "$tmp_dir" rev-parse HEAD) != "$commit_sha" ]]; then
+            echo "错误：无法固定 $repo_label 到已审查提交 $commit_sha。" >&2
+            rm -rf "$tmp_dir"
+            return 1
+        fi
     fi
 
     if [ ! -f "$tmp_dir/Makefile" ]; then
@@ -117,6 +132,26 @@ sync_repo_root_package_to_feed_dir() {
         rm -rf "$tmp_dir"
         return 1
     fi
+}
+
+
+remove_nested_airoha_npu_package() {
+    local package_dir="$1"
+    [[ -f "$package_dir/Makefile" ]] || return 1
+    if [[ -f "$package_dir/luci-app-airoha-npu/Makefile" ]]; then
+        rm -rf "$package_dir/luci-app-airoha-npu" || return 1
+    fi
+}
+
+
+fix_airoha_npu_luci_mk() {
+    local package_dir="$1" makefile_path
+    [[ -f "$package_dir/Makefile" ]] || return 1
+    while IFS= read -r -d '' makefile_path; do
+        if grep -qE '^[[:space:]]*include[[:space:]]+\.\./\.\./luci\.mk[[:space:]]*$' "$makefile_path"; then
+            sed -i -E 's|^[[:space:]]*include[[:space:]]+\.\./\.\./luci\.mk[[:space:]]*$|include $(TOPDIR)/feeds/luci/luci.mk|' "$makefile_path" || return 1
+        fi
+    done < <(find "$package_dir" -type f -name Makefile -print0)
 }
 
 
@@ -141,6 +176,16 @@ register_local_feed_source() {
     local feeds_path="$2"
     local feed_name
     feed_name=$(get_custom_feed_name)
+    local worktree="$BUILD_DIR/feeds/$feed_name"
+    if [[ -e "$worktree" || -L "$worktree" ]]; then
+        if [[ ! -L "$worktree" || $(readlink "$worktree") != "$custom_feed_dir" ]]; then
+            echo "错误：$feed_name 工作目录没有指向本次构建来源：$worktree" >&2
+            return 1
+        fi
+    else
+        mkdir -p "$BUILD_DIR/feeds" || return 1
+        ln -s "$custom_feed_dir" "$worktree" || return 1
+    fi
 
     sed -i "/[[:space:]]$feed_name[[:space:]]/d" "$feeds_path"
     [ -z "$(tail -c 1 "$feeds_path")" ] || echo "" >>"$feeds_path"
@@ -173,7 +218,7 @@ install_custom_feed() {
         luci-app-ssr-plus luci-app-partexp
         nikki luci-app-nikki mihomo-meta
         open-app-filter luci-app-oaf lucky luci-app-lucky luci-app-easytier
-        luci-app-emmc-health
+        luci-app-emmc-health luci-app-airoha-npu
     )
     local custom_feed_sources=()
     local missing_feed_dirs=()
@@ -229,15 +274,25 @@ install_custom_feed() {
         return 1
     fi
 
+    # Existing W1701K configuration selects this package, which neither its
+    # pinned core nor the LuCI feed supplies. Backport upstream e16d7ace source
+    # wiring while fixing the input to the reviewed package commit.
+    if ! sync_repo_root_package_to_feed_dir "https://github.com/rchen14b/luci-app-airoha-npu.git" "main" "$custom_feed_dir" "rchen14b/luci-app-airoha-npu" "luci-app-airoha-npu" "14521b8414da1e98517a295d8ec267087c7dde8e" ||
+       ! remove_nested_airoha_npu_package "$custom_feed_dir/luci-app-airoha-npu" ||
+       ! fix_airoha_npu_luci_mk "$custom_feed_dir/luci-app-airoha-npu"; then
+        rm -rf "$custom_feed_dir"
+        return 1
+    fi
+
     if ! fix_emmc_health_luci_js_deps "$custom_feed_dir/luci-app-emmc-health"; then
         rm -rf "$custom_feed_dir"
         return 1
     fi
 
-    register_local_feed_source "$custom_feed_dir" "$feeds_path"
+    register_local_feed_source "$custom_feed_dir" "$feeds_path" || return 1
 
     echo "正在更新 $custom_feed_name 本地 feed 索引..."
-    network_retry ./scripts/feeds update "$custom_feed_name"
+    run_feed_index custom "$custom_feed_name" || return 1
 
     collect_missing_directories "$custom_feed_worktree_dir" required_feed_dirs missing_feed_dirs
 

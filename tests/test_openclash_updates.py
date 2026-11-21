@@ -543,6 +543,8 @@ class GuardTests(UpdatePackage):
         helper = CORE / "openclash_runtime_compat.py"
         self.assertTrue(helper.is_file(), "whole-stack source guard is required")
         manifest = json.loads((CORE / "compat/openclash-runtime/sources.json").read_text())
+        self.assertEqual(set(manifest["files"]), set(SOURCES.values()))
+        self.assertEqual(manifest["equivalent_official_reference"]["verified_file_count"], len(SOURCES))
         for name, path in SOURCES.items():
             data = (ROOT / "tests/fixtures/openclash/0.48.002" / name).read_bytes()
             blob = hashlib.sha1(b"blob " + str(len(data)).encode() + b"\0" + data).hexdigest()

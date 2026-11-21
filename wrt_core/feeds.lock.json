@@ -1,0 +1,248 @@
+{
+  "schema": 1,
+  "reviewed_at": "2026-11-21",
+  "review_note": "Immutable core and feed inputs; no rolling fallback. See docs/feed-source-lock.md for compatibility evidence and update procedure.",
+  "cores": [
+    {
+      "url": "https://github.com/VIKINGYFY/immortalwrt.git",
+      "commit": "3fd1e27a511851b41cf082b067b60099e8e026c4",
+      "branch": "main",
+      "feed_set": "legacy-master",
+      "provenance": "https://github.com/VIKINGYFY/immortalwrt/commit/3fd1e27a511851b41cf082b067b60099e8e026c4",
+      "reason": "Preserved existing five IPQ60xx core pins; lacks the new core Rust build interfaces."
+    },
+    {
+      "url": "https://github.com/VIKINGYFY/immortalwrt.git",
+      "commit": "f9b0ce7650fdcc7f4793256a3ae43c1132e2bc49",
+      "branch": "main",
+      "feed_set": "legacy-master",
+      "provenance": "https://github.com/VIKINGYFY/immortalwrt/commit/f9b0ce7650fdcc7f4793256a3ae43c1132e2bc49",
+      "reason": "Current reviewed main head; also lacks new core Rust build interfaces."
+    },
+    {
+      "url": "https://github.com/LiBwrt/openwrt-6.x.git",
+      "commit": "000a4e74b17edfdc296f9eaa674344fc0adaaf95",
+      "branch": "25.12-nss",
+      "feed_set": "openwrt-25.12",
+      "provenance": "https://github.com/LiBwrt/openwrt-6.x/commit/000a4e74b17edfdc296f9eaa674344fc0adaaf95",
+      "reason": "Retain upstream maintenance feed branches and NSS sources."
+    },
+    {
+      "url": "https://github.com/immortalwrt/immortalwrt.git",
+      "commit": "6003f6b8c3278a27712f4fdaaa8d1e5faa2b1f54",
+      "branch": "master",
+      "feed_set": "master",
+      "provenance": "https://github.com/immortalwrt/immortalwrt/commit/6003f6b8c3278a27712f4fdaaa8d1e5faa2b1f54",
+      "reason": "Core contains Rust helpers and cargo-vendor download methods used by current packages master."
+    },
+    {
+      "url": "https://github.com/ZqinKing/immortalwrt.git",
+      "commit": "796897b5417537c0b10ee9ec31166ac5901bc33b",
+      "branch": "w1701k",
+      "feed_set": "master",
+      "provenance": "https://github.com/ZqinKing/immortalwrt/commit/796897b5417537c0b10ee9ec31166ac5901bc33b",
+      "reason": "Core contains Rust helpers and cargo-vendor download methods used by current packages master."
+    },
+    {
+      "url": "https://github.com/padavanonly/immortalwrt-mt798x-6.6.git",
+      "commit": "ec9ef10efc65da1e6d1de4e2c043c0e13d08eed8",
+      "branch": "openwrt-24.10-6.6",
+      "feed_set": "openwrt-24.10",
+      "provenance": "https://github.com/padavanonly/immortalwrt-mt798x-6.6/commit/ec9ef10efc65da1e6d1de4e2c043c0e13d08eed8",
+      "reason": "Retain upstream openwrt-24.10 feed branches; no video feed in upstream configuration."
+    }
+  ],
+  "feed_sets": {
+    "legacy-master": {
+      "packages": {
+        "url": "https://github.com/immortalwrt/packages.git",
+        "commit": "ffbc2408fccfb5c579363365a8971862a9718fb0",
+        "branch": "master",
+        "provenance": "https://github.com/immortalwrt/packages/commit/ffbc2408fccfb5c579363365a8971862a9718fb0",
+        "reason": "Last ImmortalWrt mainline state before merge 0264bc1374f8cdacf81c3d3803365d1c86b92980 imports Rust recipes requiring core include/rust-*.mk and cargo-vendor download methods."
+      },
+      "luci": {
+        "url": "https://github.com/immortalwrt/luci.git",
+        "commit": "8724b54de3a760294aedeb10a29ffba7e44cca2f",
+        "branch": "master",
+        "provenance": "https://github.com/immortalwrt/luci/commit/8724b54de3a760294aedeb10a29ffba7e44cca2f"
+      },
+      "routing": {
+        "url": "https://github.com/openwrt/routing.git",
+        "commit": "ea8633da9c461a9bdc62a0323439d31180762e03",
+        "branch": "master",
+        "provenance": "https://github.com/openwrt/routing/commit/ea8633da9c461a9bdc62a0323439d31180762e03"
+      },
+      "telephony": {
+        "url": "https://github.com/openwrt/telephony.git",
+        "commit": "06feffc2c154993f555b43756ef7db6dd7e58225",
+        "branch": "master",
+        "provenance": "https://github.com/openwrt/telephony/commit/06feffc2c154993f555b43756ef7db6dd7e58225"
+      },
+      "video": {
+        "url": "https://github.com/openwrt/video.git",
+        "commit": "6a3b5fd6e963f41caa73ef4f691e156d467e2894",
+        "branch": "master",
+        "provenance": "https://github.com/openwrt/video/commit/6a3b5fd6e963f41caa73ef4f691e156d467e2894"
+      },
+      "openwrt_bandix": {
+        "url": "https://github.com/timsaya/openwrt-bandix.git",
+        "commit": "0760d1f5b52d1a2317dfd171ab00fe6543a9a0c4",
+        "branch": "main",
+        "provenance": "https://github.com/timsaya/openwrt-bandix/commit/0760d1f5b52d1a2317dfd171ab00fe6543a9a0c4",
+        "append": true
+      },
+      "luci_app_bandix": {
+        "url": "https://github.com/timsaya/luci-app-bandix.git",
+        "commit": "108369b8da05f01296a3ed0210a2ab60809712e5",
+        "branch": "main",
+        "provenance": "https://github.com/timsaya/luci-app-bandix/commit/108369b8da05f01296a3ed0210a2ab60809712e5",
+        "append": true
+      }
+    },
+    "master": {
+      "packages": {
+        "url": "https://github.com/immortalwrt/packages.git",
+        "commit": "decf94639ffd6ddd26591c190b547c6b7eea150b",
+        "branch": "master",
+        "provenance": "https://github.com/immortalwrt/packages/commit/decf94639ffd6ddd26591c190b547c6b7eea150b"
+      },
+      "luci": {
+        "url": "https://github.com/immortalwrt/luci.git",
+        "commit": "8724b54de3a760294aedeb10a29ffba7e44cca2f",
+        "branch": "master",
+        "provenance": "https://github.com/immortalwrt/luci/commit/8724b54de3a760294aedeb10a29ffba7e44cca2f"
+      },
+      "routing": {
+        "url": "https://github.com/openwrt/routing.git",
+        "commit": "ea8633da9c461a9bdc62a0323439d31180762e03",
+        "branch": "master",
+        "provenance": "https://github.com/openwrt/routing/commit/ea8633da9c461a9bdc62a0323439d31180762e03"
+      },
+      "telephony": {
+        "url": "https://github.com/openwrt/telephony.git",
+        "commit": "06feffc2c154993f555b43756ef7db6dd7e58225",
+        "branch": "master",
+        "provenance": "https://github.com/openwrt/telephony/commit/06feffc2c154993f555b43756ef7db6dd7e58225"
+      },
+      "video": {
+        "url": "https://github.com/openwrt/video.git",
+        "commit": "6a3b5fd6e963f41caa73ef4f691e156d467e2894",
+        "branch": "master",
+        "provenance": "https://github.com/openwrt/video/commit/6a3b5fd6e963f41caa73ef4f691e156d467e2894"
+      },
+      "openwrt_bandix": {
+        "url": "https://github.com/timsaya/openwrt-bandix.git",
+        "commit": "0760d1f5b52d1a2317dfd171ab00fe6543a9a0c4",
+        "branch": "main",
+        "provenance": "https://github.com/timsaya/openwrt-bandix/commit/0760d1f5b52d1a2317dfd171ab00fe6543a9a0c4",
+        "append": true
+      },
+      "luci_app_bandix": {
+        "url": "https://github.com/timsaya/luci-app-bandix.git",
+        "commit": "108369b8da05f01296a3ed0210a2ab60809712e5",
+        "branch": "main",
+        "provenance": "https://github.com/timsaya/luci-app-bandix/commit/108369b8da05f01296a3ed0210a2ab60809712e5",
+        "append": true
+      }
+    },
+    "openwrt-25.12": {
+      "packages": {
+        "url": "https://github.com/immortalwrt/packages.git",
+        "commit": "fa25995d74a720c1c98bf6265d3dd8b4eb620d1f",
+        "branch": "openwrt-25.12",
+        "provenance": "https://github.com/immortalwrt/packages/commit/fa25995d74a720c1c98bf6265d3dd8b4eb620d1f"
+      },
+      "luci": {
+        "url": "https://github.com/immortalwrt/luci.git",
+        "commit": "476b5257e3aa8274a727d648ba06c4ed284c159b",
+        "branch": "openwrt-25.12",
+        "provenance": "https://github.com/immortalwrt/luci/commit/476b5257e3aa8274a727d648ba06c4ed284c159b"
+      },
+      "routing": {
+        "url": "https://github.com/openwrt/routing.git",
+        "commit": "625f9d8446807708bab4eef26cdc44692164818a",
+        "branch": "openwrt-25.12",
+        "provenance": "https://github.com/openwrt/routing/commit/625f9d8446807708bab4eef26cdc44692164818a"
+      },
+      "telephony": {
+        "url": "https://github.com/openwrt/telephony.git",
+        "commit": "c58ec5a6703966dcccb53d0919698c8aba3a9ef5",
+        "branch": "openwrt-25.12",
+        "provenance": "https://github.com/openwrt/telephony/commit/c58ec5a6703966dcccb53d0919698c8aba3a9ef5"
+      },
+      "video": {
+        "url": "https://github.com/openwrt/video.git",
+        "commit": "094bf58da6682f895255a35a84349a79dab4bf95",
+        "branch": "openwrt-25.12",
+        "provenance": "https://github.com/openwrt/video/commit/094bf58da6682f895255a35a84349a79dab4bf95"
+      },
+      "nss_packages": {
+        "url": "https://github.com/laipeng668/nss-packages.git",
+        "commit": "f9cb6823d1f182990a3bf508af0999ce3f241305",
+        "branch": "NSS-LibWrt",
+        "provenance": "https://github.com/laipeng668/nss-packages/commit/f9cb6823d1f182990a3bf508af0999ce3f241305"
+      },
+      "sqm_scripts_nss": {
+        "url": "https://github.com/qosmio/sqm-scripts-nss.git",
+        "commit": "4b4ed8639229be5e70cf94b73cdf7dbc09e66d5d",
+        "branch": "main",
+        "provenance": "https://github.com/qosmio/sqm-scripts-nss/commit/4b4ed8639229be5e70cf94b73cdf7dbc09e66d5d"
+      },
+      "openwrt_bandix": {
+        "url": "https://github.com/timsaya/openwrt-bandix.git",
+        "commit": "0760d1f5b52d1a2317dfd171ab00fe6543a9a0c4",
+        "branch": "main",
+        "provenance": "https://github.com/timsaya/openwrt-bandix/commit/0760d1f5b52d1a2317dfd171ab00fe6543a9a0c4",
+        "append": true
+      },
+      "luci_app_bandix": {
+        "url": "https://github.com/timsaya/luci-app-bandix.git",
+        "commit": "108369b8da05f01296a3ed0210a2ab60809712e5",
+        "branch": "main",
+        "provenance": "https://github.com/timsaya/luci-app-bandix/commit/108369b8da05f01296a3ed0210a2ab60809712e5",
+        "append": true
+      }
+    },
+    "openwrt-24.10": {
+      "packages": {
+        "url": "https://github.com/immortalwrt/packages.git",
+        "commit": "171d5f9203379f77693807d7283515a873f95df9",
+        "branch": "openwrt-24.10",
+        "provenance": "https://github.com/immortalwrt/packages/commit/171d5f9203379f77693807d7283515a873f95df9"
+      },
+      "luci": {
+        "url": "https://github.com/immortalwrt/luci.git",
+        "commit": "cc142cd196d425d9f14f9c18f072913730b642ce",
+        "branch": "openwrt-24.10",
+        "provenance": "https://github.com/immortalwrt/luci/commit/cc142cd196d425d9f14f9c18f072913730b642ce"
+      },
+      "routing": {
+        "url": "https://github.com/openwrt/routing.git",
+        "commit": "00619bc7bc60d8b67ecc490121e45298b122cd6e",
+        "branch": "openwrt-24.10",
+        "provenance": "https://github.com/openwrt/routing/commit/00619bc7bc60d8b67ecc490121e45298b122cd6e"
+      },
+      "telephony": {
+        "url": "https://github.com/openwrt/telephony.git",
+        "commit": "695f4f4a733dfaf10922d24bf9dbdfd509b8a6d4",
+        "branch": "openwrt-24.10",
+        "provenance": "https://github.com/openwrt/telephony/commit/695f4f4a733dfaf10922d24bf9dbdfd509b8a6d4"
+      },
+      "openwrt_bandix": {
+        "url": "https://github.com/timsaya/openwrt-bandix.git",
+        "commit": "0760d1f5b52d1a2317dfd171ab00fe6543a9a0c4",
+        "branch": "main",
+        "provenance": "https://github.com/timsaya/openwrt-bandix/commit/0760d1f5b52d1a2317dfd171ab00fe6543a9a0c4",
+        "append": true
+      },
+      "luci_app_bandix": {
+        "url": "https://github.com/timsaya/luci-app-bandix.git",
+        "commit": "108369b8da05f01296a3ed0210a2ab60809712e5",
+        "branch": "main",
+        "provenance": "https://github.com/timsaya/luci-app-bandix/commit/108369b8da05f01296a3ed0210a2ab60809712e5",
+        "append": true
+      }
+    }
+  }
+}

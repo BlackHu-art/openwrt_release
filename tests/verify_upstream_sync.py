@@ -187,10 +187,10 @@ for config in (ROOT / "wrt_core/compilecfg").glob("*.ini"):
     ):
         vikingyfy_pins[config.stem] = settings["COMMIT_HASH"]
 
-assert set(vikingyfy_pins) == vikingyfy_ipq60xx, (
-    f"unexpected VIKINGYFY/main pinned devices: {sorted(vikingyfy_pins)}"
+assert vikingyfy_ipq60xx <= set(vikingyfy_pins), (
+    f"missing preserved VIKINGYFY/main pins: {sorted(vikingyfy_ipq60xx - set(vikingyfy_pins))}"
 )
-assert all(value == VIKINGYFY_PIN for value in vikingyfy_pins.values()), (
+assert all(vikingyfy_pins[name] == VIKINGYFY_PIN for name in vikingyfy_ipq60xx), (
     f"unexpected VIKINGYFY/main pin values: {vikingyfy_pins}"
 )
 

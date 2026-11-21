@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
-"""Backport fw876's Xray-only UPX reuse to validated disposable build copies.
+"""Backport fw876's UPX reuse and Naive Cronet allowance to Xray build copies.
 
 Original: fw876/helloworld 45893d778767f3bdb2fcb6e873cf8f9a667d94d4, r2.
-Backport: 20756eaad8aa61ce7168dad90b56db2d7c81063c, xray-core/Makefile only, r3.
+UPX: 20756eaad8aa61ce7168dad90b56db2d7c81063c, xray-core/Makefile only, r3.
+Cronet flags: fa29e87710fef1c2eeb7c38bcca62996f0798ef2, Naive branch only, r4.
 The ten original core patches and fw876r2 test-core identity remain unchanged.
 """
 import argparse
@@ -22,8 +23,10 @@ from managed_plugins import DEFAULT_SOURCES, read_lock, verify_staged
 
 
 SOURCE_COMMIT = "45893d778767f3bdb2fcb6e873cf8f9a667d94d4"
-BACKPORT_COMMIT = "20756eaad8aa61ce7168dad90b56db2d7c81063c"
-UPSTREAM_RECIPE_BLOB = "98f541c95e36200441a08374b9e06507e57cf64d"
+UPX_COMMIT = "20756eaad8aa61ce7168dad90b56db2d7c81063c"
+UPX_RECIPE_BLOB = "98f541c95e36200441a08374b9e06507e57cf64d"
+CRONET_COMMIT = "fa29e87710fef1c2eeb7c38bcca62996f0798ef2"
+PREPARED_RECIPE_SHA256 = "5fad25b15d48821960d87c689c08390ec3b19c3dc68efca80d61b38267b03d0c"
 # SHA-256 of sorted [path, mode, sha256] triples in the reviewed source lock.
 REVIEWED_FILES_SHA256 = "061fc0c4c9d353864b701cf219c225e5030fa7400abf20e453475ff2ffc8d314"
 RAW = DEFAULT_SOURCES / "packages/xray-core"
@@ -67,8 +70,8 @@ def check_go(recipe):
         raise ValueError("Xray 26.10.21 requires Go >= 1.27.3")
 
 
-def prepared_recipe(original):
-    """Produce exactly the Makefile published in the reviewed upstream commit."""
+def upx_recipe(original):
+    """Reproduce the full Makefile from the reviewed UPX donor."""
     anchor = b"# Go's -s -w flags strip the binary before UPX; do not strip it again.\n"
     result = original
     for old, new in ((b"PKG_RELEASE:=2\n", b"PKG_RELEASE:=3\n"),
@@ -77,15 +80,28 @@ def prepared_recipe(original):
         if result.count(old) != 1:
             raise ValueError("Xray reviewed Makefile backport anchor changed")
         result = result.replace(old, new)
-    # Full Git blob ID matching the Xray hunk in BACKPORT_COMMIT.
+    # Full Git blob ID matching the Xray hunk in UPX_COMMIT.
     blob = b"blob " + str(len(result)).encode() + b"\0" + result
-    if hashlib.sha1(blob).hexdigest() != UPSTREAM_RECIPE_BLOB:
+    if hashlib.sha1(blob).hexdigest() != UPX_RECIPE_BLOB:
         raise ValueError("Xray derived Makefile differs from reviewed upstream backport")
     return result
 
 
+def prepared_recipe(prior):
+    """Take the exact Cronet hunk and retain the previously reviewed UPX recipe."""
+    anchor = b"ifeq ($(CONFIG_XRAY_CORE_NAIVE),y)\n  GO_PKG_TAGS+=with_naive_outbound\n"
+    allowance = (b"  # Cronet selects its static archive by filename, which cgo rejects by default.\n"
+                 b"  GO_PKG_VARS+=CGO_LDFLAGS_ALLOW='-l:libcronet[.]a'\n")
+    if prior.count(anchor) != 1 or prior.count(b"PKG_RELEASE:=3\n") != 1:
+        raise ValueError("Xray reviewed Cronet backport anchor changed")
+    result = prior.replace(anchor, anchor + allowance).replace(b"PKG_RELEASE:=3\n", b"PKG_RELEASE:=4\n")
+    if hashlib.sha256(result).hexdigest() != PREPARED_RECIPE_SHA256:
+        raise ValueError("Xray derived Makefile differs from reviewed Cronet backport")
+    return result
+
+
 def prepare(package_dir, go_recipe):
-    """Accept only a complete original or complete derived tree; publish atomically."""
+    """Validate the original or either complete derived tree; publish atomically."""
     check_go(go_recipe)
     package_dir = Path(package_dir)
     for protected in (DEFAULT_SOURCES, Path(__file__).resolve().parents[1] / "maintenance"):
@@ -100,14 +116,15 @@ def prepare(package_dir, go_recipe):
     # Use the same complete source validator as the production materializer.
     verify_staged(DEFAULT_SOURCES, "xray-core", RAW)
     original = (RAW / "Makefile").read_bytes()
-    prepared = prepared_recipe(original)
+    prior = upx_recipe(original)
+    prepared = prepared_recipe(prior)
     if package_dir.is_symlink() or not package_dir.is_dir():
         raise ValueError("Xray build source is not a regular package directory")
     recipe = package_dir / "Makefile"
     if recipe.is_symlink() or not recipe.is_file():
         raise ValueError("Xray Makefile is not a regular file")
     current = recipe.read_bytes()
-    if current not in (original, prepared):
+    if current not in (original, prior, prepared):
         raise ValueError("Xray build source has unreviewed drift: Makefile")
     if current == original:
         verify_staged(DEFAULT_SOURCES, "xray-core", package_dir)
@@ -120,8 +137,9 @@ def prepare(package_dir, go_recipe):
             shutil.copytree(package_dir, check, symlinks=True)
             (check / "Makefile").write_bytes(original)
             verify_staged(DEFAULT_SOURCES, "xray-core", check)
-        return
-    descriptor, name = tempfile.mkstemp(prefix=".xray-upx-", dir=package_dir)
+        if current == prepared:
+            return
+    descriptor, name = tempfile.mkstemp(prefix=".xray-compat-", dir=package_dir)
     temporary = Path(name)
     try:
         with os.fdopen(descriptor, "wb") as stream:
@@ -143,7 +161,7 @@ def main(argv=None):
     except (OSError, ValueError, KeyError) as error:
         print(f"Xray compatibility error: {error}", file=sys.stderr)
         return 1
-    print(f"Xray 26.10.21-r3: original tree, UPX backport {BACKPORT_COMMIT} and Go >= 1.27.3 verified")
+    print(f"Xray 26.10.21-r4: original tree, UPX {UPX_COMMIT}, Cronet {CRONET_COMMIT}, Go >= 1.27.3 verified")
     return 0
 
 

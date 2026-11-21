@@ -202,7 +202,7 @@ fi
 preview=$(cd "$repo_root" && ./build.sh cmcc_rax3000m_immwrt config_preview)
 [[ $preview == *"Docker stack selected: 0"* ]] || fail "cmcc_rax3000m_immwrt should not select Docker"
 
-preclone_sha=0123456789abcdef0123456789abcdef01234567
+preclone_sha=6003f6b8c3278a27712f4fdaaa8d1e5faa2b1f54
 preview=$(cd "$repo_root" && PRECLONE_COMMIT_HASH="$preclone_sha" ./build.sh cmcc_rax3000m_immwrt config_preview)
 [[ $preview == *"Source commit: $preclone_sha"* ]] || fail "config preview must report the frozen pre-clone source commit"
 

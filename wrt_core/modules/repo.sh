@@ -76,7 +76,7 @@ clean_up() {
         find "$BUILD_DIR/logs" -type f -delete
     fi
     if [[ -d "feeds" ]]; then
-        ./scripts/feeds clean
+        TOPDIR="$BUILD_DIR" ./scripts/feeds clean
     fi
     mkdir -p "tmp"
     echo "1" >"tmp/.build"

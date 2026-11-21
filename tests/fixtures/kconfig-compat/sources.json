@@ -322,5 +322,41 @@
     "git_blob": "24315656769aa7cbf73f6411a0d1bc77cc4fa5af",
     "sha256": "bc5129b3e60fc360092c853bd2f0ee66506c58179cf87b7c4854d711b4095513",
     "license": "GPL-2.0 (recipe header; Config.in is accompanying package configuration)"
+  },
+  {
+    "repository": "https://github.com/openwrt/video",
+    "commit": "6a3b5fd6e963f41caa73ef4f691e156d467e2894",
+    "path": "frameworks/qt5/qt5base/Makefile",
+    "fixture": "variants/master/video/frameworks/qt5/qt5base/Makefile",
+    "sha256": "e615c8343db4695e0c9059f699d969f1d5c9c21e3931add4b6c026dc277e0bb4",
+    "git_blob": "d78ce5cbbf5336e80c858d74a99e8209b739bf7c",
+    "license": "GPL-2.0 (recipe header)"
+  },
+  {
+    "repository": "https://github.com/immortalwrt/packages",
+    "commit": "65e0b7157b86822f74923b8f1395afded5e0e378",
+    "path": "sound/squeezelite/Makefile",
+    "fixture": "variants/master/packages/sound/squeezelite/Makefile",
+    "sha256": "ce2ca21722e6a0547c291aa4aa1947e19fde6ab533e9109a3ce8844a947dcf08",
+    "git_blob": "2dee01ecd534aeae4474323a016163135815c51a",
+    "license": "GPL-2.0 (recipe header)"
+  },
+  {
+    "repository": "https://github.com/immortalwrt/packages",
+    "commit": "fa25995d74a720c1c98bf6265d3dd8b4eb620d1f",
+    "path": "sound/squeezelite/Makefile",
+    "fixture": "variants/openwrt-25.12/packages/sound/squeezelite/Makefile",
+    "sha256": "3ac165e84a5fb1ea57cecae1b1dbfef8dbaa97dd012faf7e06128399f71464b6",
+    "git_blob": "4c33a9cbfdcc92c14a6c458e214220a1c3b26070",
+    "license": "GPL-2.0 (recipe header)"
+  },
+  {
+    "repository": "https://github.com/immortalwrt/packages",
+    "commit": "171d5f9203379f77693807d7283515a873f95df9",
+    "path": "sound/squeezelite/Makefile",
+    "fixture": "variants/openwrt-24.10/packages/sound/squeezelite/Makefile",
+    "sha256": "67525c5f8b5ee6dbcba1bb4f42bcea6cdc34346d2bc6072db77bf21a2e792c5f",
+    "git_blob": "ae1f5271adaea8b1279dd57d5cf0e133ba8652b0",
+    "license": "GPL-2.0 (recipe header)"
   }
 ]

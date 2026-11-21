@@ -22,6 +22,15 @@ import tempfile
 MANIFEST_TARGET = "/usr/share/shadowsocksr/ssrplus-build.json"
 PACKAGE_NAME = "luci-app-ssr-plus"
 SOURCE_COMMIT = "45893d778767f3bdb2fcb6e873cf8f9a667d94d4"
+PREVIOUS_REPAIR_VERSION = "198-r2"
+REPAIR_VERSION = "198-r3"
+REVIEWED_PATCHES = {
+    "ssrplus-v198-integration.patch": "f5e2d59228e7b830c16702e03135ec0293159ae16dae75ca639e4ac4753eea66",
+    "ssrplus-v198-xray-transports.patch": "c7bf3253b64e48f3c05623f1d465f80ecc9ebf2a44a57e71cf729946fe09824c",
+    "ssrplus-v198-update-policy.patch": "6843a99fcb5d4529c1e9849b1c9b543cb9ec085f176c0a3ab7534d0d1c16707d",
+    "ssrplus-v198-runtime-dependencies.patch": "33573b7046f52364c47e17ac42d15c2abda7bf911f0cd48d5d6f321a90c5cbfc",
+}
+PREPARED_RECIPE_SHA256 = "9159409a4da1daedbb7ca119022e35a879bf771baf17818815ae11c579451ec1"
 # Upstream Git mode 120000 entries for this pinned revision. Managed storage
 # keeps link text; the production feed loader restores these directory links.
 SOURCE_LINKS = {"po/zh-cn": "zh_Hans"}
@@ -167,7 +176,7 @@ def ar_entries(data):
 def package_identity(name, version, expected_version):
     if name != PACKAGE_NAME:
         raise VerificationError("wrong compiled package name: " + str(name))
-    # opkg uses 198-2 while apk uses 198-r2 for the same recipe release.
+    # opkg uses 198-3 while apk uses 198-r3 for the same recipe release.
     normalize = lambda value: re.sub(r"-r([0-9]+)$", r"-\1", str(value))
     if normalize(version) != normalize(expected_version):
         raise VerificationError(f"compiled package version mismatch: expected {expected_version}, got {version}")
@@ -320,6 +329,9 @@ def prepare_source(core, package):
     Work is staged in a private tree so drift never partially patches a feed.
     """
     core, package = Path(core).resolve(), Path(package).resolve()
+    for original in (core / "managed", core.parent / "maintenance"):
+        if package.is_relative_to(original.resolve()):
+            raise VerificationError("SSR original source trees cannot be modified")
     table = core / "compat/ssrplus/source-files.tsv"
     expected = {}
     for line in table.read_text(encoding="utf-8").splitlines():
@@ -356,14 +368,15 @@ def prepare_source(core, package):
     missing = set(expected) - present
     if missing:
         raise VerificationError("missing upstream source file: " + sorted(missing)[0])
-    patches = []
-    for name in (core / "compat/ssrplus/patches.list").read_text().splitlines():
-        if not name or "/" in name or "\\" in name or name in [p.name for p in patches]:
-            raise VerificationError("invalid integration patch name: " + name)
-        patch = core / "patches" / name
-        if not patch.is_file():
-            raise VerificationError("missing integration patch: " + name)
-        patches.append(patch)
+    names = (core / "compat/ssrplus/patches.list").read_text().splitlines()
+    if names != list(REVIEWED_PATCHES):
+        raise VerificationError("SSR integration patch order or names differ from reviewed stack")
+    patches = [core / "patches" / name for name in names]
+    for patch in patches:
+        if sha256(patch.read_bytes()) != REVIEWED_PATCHES[patch.name]:
+            raise VerificationError("unreviewed integration patch: " + patch.name)
+    current = package / manifest_relative
+    existing = validate_manifest(json_object(current.read_bytes())) if current.exists() else None
     with tempfile.TemporaryDirectory(prefix="ssrplus-v198-") as temporary:
         staged = Path(temporary)
         def git(*args, check=True):
@@ -372,6 +385,25 @@ def prepare_source(core, package):
             if check and result.returncode:
                 raise VerificationError("SSR integration failed: " + result.stderr.strip())
             return result.returncode == 0
+
+        def make_manifest(stack, version):
+            files = {"/" + relative[5:]: {"sha256": sha256((staged / relative).read_bytes()), "mode": mode}
+                     for relative, (_blob, mode) in expected.items() if mode != "-"}
+            return validate_manifest({"source_commit": SOURCE_COMMIT, "repair_version": version,
+                "patches": {patch.name: REVIEWED_PATCHES[patch.name] for patch in stack}, "files": files})
+
+        def verify_prepared(manifest):
+            if existing != manifest:
+                raise VerificationError("prepared source manifest drift")
+            for relative, (_blob, mode) in expected.items():
+                if relative in SOURCE_LINKS:
+                    continue
+                installed = package / relative
+                if installed.read_bytes() != (staged / relative).read_bytes():
+                    raise VerificationError("prepared source drift: " + relative)
+                if os.name != "nt" and mode != "-" and stat.S_IMODE(installed.stat().st_mode) != int(mode, 8):
+                    raise VerificationError("prepared source mode drift: " + relative)
+
         git("init", "-q")
         git("config", "core.autocrlf", "false")
         for relative in expected:
@@ -380,9 +412,10 @@ def prepare_source(core, package):
             target = staged / relative
             target.parent.mkdir(parents=True, exist_ok=True)
             shutil.copyfile(root_file(package, "/" + relative), target)
-        for patch in reversed(patches):
-            if git("apply", "--reverse", "--check", str(patch), check=False):
-                git("apply", "--reverse", str(patch))
+        if existing is not None:
+            for patch in reversed(patches):
+                if git("apply", "--reverse", "--check", str(patch), check=False):
+                    git("apply", "--reverse", str(patch))
         for relative, (blob, _mode) in expected.items():
             if relative in SOURCE_LINKS:
                 continue
@@ -390,19 +423,18 @@ def prepare_source(core, package):
             actual = hashlib.sha1(b"blob " + str(len(data)).encode() + b"\0" + data).hexdigest()
             if actual != blob:
                 raise VerificationError("unreviewed upstream source drift: " + relative)
-        for patch in patches:
+        previous_patches = patches[:-1]
+        for patch in previous_patches:
             git("apply", str(patch))
-        files = {}
-        for relative, (_blob, mode) in expected.items():
-            if mode != "-":
-                target = staged / relative
-                target.chmod(int(mode, 8))
-                files["/" + relative[5:]] = {"sha256": sha256(target.read_bytes()), "mode": mode}
-        manifest = validate_manifest({"source_commit": SOURCE_COMMIT, "repair_version": "198-r2",
-            "patches": {patch.name: sha256(patch.read_bytes()) for patch in patches}, "files": files})
-        current = package / manifest_relative
-        if current.exists() and json_object(current.read_bytes()) != manifest:
-            raise VerificationError("prepared source manifest drift")
+        migrating = existing is not None and existing["repair_version"] == PREVIOUS_REPAIR_VERSION
+        if migrating:
+            verify_prepared(make_manifest(previous_patches, PREVIOUS_REPAIR_VERSION))
+        git("apply", str(patches[-1]))
+        if sha256((staged / "Makefile").read_bytes()) != PREPARED_RECIPE_SHA256:
+            raise VerificationError("SSR derived Makefile differs from reviewed runtime backport")
+        manifest = make_manifest(patches, REPAIR_VERSION)
+        if existing is not None and not migrating:
+            verify_prepared(manifest)
         (staged / manifest_relative).write_text(json.dumps(manifest, indent=2, sort_keys=True) + "\n", encoding="utf-8")
         for relative in [*expected, manifest_relative]:
             # Integration only changes canonical translation files. Never

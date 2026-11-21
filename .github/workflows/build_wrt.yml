@@ -19,6 +19,7 @@ on:
           - jdcloud_ipq60xx_libwrt
           - link_nn6000v2_immwrt
           - linksys_mx4x00_immwrt
+          - n1_immwrt
           - qihoo_360v6_immwrt
           - redmi_ax5_immwrt
           - redmi_ax6_immwrt
@@ -27,6 +28,14 @@ on:
           - zn_m2_libwrt
           - x64_immwrt
           - supergateway_s20m_immwrt
+      build_mode:
+        required: false
+        description: Full firmware build or source/configuration validation
+        type: choice
+        default: firmware
+        options:
+          - firmware
+          - config_only
       add_fragments:
         required: false
         description: Add config fragments, comma separated
@@ -64,18 +73,11 @@ jobs:
           sudo -E apt-get clean || true
           df -hT
 
-      - name: Build System Setup
-        run: |
-          sudo bash -c 'bash <(curl -sL https://build-scripts.immortalwrt.org/init_build_environment.sh)'
-          sudo -E apt -yqq install dos2unix
-          sudo -E apt -yqq install libfuse-dev
-          sudo -E apt -yqq autoremove --purge
-          sudo -E apt -yqq autoclean
-          sudo -E apt -yqq clean
-          sudo -E systemctl daemon-reload
-
       - name: Checkout
         uses: actions/checkout@v7.0.0
+
+      - name: Build System Setup
+        run: sudo bash wrt_core/setup_ci_environment.sh
 
       - name: Set Build Date and Timezone
         env:
@@ -142,7 +144,14 @@ jobs:
         env:
           ADD_CONFIG_FRAGMENTS: ${{ inputs.add_fragments }}
           REMOVE_CONFIG_FRAGMENTS: ${{ inputs.remove_fragments }}
-        run: ./build.sh ${{ inputs.model }}
+          BUILD_DEVICE: ${{ inputs.model }}
+          BUILD_MODE: ${{ inputs.build_mode }}
+        run: |
+          case "${BUILD_MODE:-firmware}" in
+            firmware) ./build.sh "$BUILD_DEVICE" ;;
+            config_only) ./build.sh "$BUILD_DEVICE" debug ;;
+            *) echo "Unknown build mode: $BUILD_MODE" >&2; exit 2 ;;
+          esac
 
       - name: Upload Build Logs
         if: ${{ !cancelled() }}
@@ -155,6 +164,7 @@ jobs:
           retention-days: 7
 
       - name: Delete Old Cache
+        if: ${{ inputs.build_mode != 'config_only' }}
         run: |
           # 获取缓存列表并删除
           gh cache list --key ${{ matrix.os }}-${{ inputs.model }}-${{ env.REPO_HASH }}- --json key --jq '.[] | .key' | while read -r key; do
@@ -193,7 +203,21 @@ jobs:
           echo "===================================================="
 
       - name: Upload Firmware
+        if: ${{ inputs.build_mode != 'config_only' }}
         uses: actions/upload-artifact@v7.0.1
         with:
           name: ${{ env.BUILD_DATE }}_${{ inputs.model }}
           path: ./firmware/*.*
+
+      - name: Upload Prepared Configuration
+        if: ${{ inputs.build_mode == 'config_only' }}
+        uses: actions/upload-artifact@v7.0.1
+        with:
+          name: prepared-config-${{ inputs.model }}-${{ github.run_id }}
+          path: |
+            ./action_build/.config
+            ./action_build/.config.requested
+            ./action_build/feeds.conf.default
+            ./action_build/feeds.conf
+          if-no-files-found: error
+          retention-days: 7

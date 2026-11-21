@@ -9,6 +9,9 @@ python tests/verify_upstream_sync.py
 python wrt_core/managed_plugins.py check
 python tests/test_managed_plugins.py
 python tests/test_managed_build.py
+python tests/test_feeds_lock.py
+python tests/test_upstream_build_fixes.py
+python tests/test_ci_build_modes.py
 python tests/test_fw876_sources.py
 python tests/test_simple_obfs_compat.py
 python tests/test_simple_obfs_download.py
@@ -23,6 +26,7 @@ python tests/test_oaf_compat.py
 python tests/test_oaf_runtime.py
 python tests/test_oaf_lifecycle.py
 python tests/test_theme_preservation.py
+python tests/test_theme_upstream.py
 python tests/test_windows_test_env.py
 python tests/test_validation_gates.py
 python tests/test_plugin_selection.py
@@ -42,6 +46,7 @@ python tests/test_openclash_backports.py
 python tests/test_openclash_filename.py
 python tests/test_openclash_tun_stack.py
 python tests/test_openclash_updates.py
+python tests/test_openclash_20261121.py
 bash tests/test_banner.sh
 bash tests/test_repo_checkout.sh
 python tests/test_homeproxy_dns_expire.py

@@ -1,3 +1,4 @@
 ssrplus-v198-integration.patch
 ssrplus-v198-xray-transports.patch
 ssrplus-v198-update-policy.patch
+ssrplus-v198-runtime-dependencies.patch

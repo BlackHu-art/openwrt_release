@@ -48,10 +48,9 @@ sync_repo_root_package_to_feed_dir() {
     mkdir -p "$3/$5"
     printf 'DEPENDS:=+luci-js-deps +luci-base\n' > "$3/$5/Makefile"
 }
-network_retry() {
-    [[ "$*" == "./scripts/feeds update custom_feed" ]]
-    mkdir -p "$BUILD_DIR/feeds"
-    cp -R "$BUILD_DIR/custom_feed" "$BUILD_DIR/feeds/custom_feed"
+run_feed_index() {
+    [[ "$*" == "custom custom_feed" ]]
+    [[ -L "$BUILD_DIR/feeds/custom_feed" ]]
 }
 
 install_custom_feed

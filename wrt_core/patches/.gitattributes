@@ -21,3 +21,5 @@ quickstart-runtime-safety.patch text eol=lf whitespace=-blank-at-eol,-space-befo
 openclash-subscription-safety.patch text eol=lf whitespace=-blank-at-eol,-space-before-tab
 openclash-group-rename.patch text eol=lf whitespace=-blank-at-eol,-space-before-tab
 openclash-etag-lock.patch text eol=lf whitespace=-blank-at-eol,-space-before-tab
+openclash-cache-after-stop.patch text eol=lf whitespace=-blank-at-eol,-space-before-tab
+openclash-dns-rule-compat.patch text eol=lf whitespace=-blank-at-eol,-space-before-tab

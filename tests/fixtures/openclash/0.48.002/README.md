@@ -3,8 +3,8 @@
 The original nine complete, byte-identical files came from
 [kenzok8/small-package 549bdea5056436c9c2f9b8ad6eb9297318bbd6a1](https://github.com/kenzok8/small-package/tree/549bdea5056436c9c2f9b8ad6eb9297318bbd6a1/luci-app-openclash).
 The package Makefile identifies version `0.48.002`.
-The five subscription/ETag/group-update fixtures were added from the mirror
-snapshot below. All fourteen files were checked against mirror commit
+The five subscription/ETag/group-update fixtures and the history helper were
+added from the mirror snapshot below. All fifteen files were checked against mirror commit
 [`3d5609257639ed76aaacdeffe242343d51265fea`](https://github.com/kenzok8/small-package/tree/3d5609257639ed76aaacdeffe242343d51265fea/luci-app-openclash)
 and official [`e553e82e01c697aefbe1555261a503f425e00ccd`](https://github.com/vernesong/OpenClash/tree/e553e82e01c697aefbe1555261a503f425e00ccd/luci-app-openclash).
 
@@ -22,6 +22,7 @@ and official [`e553e82e01c697aefbe1555261a503f425e00ccd`](https://github.com/ver
 | `openclash.sh` | `root/usr/share/openclash/openclash.sh` | `6c181265ca96c452660653d60ec552d58eccc12c` |
 | `openclash_curl.sh` | `root/usr/share/openclash/openclash_curl.sh` | `0d2a371bc2389d833bc81cdafdf075e5d70f0648` |
 | `openclash_etag.sh` | `root/usr/share/openclash/openclash_etag.sh` | `9a5313dccf8603fa0dc82737d08941604574c3f3` |
+| `openclash_history_get.sh` | `root/usr/share/openclash/openclash_history_get.sh` | `a6f84146c67dcd97ac8df1086ebbba034edd13ee` |
 | `uci.rb` | `root/usr/share/openclash/uci.rb` | `726b0ea480762404aa9a15903fcce5bc1e2801ed` |
 | `proxy-groups-config.lua` | `luasrc/model/cbi/openclash/proxy-groups-config.lua` | `ee986b054aeedc999584e37d824289485bb9f872` |
 
@@ -65,3 +66,8 @@ failed/filtered downloads, deferred ETag publication, concurrent cache writes,
 and rule references after group renaming. The fixture blob identities and
 backport donors are recorded in
 [`sources.json`](../../../../wrt_core/compat/openclash-runtime/sources.json).
+
+`test_openclash_20261121.py` runs the patched stop and history functions with
+isolated process and OpenWrt service boundaries. It checks that the cache is
+copied under the running configuration's name after core exit. It also runs
+the real Ruby generator to check custom DNS list and fake-IP whitelist handling.

@@ -224,12 +224,11 @@ sync_sparse_packages_to_feed_dir() {
 sync_repo_root_package_to_feed_dir() {
     mkdir -p "$3/$5"; printf 'DEPENDS:=+luci-js-deps +luci-base\n' > "$3/$5/Makefile"
 }
-network_retry() {
-    test "$*" = './scripts/feeds update custom_feed'
+run_feed_index() {
+    test "$*" = 'custom custom_feed'
     test -f "$BUILD_DIR/custom_feed/luci-app-homeproxy/Makefile"
     test -L "$BUILD_DIR/custom_feed/luci-app-oaf/po/zh-cn"
-    mkdir -p "$BUILD_DIR/feeds"
-    ln -s "$BUILD_DIR/custom_feed" "$BUILD_DIR/feeds/custom_feed"
+    test -L "$BUILD_DIR/feeds/custom_feed"
 }
 install_custom_feed
 grep -Fq "src-link custom_feed $BUILD_DIR/custom_feed" "$BUILD_DIR/$FEEDS_CONF"
