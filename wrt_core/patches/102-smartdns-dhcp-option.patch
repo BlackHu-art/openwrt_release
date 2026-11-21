@@ -15,13 +15,17 @@ adds it, so stop and reconfiguration preserve pre-existing DHCP settings.
  	hostip="$(uci -q get network.lan.ipaddr | sed 's/\/.*//g')"
  	dnsmasq_port="$(uci -q get dhcp.@dnsmasq[0].port)"
  	[ -z "$dnsmasq_port" ] && dnsmasq_port="53"
-@@ -91,7 +91,16 @@
+@@ -91,8 +91,20 @@
  	uci_batch=""
  	[ "$dnsmasq_port" = "53" ] && {
  		uci_batch="$uci_batch set dhcp.@dnsmasq[0].port=0\n"
 -		uci_batch="$uci_batch add_list dhcp.lan.dhcp_option=\"6,$hostip\"\n"
+-	}
++	}
++	previous_option="$(uci -q get dhcp.lan.smartdns_dhcp_option)"
++	# Reload keeps dnsmasq disabled; reconcile only options we recorded.
++	if [ "$dnsmasq_port" = "53" ] || { [ "$dnsmasq_port" = "0" ] && [ -n "$previous_option" ]; }; then
 +		dns_option="6,$hostip"
-+		previous_option="$(uci -q get dhcp.lan.smartdns_dhcp_option)"
 +		if [ -n "$previous_option" ] && [ "$previous_option" != "$dns_option" ]; then
 +			uci_batch="$uci_batch del_list dhcp.lan.dhcp_option=\"$previous_option\"\n"
 +			uci_batch="$uci_batch delete dhcp.lan.smartdns_dhcp_option\n"
@@ -30,10 +34,11 @@ adds it, so stop and reconfiguration preserve pre-existing DHCP settings.
 +			uci_batch="$uci_batch add_list dhcp.lan.dhcp_option=\"$dns_option\"\n"
 +			uci_batch="$uci_batch set dhcp.lan.smartdns_dhcp_option=\"$dns_option\"\n"
 +		fi
- 	}
++	fi
  
  	# for some third-party firmware
-@@ -113,7 +122,7 @@
+ 	redir_dns="$(uci -q get dhcp.@dnsmasq[0].dns_redirect)"
+@@ -113,7 +125,7 @@
  stop_main_dns()
  {
  	local norestart="$1"
@@ -42,7 +47,7 @@ adds it, so stop and reconfiguration preserve pre-existing DHCP settings.
  	dnsmasq_port="$(uci -q get dhcp.@dnsmasq[0].port)"
  	redir_dns="$(uci -q get dhcp.@dnsmasq[0].old_dns_redirect)"
  	[ "$dnsmasq_port" != "0" ] && return
-@@ -124,7 +133,12 @@
+@@ -124,7 +136,12 @@
  		uci_batch="$uci_batch delete dhcp.@dnsmasq[0].old_dns_redirect\n"
  	}
  	uci_batch="$uci_batch delete dhcp.@dnsmasq[0].port\n"

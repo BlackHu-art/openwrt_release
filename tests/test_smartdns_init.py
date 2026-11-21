@@ -48,8 +48,12 @@ uci() {
             while read -r op value; do
                 case "$op:$value" in
                     'set:dhcp.@dnsmasq[0].port=0') echo 0 > port ;;
-                    'add_list:dhcp.lan.dhcp_option="6,10.0.0.1"') echo '6,10.0.0.1' >> options ;;
-                    'set:dhcp.lan.smartdns_dhcp_option="6,10.0.0.1"') echo '6,10.0.0.1' > ownership ;;
+                    add_list:dhcp.lan.dhcp_option=*)
+                        option=${value#*=}; option=${option#\"}; option=${option%\"}
+                        printf '%s\n' "$option" >> options ;;
+                    set:dhcp.lan.smartdns_dhcp_option=*)
+                        option=${value#*=}; option=${option#\"}; option=${option%\"}
+                        printf '%s\n' "$option" > ownership ;;
                     'delete:dhcp.@dnsmasq[0].port') : > port ;;
                     'delete:dhcp.lan.smartdns_dhcp_option') : > ownership ;;
                     del_list:dhcp.lan.dhcp_option=*)
@@ -76,21 +80,30 @@ set_main_dns
 cat options
 cp port started-port
 echo "$1" > lan-address
+[ "$2" != reload ] || set_main_dns
+cp options before-stop
 stop_main_dns 0
 '''
             base = ["6,10.0.0.10", "3,10.0.0.254"]
-            for preexisting, address in ((True, "10.0.0.1"), (False, "10.0.0.1/24"),
-                                         (False, "10.0.0.12/24")):
-                with self.subTest(preexisting=preexisting, stop_address=address):
+            for preexisting, address, reload in ((True, "10.0.0.1", False),
+                                                  (False, "10.0.0.1/24", False),
+                                                  (False, "10.0.0.12/24", False),
+                                                  (False, "10.0.0.12/24", True),
+                                                  (True, "10.0.0.12/24", True)):
+                with self.subTest(preexisting=preexisting, address=address, reload=reload):
                     before = [*base, "6,10.0.0.1"] if preexisting else base
                     (work / "options").write_text("\n".join(before) + "\n", newline="\n")
                     (work / "ownership").write_text("")
                     (work / "lan-address").write_text("10.0.0.1/24\n", newline="\n")
-                    result = subprocess.run([bash_executable(), "-c", script, "smartdns-uci", address],
+                    result = subprocess.run([bash_executable(), "-c", script, "smartdns-uci", address,
+                                             "reload" if reload else ""],
                                             cwd=work, text=True, capture_output=True, timeout=10)
                     self.assertEqual(result.returncode, 0, result.stderr)
                     self.assertEqual(result.stdout.splitlines(), [*base, "6,10.0.0.1"])
                     self.assertEqual((work / "started-port").read_text().strip(), "0")
+                    active_address = "10.0.0.12" if reload and not preexisting else "10.0.0.1"
+                    self.assertEqual((work / "before-stop").read_text().splitlines(),
+                                     [*base, f"6,{active_address}"])
                     self.assertEqual((work / "options").read_text().splitlines(), before)
                     self.assertEqual((work / "ownership").read_text(), "")
 
