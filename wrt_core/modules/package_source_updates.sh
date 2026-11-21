@@ -137,6 +137,12 @@ update_smartdns() {
 
     python3 "$BASE_PATH/smartdns_compat.py" "$SMARTDNS_DIR" || return 1
     install -Dm644 "$BASE_PATH/patches/100-smartdns-optimize.patch" "$SMARTDNS_DIR/patches/100-smartdns-optimize.patch" || return 1
+    # b6139a: preserve client server_info until server cleanup finishes.
+    # smartdns_compat.py validates the pinned core and canonical archive hash.
+    install -Dm644 "$BASE_PATH/patches/101-smartdns-shutdown-order.patch" "$SMARTDNS_DIR/patches/101-smartdns-shutdown-order.patch" || return 1
+    install -Dm644 "$BASE_PATH/patches/102-smartdns-dhcp-option.patch" "$SMARTDNS_DIR/patches/102-smartdns-dhcp-option.patch" || return 1
+    install -Dm644 "$BASE_PATH/patches/103-smartdns-serve-expired-no.patch" "$SMARTDNS_DIR/patches/103-smartdns-serve-expired-no.patch" || return 1
+    install -Dm644 "$BASE_PATH/patches/104-smartdns-expired-cache-config.patch" "$SMARTDNS_DIR/patches/104-smartdns-expired-cache-config.patch" || return 1
     sed -i '/define Build\/Compile\/smartdns-ui/,/endef/s/CC=\$(TARGET_CC)/CC="\$(TARGET_CC_NOCACHE)"/' "$SMARTDNS_DIR/Makefile" || return 1
 
     echo "正在更新 luci-app-smartdns..."

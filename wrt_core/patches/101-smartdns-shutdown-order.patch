@@ -1,0 +1,23 @@
+From b6139a199232140447aff6c4ec111c222ac84993 Mon Sep 17 00:00:00 2001
+From: Sebastian Gottschall <s.gottschall@dd-wrt.com>
+Subject: [PATCH] fix use after free
+
+Origin: https://github.com/pymumu/smartdns/commit/b6139a199232140447aff6c4ec111c222ac84993
+The server cleanup still accesses client-owned server_info. Keep it alive
+until dns_server_exit has finished. Backport only the upstream call reorder
+to pinned core 136c0c2690138d6dedd8b520281aafe49112643f.
+
+--- a/src/smartdns.c
++++ b/src/smartdns.c
+@@ -714,10 +714,10 @@ static int _smartdns_run(void)
+ static void _smartdns_exit(void)
+ {
+ 	_smartdns_plugin_exit();
+-	dns_client_exit();
+ 	proxy_exit();
+ 	fast_ping_exit();
+ 	dns_server_exit();
++	dns_client_exit();
+ 	dns_stats_exit();
+ 	_smartdns_destroy_ssl();
+ 	dns_timer_destroy();

@@ -1,0 +1,22 @@
+Subject: config: emit an explicit SmartDNS expired-cache preference
+Adapted from https://github.com/pymumu/smartdns/commit/fbe166d7249ef2ad360cc719def8f2f9eb93e55c
+
+Map explicit UCI values to the core policy while leaving absent values to
+the core default, as on the original pinned version.
+
+--- a/package/openwrt/files/etc/init.d/smartdns
++++ b/package/openwrt/files/etc/init.d/smartdns
+@@ -671,8 +671,11 @@ load_service()
+ 	config_get prefetch_domain "$section" "prefetch_domain" "0"
+ 	[ "$prefetch_domain" = "1" ] && conf_append "prefetch-domain" "yes"
+ 
+-	config_get serve_expired "$section" "serve_expired" "0"
+-	[ "$serve_expired" = "1" ] && conf_append "serve-expired" "yes"
++	config_get serve_expired "$section" "serve_expired" ""
++	case "$serve_expired" in
++		1) conf_append "serve-expired" "yes" ;;
++		0) conf_append "serve-expired" "no" ;;
++	esac
+ 
+ 	config_get cache_size "$section" "cache_size" ""
+ 	[ -z "$cache_size" ] || conf_append "cache-size" "$cache_size"

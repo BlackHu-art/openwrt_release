@@ -1,6 +1,6 @@
 # 源码归档与下载兼容
 
-2026-10-24 的[京东云构建 40062153515](https://github.com/BlackHu-art/openwrt_release/actions/runs/40062153515) 已通过 SSR 源码准备，在 simple-obfs 下载归档校验时失败。本文记录两个兼容修复及复验方式。
+2026-10-24 的[京东云构建 40062153515](https://github.com/BlackHu-art/openwrt_release/actions/runs/40062153515) 已通过 SSR 源码准备，在 simple-obfs 下载归档校验时失败。本文记录相关兼容修复及复验方式。
 
 ## 来源和归档身份
 
@@ -59,9 +59,9 @@ SmartDNS 配方来自现有 `ZqinKing/openwrt-smartdns`；在这次下载问题�
 
 因此原始 `MIRROR_HASH` 正确，不能改成错误默认分支的哈希。固定源码 tree 为 `190f76f34cfda865389b27e8f69887aa6a64edc3`，时间戳为 `1766583635`，151 个归档条目；GNU tar SHA-256 为 `a203faeeb55271853270e0e84907d29d4e32043cf1bc86f4e45a4e78ff92816f`。GNU gzip 使用 `-nc`，没有文件名或当前时间信息。
 
-[`smartdns_compat.py`](../wrt_core/smartdns_compat.py) 在 `update_smartdns` 获取并核对下述固定包装提交后、现有补丁和 CC 修正前执行，只在构建副本修正 WebUI 提交字段，并在已有 `CONFIG_PACKAGE_smartdns-ui` 为 y/m 时注册 WebUI 下载。它不升级主程序版本或源码提交。原始维护快照不修改；未知 Makefile 漂移明确失败，错误经源码准备阶段传播。
+[`smartdns_compat.py`](../wrt_core/smartdns_compat.py) 在 `update_smartdns` 获取并核对下述固定包装提交后、现有补丁和 CC 修正前执行，在构建副本修正 WebUI 提交字段，并在已有 `CONFIG_PACKAGE_smartdns-ui` 为 y/m 时注册 WebUI 下载。它不升级主程序版本或源码提交。原始维护快照不修改；未知 Makefile 漂移明确失败，错误经源码准备阶段传播。
 
-[`test_smartdns_download.py`](../tests/test_smartdns_download.py) 用真实 `download.mk` 展开原配方，复现空提交号和未选 UI 仍下载；修正后验证 unset/n/y/m，以及主程序下载提交保留。Linux 必需门禁执行 y/m 的真实干净下载、逐成员 Git blob 核对、独立归档字节比较，以及错误哈希拒绝。测试不执行 Rust/Node 编译或目标架构交叉编译。
+[`test_smartdns_download.py`](../tests/test_smartdns_download.py) 用真实 `download.mk` 展开原配方，复现空提交号和未选 UI 仍下载；修正后验证 unset/n/y/m，以及主程序下载提交保留。Linux 必需门禁执行 WebUI y/m 的真实干净下载、逐成员 Git blob 核对、独立归档字节比较，以及错误哈希拒绝；核心归档覆盖范围见下节。测试不执行 Rust/Node 编译或目标架构交叉编译。
 
 ```bash
 REQUIRE_SMARTDNS_DOWNLOAD=1 python3 tests/test_smartdns_download.py -v
@@ -76,3 +76,62 @@ REQUIRE_SMARTDNS_DOWNLOAD=1 python3 tests/test_smartdns_download.py -v
 [`update_smartdns`](../wrt_core/modules/package_source_updates.sh) 继续使用原 `ZqinKing/openwrt-smartdns` 仓库，在克隆后 fetch 并 checkout 已审查的完整提交 `cdf0de1d3e64984ea2c56ec873f233495ddb1de0`，核对实际 HEAD 后才执行兼容脚本、优化补丁和 CC 修正。获取、检出或身份核对失败时终止准备，不回退到默认分支。该提交保持核心配方 `1.2025.47-r1`、核心源码 `136c0c2690138d6dedd8b520281aafe49112643f` 及上文 WebUI 归档身份。SmartDNS 保留，LuCI 仍从原 `pymumu/luci-app-smartdns` 来源获取，插件选择和编译配置不变。
 
 未来升级需要一起审查包装提交 pin、原始维护快照及清单、核心和 WebUI 归档身份、兼容脚本基线、优化/CC 补丁与相应回归。不能只移动 pin、接受新哈希或跳过严格校验；来源准备通过也不代表 Rust/Node、目标架构编译或路由器运行已经通过。
+
+## SmartDNS 核心使用固定 codeload 归档
+
+2026-11-21 两个完整京东云构建
+[ImmortalWrt 44871843193](https://github.com/BlackHu-art/openwrt_release/actions/runs/44871843193)
+和 [LiBwrt 44871845589](https://github.com/BlackHu-art/openwrt_release/actions/runs/44871845589)
+均在核心 `smartdns-1.2025.47.tar.zst` 下载时停止，尚未进入固件编译。
+原配方要求 `5ef82ea81d5f627f52171e3b487331ecdd270554555cbff3d291590e19f4658d`，
+镜像均未提供文件；按原固定提交检出并打包后，两者实际得到
+`d7e1490986c80730b63b9eb086f3962704db5634c1f23d7fdc47efd171996f4b`。
+此前必需下载测试只实际获取 WebUI，核心仅检查命令展开，未覆盖这条失败路径。
+
+独立读取核心提交 `136c0c2690138d6dedd8b520281aafe49112643f` 的全部 445 个 Git blob，
+以 GNU tar 1.35 / zstd 1.5.7 重建，得到与失败日志完全相同的 `d7e149…`。
+原包装仓库的生产脚本使用未固定版本的 snapshot SDK 打包工具，没有记录其版本；
+原始生产任务日志已过期，因此无法确定原 `5ef82e…` 的具体打包环境。
+本次没有把日志中的新哈希直接写回 zstd 配方，也不把差异错误归因于已经证明的单一版本变化。
+
+采用已合并的上游
+[`1db3543cfaa397cd1115b0479416f73062711a63`](https://github.com/pymumu/openwrt-smartdns/commit/1db3543cfaa397cd1115b0479416f73062711a63)
+中的核心归档获取方式，直接下载完整提交对应的 codeload tar.gz，按固定 `PKG_HASH` 校验。
+仅回移归档方式，不采用该上游提交附带的核心 / WebUI 升级。
+包装原始快照 `cdf0de1…`、核心版本 `1.2025.47-r1`、核心提交 `136c0c2…`、
+WebUI `3261c18…` 与其原有 gzip 哈希、优化补丁和编译器设置均保留。
+
+固定核心归档身份：
+
+| 项目 | 已独立核对的值 |
+| --- | --- |
+| 下载来源 | [codeload 完整提交归档](https://codeload.github.com/pymumu/smartdns/tar.gz/136c0c2690138d6dedd8b520281aafe49112643f) |
+| 本地归档名 | `smartdns-136c0c2690138d6dedd8b520281aafe49112643f.tar.gz` |
+| SHA-256 | `fd7bfb126ba15764d89a3a57efbea67602105a7bf394f81b7b5dd81693ddc5cb` |
+| gzip 字节数 | 859558 |
+| Git tree | `4f7381b2b6778f5f6b96d7e2dbdf7167753d2b52` |
+| 内容 | 445 个文件，546 个归档条目，无子模块或符号链接 |
+| 时间戳 | `1769178721`，所有条目对应固定提交时间 |
+
+核对不依赖归档中的自报哈希：预期路径、内容和可执行属性直接从固定 Git 对象读取。
+codeload 的模式使用 Git archive 默认 `tar.umask=0002`，普通文件为 0664，可执行文件 / 目录为 0775；
+所有 uid/gid 为 0，名称为 root，PAX comment 对应完整 Git 提交。
+`PKG_BUILD_DIR` 同步指向归档实际根目录，真实优化补丁可以在该目录正常定位全部源文件。
+
+新的 `SmartDnsCoreDownload` 纳入现有 `REQUIRE_SMARTDNS_DOWNLOAD=1` 必需入口：
+分别使用五个旧 IPQ60xx 所用 `3fd1e27a` 和 LiBwrt `000a4e74` 的真实下载框架进行干净下载，
+逐文件比较全部 Git blob、模式与元数据，检查解包目录，并依次实际应用优化和运行修复补丁；
+随后故意提供错误 SHA-256，要求实际下载器报告已下载字节的正确哈希并拒绝发布文件。
+原 WebUI 选择 / 固定提交 / 真下载检查继续执行。原始维护文件不修改，完整配方漂移检查仍生效。
+
+本地 macOS 实际 HTTP 下载与完整内容核对已通过；使用原生编译的文件锁辅助程序进行这一额外实验，
+不代表 Linux 门禁已通过。最终 Linux CI 和完整固件构建结果需要分别确认。
+
+同一核心提交也接入三项运行修复。退出时先完成服务端清理再释放客户端资源。
+反复设置主 DNS 时，已有的同一 DHCP 选项不再追加。界面显式关闭过期缓存时，启动脚本生成
+`serve-expired no`，核心按该设置处理缓存和响应有效时间。未配置该选项时沿用核心默认值。
+回归运行生产函数及初始化脚本中的相关逻辑，通过受控边界复现旧问题并核实修复后的行为。
+[退出顺序](https://github.com/pymumu/smartdns/commit/b6139a199232140447aff6c4ec111c222ac84993)、
+[DHCP 选项](https://github.com/pymumu/smartdns/commit/21c940edc65520849ba03544c5cf8d9cf326e680)、
+[过期缓存](https://github.com/pymumu/smartdns/commit/1006f640d50f1e2951e13d3e740813cc76a6739e)、
+[设置传递](https://github.com/pymumu/smartdns/commit/fbe166d7249ef2ad360cc719def8f2f9eb93e55c)。

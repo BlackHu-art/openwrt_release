@@ -17,6 +17,8 @@ python tests/test_fw876_sources.py
 python tests/test_simple_obfs_compat.py
 python tests/test_simple_obfs_download.py
 python tests/test_smartdns_compat.py
+python tests/test_smartdns_runtime.py
+python tests/test_smartdns_init.py
 python tests/test_smartdns_download.py
 python tests/test_kconfig_compat.py
 bash tests/test_kconfig_linux.sh

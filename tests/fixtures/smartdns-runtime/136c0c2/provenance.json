@@ -1,0 +1,41 @@
+{
+  "repository": "https://github.com/pymumu/smartdns",
+  "commit": "136c0c2690138d6dedd8b520281aafe49112643f",
+  "archive_sha256": "fd7bfb126ba15764d89a3a57efbea67602105a7bf394f81b7b5dd81693ddc5cb",
+  "fix_commit": "b6139a199232140447aff6c4ec111c222ac84993",
+  "files": {
+    "src/smartdns.c": {
+      "git_blob": "1b20d9d27ebc7c7e49de2b1118598b323f64a369",
+      "sha256": "7f53978859535bc18762935d00502c34a2ee0e66549567128af88cbd70bef62d",
+      "mode": "100644"
+    },
+    "LICENSE": {
+      "git_blob": "f288702d2fa16d3cdf0035b15a9fcbc552cd88e7",
+      "sha256": "3972dc9744f6499f0f9b2dbf76696f2ae7ad8af9b23dde66d6af86c9dfb36986",
+      "mode": "100644"
+    },
+    "src/dns_server/cache.c": {
+      "git_blob": "4e2a9406ae07b569c5c755746d9214de43106fad",
+      "sha256": "9fdfc41d3c96e3698ff71207f8ba276eee9a07d7cd16eadb8641f6a782a6b2eb",
+      "mode": "100644"
+    },
+    "src/dns_server/rules.c": {
+      "git_blob": "de1512bdbdb2b4364b7f923657644ef2c04764cd",
+      "sha256": "14fe8528c63de7a885147f1071654faf54aa97bf64131503f29c653ee4569a3f",
+      "mode": "100644"
+    },
+    "src/dns_conf/dns_conf_group.c": {
+      "git_blob": "d063de04ecb034ddbb196bcf186debed12a0dcbc",
+      "sha256": "3f895147228402f78ab9320537df950a169d4783dab06533f5ada56d3e1a5595",
+      "mode": "100644"
+    },
+    "package/openwrt/files/etc/init.d/smartdns": {
+      "git_blob": "ce2819b8f13d1801fa0f6b44cbd6d329f51c2e3f",
+      "sha256": "74c6a3c0c1866558dd1007c102515edf6ef44da7c0db6640f17a988fc17a7f75",
+      "mode": "100644"
+    }
+  },
+  "serve_expired_fix_commit": "1006f640d50f1e2951e13d3e740813cc76a6739e",
+  "dhcp_option_fix_commit": "21c940edc65520849ba03544c5cf8d9cf326e680",
+  "serve_expired_config_fix_commit": "fbe166d7249ef2ad360cc719def8f2f9eb93e55c"
+}

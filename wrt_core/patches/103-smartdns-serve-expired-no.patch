@@ -1,0 +1,31 @@
+From 1006f640d50f1e2951e13d3e740813cc76a6739e Mon Sep 17 00:00:00 2001
+Subject: [PATCH] fix global config `serve-expired no` not work
+
+Origin: https://github.com/pymumu/smartdns/commit/1006f640d50f1e2951e13d3e740813cc76a6739e
+Respect the global/group policy when serving stale cache and selecting the
+reply TTL. Keep existing defaults and configuration generation unchanged.
+Backported to pinned core 136c0c2690138d6dedd8b520281aafe49112643f.
+
+--- a/src/dns_server/cache.c
++++ b/src/dns_server/cache.c
+@@ -537,7 +537,8 @@
+ 	}
+ 
+ reply_cache:
+-	if (dns_cache_get_ttl(dns_cache) <= 0 && request->no_serve_expired == 1) {
++	if (dns_cache_get_ttl(dns_cache) <= 0 &&
++		(request->no_serve_expired == 1 || request->conf->dns_serve_expired == 0)) {
+ 		goto out;
+ 	}
+ 
+--- a/src/dns_server/rules.c
++++ b/src/dns_server/rules.c
+@@ -451,7 +451,7 @@
+ 
+ 	if ((request->passthrough == 0 || request->passthrough == 2) && dns_conf.cachesize > 0 &&
+ 		request->check_order_list->orders[0].type != DOMAIN_CHECK_NONE && request->no_serve_expired == 0 &&
+-		request->has_soa == 0 && request->no_cache == 0) {
++		request->conf->dns_serve_expired == 1 && request->has_soa == 0 && request->no_cache == 0) {
+ 		reply_ttl = request->conf->dns_serve_expired_reply_ttl;
+ 		if (reply_ttl < 2) {
+ 			reply_ttl = 2;

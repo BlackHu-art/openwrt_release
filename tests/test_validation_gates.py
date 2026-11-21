@@ -55,6 +55,7 @@ class ValidationGates(unittest.TestCase):
             'wrt_core/xray_core_compat.py',
             'wrt_core/netcontrol_compat.py',
             'wrt_core/smartdns_compat.py', 'wrt_core/kconfig_compat.py',
+            'wrt_core/patches/*-smartdns-*.patch',
             'maintenance/plugins/smartdns/**',
             'wrt_core/quickfile_verify.py', 'wrt_core/check_selected_plugins.py', 'wrt_core/deconfig/**', 'wrt_core/oaf_compat.py', 'wrt_core/theme_compat.py',
             'wrt_core/patches/990_set_argon_primary',

@@ -29,7 +29,17 @@ def snapshot(directory):
 
 
 def expected_recipe(original):
-    return original.replace(
+    core_original = (b"PKG_SOURCE_PROTO:=git\n"
+        b"PKG_SOURCE_URL:=https://www.github.com/pymumu/smartdns.git\n"
+        b"PKG_MIRROR_HASH:=5ef82ea81d5f627f52171e3b487331ecdd270554555cbff3d291590e19f4658d\n"
+        b"PKG_SOURCE_VERSION:=136c0c2690138d6dedd8b520281aafe49112643f\n")
+    core_prepared = (b"PKG_SOURCE_VERSION:=136c0c2690138d6dedd8b520281aafe49112643f\n"
+        b"PKG_SOURCE:=$(PKG_NAME)-$(PKG_SOURCE_VERSION).tar.gz\n"
+        b"PKG_SOURCE_URL:=https://codeload.github.com/pymumu/smartdns/tar.gz\n"
+        b"PKG_SOURCE_URL_FILE:=$(PKG_SOURCE_VERSION)\n"
+        b"PKG_HASH:=fd7bfb126ba15764d89a3a57efbea67602105a7bf394f81b7b5dd81693ddc5cb\n"
+        b"PKG_BUILD_DIR:=$(BUILD_DIR)/$(PKG_NAME)-$(PKG_SOURCE_VERSION)\n")
+    return original.replace(core_original, core_prepared).replace(
         b"\tVERSION:=$(SMARTDNS_WEBUI_SOURCE_VERSION)\n",
         b"\tSOURCE_VERSION:=$(SMARTDNS_WEBUI_SOURCE_VERSION)\n",
     ).replace(
@@ -65,7 +75,7 @@ class SmartdnsCompatibility(unittest.TestCase):
             self.adapter().prepare(self.package)
         self.assertEqual(snapshot(self.package), before)
 
-    def test_changes_only_download_version_field_and_selected_ui_registration(self):
+    def test_pins_canonical_core_archive_and_preserves_conditional_webui_source(self):
         before = snapshot(RAW)
         self.adapter().prepare(self.package)
         self.assertEqual(self.recipe.read_bytes(), expected_recipe(self.original))
@@ -221,7 +231,7 @@ class SmartdnsCompatibility(unittest.TestCase):
     def run_update(self, *, stage=False, drift=False, failure="", local_repository=None,
                    local_commit=""):
         fixture = self.temporary / "clone-fixture"
-        fixture.mkdir()
+        fixture.mkdir(exist_ok=True)
         (fixture / "Makefile").write_bytes(self.original + (b"\n# upstream drift\n" if drift else b""))
         # Execute the real SmartDNS function and stage. Replace only unrelated
         # hooks and remote clone I/O, including the unavailable LuCI repository.
@@ -259,6 +269,10 @@ rm() {
 }
 install() {
     if [ "$TEST_FAILURE" = patch-install ]; then fail_io; return $?; fi
+    if [ "$TEST_FAILURE" = shutdown-patch-install ] && \
+        [ "$2" = "$BASE_PATH/patches/101-smartdns-shutdown-order.patch" ]; then
+        fail_io; return $?
+    fi
     command install "$@"
 }
 sed() {
@@ -339,8 +353,11 @@ exit "$status"
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
         expected = expected_recipe(self.original).replace(b"CC=$(TARGET_CC)", b'CC="$(TARGET_CC_NOCACHE)"')
         self.assertEqual(self.recipe.read_bytes(), expected)
-        self.assertEqual((self.package / "patches/100-smartdns-optimize.patch").read_bytes(),
-                         (ROOT / "wrt_core/patches/100-smartdns-optimize.patch").read_bytes())
+        for name in ("100-smartdns-optimize.patch", "101-smartdns-shutdown-order.patch",
+                     "102-smartdns-dhcp-option.patch", "103-smartdns-serve-expired-no.patch",
+                     "104-smartdns-expired-cache-config.patch"):
+            self.assertEqual((self.package / "patches" / name).read_bytes(),
+                             (ROOT / "wrt_core/patches" / name).read_bytes(), name)
         self.assertTrue((self.build / "luci-clone-reached").is_file())
 
     def test_real_update_stops_before_patch_cc_and_luci_on_unreviewed_recipe(self):
@@ -348,7 +365,16 @@ exit "$status"
         self.assertNotEqual(result.returncode, 0, result.stdout + result.stderr)
         self.assertEqual(self.recipe.read_bytes(), self.original + b"\n# upstream drift\n")
         self.assertFalse((self.package / "patches/100-smartdns-optimize.patch").exists())
+        self.assertFalse((self.package / "patches/101-smartdns-shutdown-order.patch").exists())
         self.assertFalse((self.build / "luci-clone-reached").exists())
+
+    def test_repeated_real_update_installs_identical_reviewed_runtime_patch(self):
+        first = self.run_update()
+        self.assertEqual(first.returncode, 0, first.stdout + first.stderr)
+        before = snapshot(self.package)
+        second = self.run_update()
+        self.assertEqual(second.returncode, 0, second.stdout + second.stderr)
+        self.assertEqual(snapshot(self.package), before)
 
     def test_real_stage_propagates_failure_even_when_called_in_an_if_condition(self):
         result = self.run_update(stage=True, drift=True)
@@ -438,6 +464,10 @@ exit "$status"
 
     def test_real_stage_stops_when_installing_smartdns_patch_fails(self):
         self.assert_stage_io_failure_stops("patch-install", adapted=True, patch=False, cc_changed=False)
+
+    def test_real_stage_stops_when_installing_shutdown_fix_fails(self):
+        self.assert_stage_io_failure_stops("shutdown-patch-install", adapted=True, patch=True, cc_changed=False)
+        self.assertFalse((self.package / "patches/101-smartdns-shutdown-order.patch").exists())
 
     def test_real_stage_stops_when_updating_smartdns_compiler_fails(self):
         self.assert_stage_io_failure_stops("cc-sed", adapted=True, patch=True, cc_changed=False)

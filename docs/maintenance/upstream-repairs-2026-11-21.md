@@ -17,6 +17,8 @@
 | 旧 VIKINGYFY / packages | [ffbc2408](https://github.com/immortalwrt/packages/commit/ffbc2408fccfb5c579363365a8971862a9718fb0) | 固定为 Rust 接口迁移前的兼容 feed，其他底座按原维护分支配套；获取精确提交后才索引。 |
 | Qt5 | [6a3b5fd6](https://github.com/openwrt/video/commit/6a3b5fd6e963f41caa73ef4f691e156d467e2894) | 保留新的依赖/安装修复，并处理新引入的 linuxfb/DRM 父包循环；同时支持维护分支的真实 squeezelite 配方。 |
 | fwknop / GnuPG2 | [上游问题 31215 的作者建议](https://github.com/openwrt/packages/issues/31215#issuecomment-6808924386) | 对精确审查的配方补上 `gnupg2-utils` 的必需运行时自动选择，消除传递依赖环，保留 fwknop 功能开关。建议尚未合并，本项目作为兼容修复采用。 |
+| SmartDNS 下载 | [1db3543c](https://github.com/pymumu/openwrt-smartdns/commit/1db3543cfaa397cd1115b0479416f73062711a63) | 直接获取固定核心提交的 codeload 归档，按 SHA-256 校验。两种底座的原生下载器都核对了 445 个文件，并拒绝错误校验值。 |
+| SmartDNS 运行 | [b6139a1](https://github.com/pymumu/smartdns/commit/b6139a199232140447aff6c4ec111c222ac84993)、[21c940e](https://github.com/pymumu/smartdns/commit/21c940edc65520849ba03544c5cf8d9cf326e680)、[1006f64](https://github.com/pymumu/smartdns/commit/1006f640d50f1e2951e13d3e740813cc76a6739e) | 按依赖顺序清理服务资源，避免退出时崩溃。重复配置主 DNS 时只写入一次同一 DHCP 选项。显式关闭过期缓存时按设置处理缓存和响应有效时间。 |
 | SSR Plus | [67449c65](https://github.com/fw876/helloworld/commit/67449c659329e92d683075962555d602c98978b3)、[e825742c](https://github.com/fw876/helloworld/commit/e825742c1e9267906d5208f080fb3b65d8b300e7)、[6fbc9f56](https://github.com/fw876/helloworld/commit/6fbc9f563c9e7cd3b65061fba13ffc62666066aa) | 外部 runtime selects 仅随父包启用；所有核心获得 coreutils/timeout；保持原核心默认选择，派生 198-r3。 |
 | Xray | [fa29e877](https://github.com/fw876/helloworld/commit/fa29e87710fef1c2eeb7c38bcca62996f0798ef2) | 只在 Naive 启用时精确允许 Cronet 静态库链接标志；保留 26.10.21、十份私有补丁、UPX 复用及 Go 门槛，派生 r4。 |
 | OpenClash 缓存 | [2faa4fab](https://github.com/vernesong/OpenClash/commit/2faa4fabfe1c12899feb1ddc060adda3fa7f2343) | 核心退出后按原运行配置名备份最终 cache.db；超过十秒仍存活时保留旧备份，防止复制半写缓存。 |
@@ -43,7 +45,7 @@ core/feed 所有的插件随对应已锁定的核心/LuCI/软件包来源更新�
 | luci-app-openclash | 外部 small-package 来源仍为 0.48.002；新增两项回移见上表，完整保护文件由 14 增至 15。 |
 | luci-app-ssr-plus | fw876 v198.2 原始输入不变；回移父包选择及通用 timeout 依赖，派生 198-r3。 |
 | luci-app-adguardhome | ZqinKing 上游仍为 36108202，与审查快照一致，无新增运行修复；原直接获取与兼容处理保留。 |
-| luci-app-smartdns | 核心 wrapper 固定 cdf0de1；编译器引号修复已由现有 TARGET_CC_NOCACHE 处理；LuCI 新提交只有版本/翻译。 |
+| luci-app-smartdns | 保留包装来源 cdf0de1、核心 136c0c2 和固定 WebUI。回移核心归档下载及适用的运行修复，编译器引号由现有 TARGET_CC_NOCACHE 处理。 |
 | luci-app-diskman | [lisaac/luci-app-diskman c20df1d4f40d86e32fd919f33122b2a48f8a99b4](https://github.com/lisaac/luci-app-diskman/commit/c20df1d4f40d86e32fd919f33122b2a48f8a99b4)，2026-05-19 — applications/luci-app-diskman，0.2.13-r1；原逻辑已克隆最新并改ntfs3，**无新回移需要**。 |
 | luci-app-dockerman | [lisaac/luci-app-dockerman 6fd9937954e0b080bf07967182d714ea21fe7eb1](https://github.com/lisaac/luci-app-dockerman/commit/6fd9937954e0b080bf07967182d714ea21fe7eb1)，2026-09-21 — applications/luci-app-dockerman，v0.5.26；已包含932c165256f39acfb83da3f4e1bb4d5a9da95b5e events-controller修复。默认克隆机制已包括；保持Docker选择gate，京东云不恢复。 |
 | luci-app-quickfile | [sbwml/luci-app-quickfile ef2ca5d16ad1156539930d8763c3069f6ac4eb12](https://github.com/sbwml/luci-app-quickfile/commit/ef2ca5d16ad1156539930d8763c3069f6ac4eb12)，2026-10-25 — 默认克隆已到2.0.9，Rust源码/安装contract与guard一致。新archive SHA256 f73204997e3a572f05e303be1cfb7bb82a03bd3a2a5052a9b9d3217a00233f3b；仅静态查recipe，未重新下载archive或交叉编译。文档2.0.8是旧核验身份，不表示实际固定。 |
@@ -95,8 +97,8 @@ core/feed 所有的插件随对应已锁定的核心/LuCI/软件包来源更新�
 源码身份、受管 30 单元校验、固定输入行为回归与各修复先失败后通过的证据已分别记录。
 本机 macOS 无 Linux `/proc`、网络命名空间或目标交叉工具链，Linux 专属检查由精确提交 CI 验证。
 
-- `42abb91` 的 [Linux 全量回归 44870567787](https://github.com/BlackHu-art/openwrt_release/actions/runs/44870567787)
-  通过：54 组 Python 测试共 777 项（776 通过、1 项 Windows 专属测试跳过），以及全部 shell 检查。
+- `229ee8b` 的 [Linux 全量回归 44871821569](https://github.com/BlackHu-art/openwrt_release/actions/runs/44871821569)
+  通过：55 组 Python 测试共 787 项（786 通过、1 项 Windows 专属测试跳过），以及全部 shell 检查。
   包括真实 Xray/Mihomo、原生 Kconfig，以及网络命名空间内实际 dnsmasq/nft、9 种 IPv6 模式检查。
 - 独立整分支审查及后续复审完成。发现的本地设备切换、静默索引漏报、SSR 写入回滚、
   配置产物隐藏文件、配置检查缓存和 NPU 下载范围问题均已补回归；清理失败会在重置源码前退出。
@@ -112,5 +114,12 @@ core/feed 所有的插件随对应已锁定的核心/LuCI/软件包来源更新�
 | W1701K / master | [44870602436](https://github.com/BlackHu-art/openwrt_release/actions/runs/44870602436) | 19 |
 | S20M / 24.10 | [44870605379](https://github.com/BlackHu-art/openwrt_release/actions/runs/44870605379) | 15 |
 
-随后仅补稀疏导入中断恢复及 Netcontrol 旧配置保护；最终版本的 Linux 回归、S20M 配置复核和两个
-京东云代表目标完整编译待执行。实机未验证，不将来源/配置检查等同于固件编译成功。
+随后仅补稀疏导入中断恢复及 Netcontrol 旧配置保护，`229ee8b` 的最终 Linux 回归已通过；
+[S20M 配置复核 44871847853](https://github.com/BlackHu-art/openwrt_release/actions/runs/44871847853)
+也已通过，下载产物确认 15 个应用保留、Netcontrol 选中且来源锁不变，日志确认独立首次启动适配已执行。
+两个京东云代表目标的首次完整流程均在 SmartDNS 核心归档下载处失败：
+[ImmortalWrt 44871843193](https://github.com/BlackHu-art/openwrt_release/actions/runs/44871843193)、
+[LiBwrt 44871845589](https://github.com/BlackHu-art/openwrt_release/actions/runs/44871845589)。
+两者均为同一固定提交重新打包后的校验值与旧配方不符。新方案已通过真实下载和内容核对，
+原因、固定归档身份及验证方式见[下载兼容说明](../source-download-compat.md)。
+实机未验证，不将来源/配置检查等同于固件编译成功。
