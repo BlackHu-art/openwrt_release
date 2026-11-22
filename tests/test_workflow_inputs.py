@@ -54,6 +54,18 @@ for workflow in WORKFLOWS:
         assert dimension in key, f"{workflow.name} cache key lost {dimension}"
 
 release_steps = workflow_steps(WORKFLOWS[0])
+release_events = yaml.safe_load(WORKFLOWS[0].read_text(encoding="utf-8"))[True]
+for event in ("workflow_dispatch", "workflow_call"):
+    assert release_events[event]["inputs"].get("skip_cleanup") == {
+        "description": "Preserve existing releases, workflow runs and caches",
+        "type": "boolean",
+        "required": False,
+        "default": False,
+    }, f"{event} must expose the optional release cleanup switch"
+for name in ("Delete Old Cache", "Cleanup Old Releases", "Cleanup Old Workflow Runs"):
+    assert step_named(release_steps, name).get("if") == "${{ !inputs.skip_cleanup }}"
+assert step_named(release_steps, "Release Firmware")["with"].get("target_commitish") == "${{ github.sha }}"
+
 select_index = next(
     index for index, step in enumerate(release_steps) if step.get("name") == "Select Packit Rootfs"
 )

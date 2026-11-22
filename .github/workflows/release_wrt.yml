@@ -36,6 +36,11 @@ on:
         required: false
         description: Remove default config fragments, comma separated
         default: ""
+      skip_cleanup:
+        description: Preserve existing releases, workflow runs and caches
+        type: boolean
+        required: false
+        default: false
   workflow_call:
     inputs:
       model:
@@ -49,6 +54,12 @@ on:
         required: false
         type: string
         default: ""
+
+      skip_cleanup:
+        description: Preserve existing releases, workflow runs and caches
+        type: boolean
+        required: false
+        default: false
 
 permissions:
   actions: write
@@ -173,6 +184,7 @@ jobs:
           echo "KVER=$(grep -oP "^kernel.*" ./firmware/*.manifest | grep -oP "[4-6]\.[0-9]{1,3}\.[0-9]{1,3}")" >> $GITHUB_ENV
 
       - name: Delete Old Cache
+        if: ${{ !inputs.skip_cleanup }}
         run: |
           # 获取缓存列表并删除
           gh cache list --key ${{ matrix.os }}-${{ inputs.model }}-${{ env.REPO_HASH }}- --json key --jq '.[] | .key' | while read -r key; do
@@ -274,6 +286,7 @@ jobs:
         uses: softprops/action-gh-release@v3.0.1
         with:
           tag_name: ${{ inputs.model }}_${{ env.BUILD_DATE }}
+          target_commitish: ${{ github.sha }}
           files: |
             ${{ inputs.model == 'n1_immwrt' && env.PACKAGED_OUTPUTPATH || './firmware' }}/*.*
             ./kmods_*.tar.gz
@@ -281,6 +294,7 @@ jobs:
           body_path: ./release_body.txt
 
       - name: Cleanup Old Releases
+        if: ${{ !inputs.skip_cleanup }}
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
@@ -295,6 +309,7 @@ jobs:
               done
 
       - name: Cleanup Old Workflow Runs
+        if: ${{ !inputs.skip_cleanup }}
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
