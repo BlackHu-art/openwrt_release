@@ -106,6 +106,23 @@ build_miniupnpd_unpacker() {
 
 build_firmware() {
     local jobs=$(($(nproc) + 1))
+    # Route reviewed CodeLinaro repositories through their GitHub mirrors at
+    # the Git transport layer. OpenWrt still uses its pinned revisions, raw
+    # Git archive recipe, and original archive hashes.
+    local repo mirror
+    local codelinaro=https://git.codelinaro.org/clo/qsdk/oss/lklm
+    local -x GIT_CONFIG_COUNT=${GIT_CONFIG_COUNT:-0}
+    if [[ ! $GIT_CONFIG_COUNT =~ ^[0-9]+$ ]]; then
+        echo 'ERROR: GIT_CONFIG_COUNT must be a nonnegative integer.' >&2
+        return 1
+    fi
+    GIT_CONFIG_COUNT=$((10#$GIT_CONFIG_COUNT))
+    for repo in nss-drv nss-dp nss-crypto nss-clients qca-mcs qca-nss-ecm qca-nss-phy qca-ssdk; do
+        mirror="https://github.com/CodeLinaro-mirror/qsdk_oss_lklm_$repo.git"
+        local -x "GIT_CONFIG_KEY_$GIT_CONFIG_COUNT=url.$mirror.insteadOf"
+        local -x "GIT_CONFIG_VALUE_$GIT_CONFIG_COUNT=$codelinaro/$repo.git"
+        GIT_CONFIG_COUNT=$((GIT_CONFIG_COUNT + 1))
+    done
     python "$BUILD_STEPS_CORE_PATH/download_compat.py" . || return $?
     run_build_step download make download "-j$(($(nproc) * 2))" V=s BUILD_LOG=1 || return $?
     # Reject patch drift before starting all the expensive firmware packages.

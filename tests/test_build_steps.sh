@@ -195,4 +195,25 @@ grep -q unusual-failure console.log
     run_build_step blocked bash -c 'touch should-not-run' > console.log 2>&1 || status=$?
     [[ "$status" != 0 && ! -e should-not-run ]]
 )
-echo 'build failure propagation and logging: PASS'
+# Both Make phases must use the reviewed NSS mirrors without changing Git's
+# archive method, inherited options, or any unrelated clone URL.
+(
+    reset_case '# CONFIG_PACKAGE_miniupnpd-nftables is not set'
+    export GIT_CONFIG_COUNT=1 GIT_CONFIG_KEY_0=core.abbrev GIT_CONFIG_VALUE_0=12
+    codelinaro=https://git.codelinaro.org/clo/qsdk/oss/lklm
+    make() {
+        printf '%s\n' "$1" >> mirror-calls
+        [[ $(git config --get core.abbrev) == 12 ]] || return 1
+        local repo expected
+        for repo in nss-drv nss-dp nss-crypto nss-clients qca-mcs qca-nss-ecm qca-nss-phy qca-ssdk; do
+            expected="https://github.com/CodeLinaro-mirror/qsdk_oss_lklm_$repo.git"
+            [[ $(git ls-remote --get-url "$codelinaro/$repo.git") == "$expected" ]] || return 2
+        done
+        [[ $(git ls-remote --get-url "$codelinaro/other.git") == "$codelinaro/other.git" ]]
+    }
+    build_firmware > console.log 2>&1 || { cat console.log >&2; exit 1; }
+    [[ $(cat mirror-calls) == $'download\n-j5' ]]
+    [[ $GIT_CONFIG_COUNT == 1 ]]
+    [[ $(git ls-remote --get-url "$codelinaro/nss-drv.git") == "$codelinaro/nss-drv.git" ]]
+)
+echo 'build failure propagation, logging and NSS source routing: PASS'
